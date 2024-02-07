@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import {
   View,
   Text,
@@ -9,13 +10,101 @@ import {
   ScrollView,
 } from "react-native";
 import { Button as PaperButton } from "react-native-paper";
-import { useNavigation } from "@react-navigation/native"; 
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import bgImg from "../assets/chat-bg.png";
+import { fetchEula } from "../store/reducers/eulaSlice";
+import { memoizedEulaContent } from "../store/selectors";
 
-const AgreementScreen = () => {
+const formateString = (str) => {
+  str = str.replace(/(&#8220;|&#8221;)/g, "\"")
+  return str;
+}
+
+const EulaTagData = ({tag}) => {
+  const tagStyles = () => {
+    let tagStyles = [];
+    if(tag.tag==='h2'){
+      tagStyles = [styles.MainHead];
+    }else if(tag.tag==='h3' || tag.tag==='h4' || tag.tag==='h5' || tag.tag==='h6'){
+      tagStyles = [styles.SubHead];
+    }else if(tag.tag==='p'){
+      tagStyles = [styles.smallText];
+    }
+
+    return tagStyles;
+  }
+
+  return (
+    <>
+      { tag.tag === 'h2' || tag.tag === 'h3' || tag.tag === 'p'
+        ? <Text style={tagStyles()}>
+            {tag.content.constructor.name === 'Array'
+              ? tag?.content.map((item, index2) => (
+                  <React.Fragment key={index2}>
+                    {item.type === 'link'
+                      ? <Text style={styles.blueText} onPress={() => Linking.openURL(item.href)}>{formateString(item.content)}</Text>
+                      : formateString(item.content)
+                    }
+                  </React.Fragment>
+                ))
+              : formateString(tag.content.content)
+            }
+          </Text>
+          : tag.tag === 'ul' || tag.tag === 'ol'
+            ? tag?.content.map((item, index2) => (
+                <Text style={styles.smallText} key={index2}>{`\u2022 `}
+                  {item.content.constructor.name === 'Array'
+                    ? item?.content.map((listItem, index3) => (
+                      <React.Fragment key={index3}>
+                        {listItem.type === 'link'
+                        ? <Text style={styles.blueText} onPress={() => Linking.openURL(item.href)}>{formateString(listItem.content)}</Text>
+                        : formateString(listItem.content)
+                        }
+                      </React.Fragment>
+                    ))
+                    : formateString(item.content)
+                  }
+                </Text>
+              ))
+            : null
+      }
+    </>
+  )
+}
+
+const AgreementScreen = ({ route, navigation }) => {
+  const dispatch = useDispatch();
+  // const [ currentUserID, setCurrentUseData ] = useState(0);
+  // const eulaContent = useSelector(memoizedEulaContent);
+
+  const handleEula = async () => {
+    // let storedEulaConsents = await AsyncStorage.getItem("eula_consent");
+    // storedEulaConsents = JSON.parse(storedEulaConsents);
+    // let updatedEulaConsents = storedEulaConsents?.length > 0 ? [...storedEulaConsents, currentUserID] : [currentUserID];
+    // await AsyncStorage.setItem(
+    //   "eula_consent",
+    //   JSON.stringify(updatedEulaConsents)
+    // );
+    // dispatch(eulaAccept({user_id: currentUserID}));
+    navigation.reset({
+      index: 1,
+      routes: [{ name: "Club" }],
+    });
+  };
+
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       dispatch(fetchEula());
+  //     } catch (error) {
+  //       console.error("Error fetching data:", error);
+  //     }
+  //   };
+
+  //   if( eulaContent==null ) fetchData();
+  // }, [dispatch]);
+
   const [isButtonVisible, setIsButtonVisible] = useState(true);
-  const navigation = useNavigation(); // Get navigation object
 
   const handleAgreement = () => {
     navigation.navigate('Club');
@@ -30,18 +119,45 @@ const AgreementScreen = () => {
       <ImageBackground style={styles.img_top} source={image} resizeMode="cover">
 
         <View style={styles.container}>
-          <View style={styles.backButtonContainer}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.titleContainer}>
-              <Icon name="arrow-left" size={24} color="black" />
-              <Text style={styles.backButtonText}>Back</Text>
-            </TouchableOpacity>
-          </View>
+          {route.params?.onlyView &&
+            <View style={styles.backButtonContainer}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.titleContainer}>
+                <Icon name="arrow-left" size={24} color="black" />
+                <Text style={styles.backButtonText}>Back</Text>
+              </TouchableOpacity>
+            </View>
+          }
           <View style={styles.logoBox}>
             <Image source={require("../assets/logo.png")} style={styles.logo} />
             <Text style={styles.title}>User License Agreement</Text>
           </View>
           <ScrollView style={styles.scrollViewContainer}>
           <View style={styles.card}>
+            {/* {loading
+              ? (
+                <View style={styles.loader}>
+                  <ActivityIndicator size="medium" color="#00c0ff" />
+                </View>
+              ) : <>
+                    <ScrollView style={[styles.scrollView]}>
+                      {eulaContent?.map((tag, index) => (
+                        <React.Fragment key={index}>
+                          <EulaTagData tag={tag} />
+                        </React.Fragment>
+                      ))}
+                    </ScrollView>
+                    { route.params?.onlyView
+                      ? null
+                      : <PaperButton
+                          mode="contained"
+                          style={styles.button}
+                          onPress={handleEula}
+                        >
+                          <Text style={styles.buttonText}>Accept</Text>
+                        </PaperButton>
+                    }
+                  </>
+            } */}
             <View style={styles.cardWrap}>
               <Text style={styles.MainHead}>MOBILE APPLICATION END-USER LICENSE AGREEMENT (EULA)</Text>
               <Text style={styles.smallText}>
@@ -240,6 +356,10 @@ const styles = StyleSheet.create({
     textTransform: "capitalize",
     color: "#fff",
   },
+  blueText: {
+    color: "#00b0ef",
+    textDecorationLine: "underline",
+  },
   input: {
     width: "100%",
     marginBottom: 10,
@@ -283,7 +403,6 @@ const styles = StyleSheet.create({
     flex: 1,
    
   },
- 
   loader: {
     marginTop: 10,
   },

@@ -1,10 +1,12 @@
 import { combineReducers } from "redux";
 import { configureStore } from "@reduxjs/toolkit";
-import resetReducer from "./reducers/resetSlice";
 import authReducer from "./reducers/authSlice";
+import eulaReducer from "./reducers/eulaSlice";
+import resetReducer from "./reducers/resetSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
+  eula: eulaReducer,
   reset: resetReducer
 });
 

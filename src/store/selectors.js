@@ -8,9 +8,14 @@ const selectJsonData = (state) => {
   }
 };
 
-const SelectclubList = (state) => selectJsonData(state.clubList.clubs) || [];
+const selectUserData = (state) => selectJsonData(state.auth.userData) || [];
+const SelectEulaContent = (state) => selectJsonData(state.eula.eulaContent) || [];
 
-export const memoizedSelectclubList = createSelector(
-  [SelectclubList],
-  (clubs) => clubs
+export const memoizedCurrentUserData = createSelector(
+  [selectUserData],
+  (userData) => userData
+);
+export const memoizedEulaContent = createSelector(
+  [SelectEulaContent],
+  (eulaContent) => eulaContent
 );

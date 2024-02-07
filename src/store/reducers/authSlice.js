@@ -79,16 +79,16 @@ export const {
   logoutRequest,
 } = authSlice.actions;
 
-export const fetchUserData = (userId) => async (dispatch) => {
-  try {
-    dispatch(CurrentUserRequest());
-    const response = await axios.get(
-      `${POS_API_URL}/chat_get_user_info?user_id=${userId}&time=${Date.now()}`
-    );
-    dispatch(CurrentUserSuccess(JSON.stringify(response.data)));
-  } catch (error) {
-    dispatch(CurrentUserError());
-  }
-};
+// export const fetchUserData = (userId) => async (dispatch) => {
+//   try {
+//     dispatch(CurrentUserRequest());
+//     const response = await axios.get(
+//       `${POST_API_URL}/pos_get_user_info?user_id=${userId}&time=${Date.now()}`
+//     );
+//     dispatch(CurrentUserSuccess(JSON.stringify(response.data)));
+//   } catch (error) {
+//     dispatch(CurrentUserError());
+//   }
+// };
 
 export default authSlice.reducer;
