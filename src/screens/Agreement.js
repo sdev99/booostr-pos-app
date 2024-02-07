@@ -5,9 +5,7 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-  TextInput,
   ImageBackground,
-  Linking,
   ScrollView,
 } from "react-native";
 import { Button as PaperButton } from "react-native-paper";

@@ -4,21 +4,50 @@ import {
   Text,
   StyleSheet,
   Image,
-  TouchableOpacity,
   TextInput,
   ImageBackground,
-  Linking,
   ActivityIndicator,
 } from "react-native";
 import { Button as PaperButton } from "react-native-paper";
+import { useSelector, useDispatch } from "react-redux";
 import bgImg from "../assets/chat-bg.png";
+import { login } from "../actions/auth";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  const loading = useSelector((state) => state.auth.loading);
+  const dispatch = useDispatch();
   const handleLogin = () => {
-    navigation.navigate('Agrement');
+    if (!email || !password) {
+      // Check if email or password is empty
+      alert("Please enter both email/username and password.");
+      return;
+    }
+
+    if (!email) {
+      // Check if email is empty
+      alert("Please enter your email or username.");
+      return;
+    }
+
+    if (!password) {
+      // Check if password is empty
+      alert("Please enter your password.");
+      return;
+    }
+
+    let user = {
+      username: email,
+      password: password,
+    };
+    dispatch(login(user))
+      .then((response) => {
+        if (response.status == "success") {
+          navigation.navigate("Agrement");
+        }
+      })
+      .catch((error) => {});
   };
 
   const imgProps = Image.resolveAssetSource(bgImg).uri;
@@ -50,13 +79,19 @@ const LoginScreen = ({ navigation }) => {
               onChangeText={(text) => setPassword(text)}
               value={password}
             />
-            <PaperButton
-              mode="contained"
-              style={styles.button}
-              onPress={handleLogin}
-            >
-              <Text style={styles.buttonText}>Login</Text>
-            </PaperButton>
+            {loading ? (
+              <View style={styles.loader}>
+                <ActivityIndicator size="medium" color="#00c0ff" />
+              </View>
+            ) : (
+              <PaperButton
+                mode="contained"
+                style={styles.button}
+                onPress={handleLogin}
+              >
+                <Text style={styles.buttonText}>Login</Text>
+              </PaperButton>
+            )}
           </View>
           <View style={styles.BottomText}>
             <Text style={[styles.smallText, styles.ForWidth]}>

@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { ActivityIndicator } from "react-native-paper";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import LoginScreen from './src/screens/LoginScreen';
 import OrdersScreen from './src/screens/OrdersScreen';
 import CartScreen from './src/screens/CartScreen';
@@ -21,11 +23,37 @@ import CashReceiptScreen from './src/screens/CashReceiptScreen';
 const Stack = createNativeStackNavigator();
 
 const App = () => {
+  const [loading, setLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn ] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const storedUserId = await AsyncStorage.getItem("user_id");
+      if (storedUserId) setIsLoggedIn(true);
+      setLoading(false);
+    };
+
+    fetchData(); // Call the async function
+    
+  }, []);
+
+  if ( loading && !isLoggedIn )
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <ActivityIndicator size="large" color="#00c0ff" />
+      </View>
+    );
   return (
     <SafeAreaProvider>
       <View style={styles.container}>
         <NavigationContainer>
-          <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
+          <Stack.Navigator initialRouteName={isLoggedIn ? "Agrement" : "Login"} screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Agrement" component={AgreementScreen} />
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Club" component={ClubList} />

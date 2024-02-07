@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "MyPos",
-    "slug": "MyPos",
+    "name": "Booostr POS",
+    "slug": "booostr-pos-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,23 +15,20 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.devavology.MyPos"
+      "bundleIdentifier": "com.booostr.pos",
+      "buildNumber": "1",
+      "supportsTablet": true
     },
     "android": {
+      "package": "Booster.chat.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#00c0ff"
-      },
-      "package": "com.devavology.MyPos"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "baa52014-2288-43b5-8de6-e402e737384f"
-      }
     }
   }
 }
