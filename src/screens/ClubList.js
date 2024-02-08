@@ -33,13 +33,12 @@ const ClubList = ({ navigation }) => {
   ]);
 
   const dispatch = useDispatch();
-  const clubList2 = useSelector((state)=> state.clubList.clubList);
+  const clubList = useSelector(memoizedClubList);
   const loading = useSelector((state) => state.clubList.loading);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSearchBarVisible, setIsSearchBarVisible] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  console.log(clubList2);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -76,7 +75,7 @@ const ClubList = ({ navigation }) => {
     setSearchTerm(newSearchTerm);
   };
 
-  const filteredClubs = clubList2?.filter((item) =>
+  const filteredClubs = clubList?.filter((item) =>
     item.post_title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -116,7 +115,7 @@ const ClubList = ({ navigation }) => {
             <ActivityIndicator size="large" color="#00c0ff" />
           </View>
         : <View style={styles.clubListContainer}>
-            {clubList2?.length > 0 ? (
+            {clubList?.length > 0 ? (
               <SectionList
                 sections={[
                   {

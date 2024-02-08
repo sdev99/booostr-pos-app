@@ -138,7 +138,7 @@ const AgreementScreen = ({ route, navigation }) => {
                 </View>
               ) : <>
                     <ScrollView style={[styles.scrollView]}>
-                      {JSON.parse(eulaContent)?.map((tag, index) => (
+                      {eulaContent?.map((tag, index) => (
                         <React.Fragment key={index}>
                           <EulaTagData tag={tag} />
                         </React.Fragment>

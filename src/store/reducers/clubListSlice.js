@@ -1,11 +1,10 @@
 import { createSlice } from "@reduxjs/toolkit";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { resetAllStates } from "./resetSlice";
 import { POS_API_URL } from "../../config";
 
 const initialState = {
-  clubList: [],
+  clubList: '',
   loading: false,
   error: false,
 };
@@ -53,7 +52,6 @@ export const fetchClubList = (user) => async (dispatch) => {
     const response = await axios.get(
       `${POS_API_URL}/get-club-list?user_id=${user}&time=${Date.now()}`
     );
-    console.log(response?.data);
     if( response?.data?.clubs ){
       dispatch(fetchClubListSuccess(JSON.stringify(response.data.clubs)));
     }else{
@@ -61,7 +59,7 @@ export const fetchClubList = (user) => async (dispatch) => {
     }
   } catch (error) {
     dispatch(fetchClubListError());
-    console.log(error);
+    // console.log(error);
   }
 };
 
