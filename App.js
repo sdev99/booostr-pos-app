@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSelector, useDispatch } from "react-redux";
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
@@ -6,6 +7,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator } from "react-native-paper";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import LoginScreen from './src/screens/LoginScreen';
+import { fetchEulaUpdate, fetchEula } from './src/store/reducers/eulaSlice';
 import OrdersScreen from './src/screens/OrdersScreen';
 import CartScreen from './src/screens/CartScreen';
 import CheckoutScreen from './src/screens/CheckoutScreen';
@@ -23,21 +25,28 @@ import CashReceiptScreen from './src/screens/CashReceiptScreen';
 const Stack = createNativeStackNavigator();
 
 const App = () => {
+  const dispatch = useDispatch();
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn ] = useState(false);
-
+  const isEula = useSelector((state) => state.eula.eulaConsent);
+  const isEulaLoading = useSelector((state) => state.eula.loading);
+  // AsyncStorage.clear();
+  
   useEffect(() => {
     const fetchData = async () => {
-      const storedUserId = await AsyncStorage.getItem("user_id");
-      if (storedUserId) setIsLoggedIn(true);
+      const storedUserId = parseInt(JSON.parse(await AsyncStorage.getItem("user_id")));
+      if (storedUserId){
+        setIsLoggedIn(true);
+        dispatch(fetchEulaUpdate(storedUserId));
+      }
       setLoading(false);
     };
 
     fetchData(); // Call the async function
     
-  }, []);
+  }, [dispatch]);
 
-  if ( loading && !isLoggedIn )
+  if ( (loading && !isLoggedIn) || (isLoggedIn && isEulaLoading) )
     return (
       <View
         style={{
@@ -53,7 +62,7 @@ const App = () => {
     <SafeAreaProvider>
       <View style={styles.container}>
         <NavigationContainer>
-          <Stack.Navigator initialRouteName={isLoggedIn ? "Agrement" : "Login"} screenOptions={{ headerShown: false }}>
+          <Stack.Navigator initialRouteName={isLoggedIn && isEula ? "Club" : isLoggedIn && !isEula ? "Agrement" : "Login"} screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Agrement" component={AgreementScreen} />
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Club" component={ClubList} />

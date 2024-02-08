@@ -5,7 +5,8 @@ import { resetAllStates } from "./resetSlice";
 import { POS_API_URL } from "../../config";
 
 const initialState = {
-  eulaContent: null,
+  eulaContent: '',
+  eulaContentLoading: true,
   eulaConsent: false,
   loading: true,
   error: false,
@@ -15,16 +16,28 @@ const eulaSlice = createSlice({
   name: "eula",
   initialState,
   reducers: {
-    getEula: (state) => {
+    fetchEulaStart: (state) => {
+      state.eulaContentLoading = true;
+      state.error = false;
+    },
+    fetchEulaSuccess: (state, action) => {
+      state.eulaContent = action.payload;
+      state.eulaContentLoading = false;
+      state.error = false;
+    },
+    fetchEulaError: (state) => {
+      state.eulaContentLoading = false;
+      state.error = true;
+    },
+    fetchEulaUpdateStart: (state) => {
       state.loading = true;
       state.error = false;
     },
-    getEulaSuccess: (state, action) => {
-      state.eulaContent = action.payload;
+    fetchEulaUpdateSuccess: (state) => {
       state.loading = false;
       state.error = false;
     },
-    getEulaError: (state) => {
+    fetchEulaUpdateError: (state) => {
       state.loading = false;
       state.error = true;
     },
@@ -47,38 +60,49 @@ const eulaSlice = createSlice({
 });
 
 export const {
-  getEula,
-  getEulaSuccess,
-  getEulaError,
+  fetchEulaStart,
+  fetchEulaSuccess,
+  fetchEulaError,
+  fetchEulaUpdateStart,
+  fetchEulaUpdateSuccess,
+  fetchEulaUpdateError,
   eulaConsent,
   resetEulaConsent,
 } = eulaSlice.actions;
 
 export const fetchEula = () => async (dispatch) => {
   try {
+    dispatch(fetchEulaStart());
     const response = await axios.get(
       `${POS_API_URL}/pos-get-eula?time=${Date.now()}`
     );
     if( response?.data?.data?.data ){
-      dispatch(getEulaSuccess(JSON.stringify(response.data.data.data)));
+      dispatch(fetchEulaSuccess(JSON.stringify(response.data.data.data)));
     }else{
-      dispatch(getEulaError());
+      dispatch(fetchEulaError());
     }
   } catch (error) {
+    dispatch(fetchEulaError());
     // console.log(error);
   }
 };
 
 export const fetchEulaUpdate = (userId) => async (dispatch) => {
   try {
+    dispatch(fetchEulaUpdateStart());
     const response = await axios.get(
       `${POS_API_URL}/pos-eula-check-update?user_id=${userId}&time=${Date.now()}`
     );
-    if( response?.data?.data?.eula_updated ){
+    const storedEulaConsents = await AsyncStorage.getItem("eula_consent");
+    let storedEulaConsentsParsed = storedEulaConsents ? JSON.parse(storedEulaConsents) : false;
+
+    if( response?.data?.data?.eula_updated || !storedEulaConsentsParsed.includes(userId) ){
       dispatch(resetEulaConsent());
     }else{
+      dispatch(fetchEulaUpdateSuccess());
       dispatch(eulaConsent());
     }
+    dispatch(fetchEulaUpdateError());
   } catch (error) {
     // console.log(error);
   }
@@ -89,14 +113,6 @@ export const eulaAccept = (payload) => async (dispatch) => {
     const response = await axios.post(
       `${POS_API_URL}/pos-eula-accept?time=${Date.now()}`,
       payload
-    );
-    
-    let storedEulaConsents = await AsyncStorage.getItem("eula_consent");
-    storedEulaConsents = JSON.parse(storedEulaConsents);
-    let updatedEulaConsents = storedEulaConsents?.length > 0 ? [...storedEulaConsents, CurrentUserID] : [CurrentUserID];
-    await AsyncStorage.setItem(
-      "eula_consent",
-      JSON.stringify(updatedEulaConsents)
     );
 
     dispatch(eulaConsent());

@@ -7,6 +7,7 @@ import {
 } from "../store/reducers/authSlice";
 
 import AuthService from "../api/auth";
+import { fetchEula, fetchEulaUpdate } from "../store/reducers/eulaSlice";
 
 export const login = (user) => (dispatch) => {
   dispatch(loginRequest());
@@ -16,6 +17,7 @@ export const login = (user) => (dispatch) => {
         if (response.status === "success") {
           let userdata = response.userdata;
           dispatch(loginSuccess(userdata));
+          dispatch(fetchEulaUpdate(parseInt(JSON.parse(userdata)?.post_author)));
           Promise.resolve();
           return response;
         }
