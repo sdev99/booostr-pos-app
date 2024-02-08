@@ -34,10 +34,10 @@ const App = () => {
   
   useEffect(() => {
     const fetchData = async () => {
-      const storedUserId = parseInt(JSON.parse(await AsyncStorage.getItem("user_id")));
+      const storedUserId = await AsyncStorage.getItem("user_id");
       if (storedUserId){
         setIsLoggedIn(true);
-        dispatch(fetchEulaUpdate(storedUserId));
+        dispatch(fetchEulaUpdate(parseInt(JSON.parse(storedUserId))));
       }
       setLoading(false);
     };

@@ -74,7 +74,7 @@ export const fetchEula = () => async (dispatch) => {
   try {
     dispatch(fetchEulaStart());
     const response = await axios.get(
-      `${POS_API_URL}/pos-get-eula?time=${Date.now()}`
+      `${POS_API_URL}/get-eula?time=${Date.now()}`
     );
     if( response?.data?.data?.data ){
       dispatch(fetchEulaSuccess(JSON.stringify(response.data.data.data)));
@@ -91,10 +91,10 @@ export const fetchEulaUpdate = (userId) => async (dispatch) => {
   try {
     dispatch(fetchEulaUpdateStart());
     const response = await axios.get(
-      `${POS_API_URL}/pos-eula-check-update?user_id=${userId}&time=${Date.now()}`
+      `${POS_API_URL}/eula-check-update?user_id=${userId}&time=${Date.now()}`
     );
     const storedEulaConsents = await AsyncStorage.getItem("eula_consent");
-    let storedEulaConsentsParsed = storedEulaConsents ? JSON.parse(storedEulaConsents) : false;
+    let storedEulaConsentsParsed = storedEulaConsents ? JSON.parse(storedEulaConsents) : [];
 
     if( response?.data?.data?.eula_updated || !storedEulaConsentsParsed.includes(userId) ){
       dispatch(resetEulaConsent());
@@ -111,7 +111,7 @@ export const fetchEulaUpdate = (userId) => async (dispatch) => {
 export const eulaAccept = (payload) => async (dispatch) => {
   try {
     const response = await axios.post(
-      `${POS_API_URL}/pos-eula-accept?time=${Date.now()}`,
+      `${POS_API_URL}/eula-accept?time=${Date.now()}`,
       payload
     );
 

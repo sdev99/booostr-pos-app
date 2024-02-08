@@ -83,14 +83,14 @@ const AgreementScreen = ({ route, navigation }) => {
     const storedUserId = parseInt(JSON.parse(await AsyncStorage.getItem("user_id")));
 
     let storedEulaConsents = await AsyncStorage.getItem("eula_consent");
-    storedEulaConsents = JSON.parse(storedEulaConsents);
+    storedEulaConsents = storedEulaConsents ? JSON.parse(storedEulaConsents) : [];
     let updatedEulaConsents = storedEulaConsents?.length > 0 && !storedEulaConsents.includes(storedUserId) ? [...storedEulaConsents, storedUserId] : [storedUserId];
     await AsyncStorage.setItem(
       "eula_consent",
       JSON.stringify(updatedEulaConsents)
     );
 
-    dispatch(eulaAccept({user_id: parseInt(JSON.parse(storedUserId))}));
+    dispatch(eulaAccept({user_id: storedUserId}));
     navigation.reset({
       index: 1,
       routes: [{ name: "Club" }],

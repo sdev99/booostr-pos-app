@@ -9,6 +9,11 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchClubList } from "../store/reducers/clubListSlice";
+import { memoizedClubList } from "../store/selectors";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 
 const ClubList = ({ navigation }) => {
   const [clubs, setClubs] = useState([
@@ -27,9 +32,31 @@ const ClubList = ({ navigation }) => {
  
   ]);
 
+  const dispatch = useDispatch();
+  const clubList2 = useSelector((state)=> state.clubList.clubList);
+  const loading = useSelector((state) => state.clubList.loading);
+
   const [isLoading, setIsLoading] = useState(false);
   const [isSearchBarVisible, setIsSearchBarVisible] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  console.log(clubList2);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchData = async () => {
+        try {
+          const storedUserId = parseInt(JSON.parse(await AsyncStorage.getItem("user_id")));
+          if (storedUserId) {
+            dispatch(fetchClubList(storedUserId));
+          }
+        } catch (error) {
+          console.error("Error fetching data:", error);
+        }
+      };
+
+      fetchData();
+    }, [])
+  );
 
   const handleClubClick = async (club) => {
     try {
@@ -49,7 +76,7 @@ const ClubList = ({ navigation }) => {
     setSearchTerm(newSearchTerm);
   };
 
-  const filteredClubs = clubs.filter((item) =>
+  const filteredClubs = clubList2?.filter((item) =>
     item.post_title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -73,14 +100,6 @@ const ClubList = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/*<View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.wrapText}>
-            Choose a club you support or manage to join a Pos.
-          </Text>
-        </View>
-        <View style={styles.headerRight}></View>
-      </View>*/}
       <View style={styles.titleContainer}>
         <Text style={styles.title}>Club List</Text>
       </View>
@@ -92,27 +111,26 @@ const ClubList = ({ navigation }) => {
         </View>
         <View style={styles.headerRight}></View>
       </View>
-      {isSearchBarVisible && <View style={styles.searchBarSpace} />}
-      <View style={styles.clubListContainer}>
-        {clubs.length > 0 ? (
-          <SectionList
-            sections={[
-              {
-                data: filteredClubs,
-              },
-            ]}
-            renderItem={renderItem}
-            keyExtractor={(item) => item.post_id}
-          />
-        ) : (
-          <Text style={styles.notFound}>No clubs found.</Text>
-        )}
-      </View>
-      {isLoading && (
-        <View style={styles.containerLoader}>
-          <ActivityIndicator size="large" color="#00c0ff" />
-        </View>
-      )}
+      {loading
+        ? <View style={styles.containerLoader}>
+            <ActivityIndicator size="large" color="#00c0ff" />
+          </View>
+        : <View style={styles.clubListContainer}>
+            {clubList2?.length > 0 ? (
+              <SectionList
+                sections={[
+                  {
+                    data: filteredClubs,
+                  },
+                ]}
+                renderItem={renderItem}
+                keyExtractor={(item) => item.post_id}
+              />
+            ) : (
+              <Text style={styles.notFound}>No clubs found.</Text>
+            )}
+          </View>
+      }
     </View>
   );
 };
