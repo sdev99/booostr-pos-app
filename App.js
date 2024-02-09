@@ -31,7 +31,7 @@ const App = () => {
   const isLoggedIn = useSelector((state) => state.auth.isLoggedIn);
   const isEula = useSelector((state) => state.eula.eulaConsent);
   const isEulaLoading = useSelector((state) => state.eula.loading);
-  const [club, setClub] = useState([]);
+  const [club, setClub] = useState(null);
   const [isClubLoading, setIsClubLoading] = useState(true);
   // AsyncStorage.clear();
   // AsyncStorage.removeItem('eula_consent');

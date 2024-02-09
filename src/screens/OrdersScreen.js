@@ -1,10 +1,46 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image,Modal } from "react-native";
 import { Button as PaperButton } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ActivityIndicator } from "react-native-paper";
+import { memoizedProductCategoryList, memoizedProductList } from "../store/selectors";
+import { fetchProductCategoryList } from "../store/reducers/productCategorySlice";
 import Header from './Header';
 
 const OrdersScreen = ({ navigation }) => {
+    const dispatch = useDispatch();
+    const [club, setClub] = useState([]);
+    const [isClubLoading, setIsClubLoading] = useState(true);
+    const productCategoryListWithoutAll = useSelector(memoizedProductCategoryList);
+    const productCategoryList = [{id:1, name:'All'}, ...productCategoryListWithoutAll];
+    const isProductCategoryLoading = useSelector((state) => state.productCategoryList.loading);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const club = await AsyncStorage.getItem("club");
+                if( club ){
+                    setClub(JSON.parse(club));
+                    dispatch(fetchProductCategoryList(JSON.parse(club).post_slug))
+                    .then(() => {
+                        setSelectedCategory(productCategoryList[0].id);
+                    })
+                    .catch((error) => {
+                        console.error("Error sending message:", error);
+                    });
+                }
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            } finally {
+                setIsClubLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+  
     const [isCancelModalVisible, setCancelModalVisible] = useState(false);
     const [categories, setCategories] = useState([
         { id: 1, name: "Mens", image: require("../assets/meals.png") },
@@ -20,7 +56,7 @@ const OrdersScreen = ({ navigation }) => {
     ]);
 
     const [products, setProducts] = useState([
-        { id: 101, name: "Roadster", category: 1, price: 10.99, image: require("../assets/burger_img.png") },
+        { id: 101, name: "Roadster", category: 0, price: 10.99, image: require("../assets/burger_img.png") },
         { id: 102_1, name: "FBAR", category: 1, price: 11.99, image: require("../assets/burger_img-02.png") },
         { id: 103, name: "CHKOKKO", category: 1, price: 12.99, image: require("../assets/burger_img-01.png") },
         { id: 104, name: "HRX by Hrithik Roshan", category: 1, price: 13.99, image: require("../assets/burger_img-03.png") },
@@ -42,10 +78,10 @@ const OrdersScreen = ({ navigation }) => {
     const [cart, setCart] = useState([]);
     
 
-    useEffect(() => {
-        // Set the first category as active when the component mounts
-        setSelectedCategory(categories[0].id);
-    }, []);
+    // useEffect(() => {
+    //     // Set the first category as active when the component mounts
+    //     setSelectedCategory(categories[0].id);
+    // }, []);
 
     const handleAddToCart = (product) => {
         setCart([...cart, product]);
@@ -99,13 +135,13 @@ const OrdersScreen = ({ navigation }) => {
                 scrollToCategory(item.id);
             }}
         >
-            <Image
+            {/* <Image
                 source={item.image}
                 style={[
                     styles.categoryImage,
                     selectedCategory === item.id && styles.selectedCategoryImage,
                 ]}
-            />
+            /> */}
             <Text style={selectedCategory === item.id ? styles.selectedCategoryText : styles.categoryName}>
                 {item.name}
             </Text>
@@ -132,7 +168,7 @@ const OrdersScreen = ({ navigation }) => {
     );
 
     const scrollToCategory = (categoryId) => {
-        const index = categories.findIndex((category) => category.id === categoryId);
+        const index = productCategoryList.findIndex((category) => category.id === categoryId);
         flatListRef.current.scrollToIndex({
             animated: true,
             index,
@@ -158,14 +194,20 @@ const OrdersScreen = ({ navigation }) => {
       };
 
       return (
-        <View style={styles.container}>
-            <Header clubName="Hello Tester Club" onLogout={handleLogout} />
+        isClubLoading || isProductCategoryLoading
+        ? <View style={styles.loaderContainer}>
+            <View style={styles.loader}>
+              <ActivityIndicator size="medium" color="#00c0ff" />
+            </View>
+          </View>
+        : <View style={styles.container}>
+            <Header clubName={club?.post_title} onLogout={handleLogout} />
             <View style={styles.titleContainer}>
                 <View style={styles.titleLeft}>
                     <TouchableOpacity onPress={() => navigation.goBack()}>
                         <Icon name="arrow-left" size={24} color="black" />
                     </TouchableOpacity>
-                    <Text style={styles.title}> New Order</Text>
+                    <Text style={styles.title}>New Order</Text>
                 </View>
                 <View style={styles.titleRight}>
                     <TouchableOpacity onPress={() => setCancelModalVisible(true)}>
@@ -176,9 +218,9 @@ const OrdersScreen = ({ navigation }) => {
             <View style={styles.categoryContainer}>
                 <FlatList
                     ref={flatListRef}
-                    data={categories}
+                    data={productCategoryList}
                     renderItem={renderCategoryItem}
-                    keyExtractor={(category) => category.id.toString()}
+                    keyExtractor={(category) => category.id}
                     horizontal
                     showsHorizontalScrollIndicator={false}
                 />
@@ -458,6 +500,13 @@ const styles = StyleSheet.create({
       modalButtonText: {
         color: "#FFF",
         fontWeight: "bold",
+      },
+      loaderContainer: {
+        flex: 1,
+        justifyContent:'center',
+        alignItems:'center',
+        paddingTop:80,
+        paddingBottom:40,
       },
 });
 
