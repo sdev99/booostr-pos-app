@@ -36,8 +36,9 @@ const logOut = async (CurrentUserID) => {
     // const response = await axios.post(`${POS_API_URL}/logout`, {
     //   user_id: CurrentUserID,
     // });
-    AsyncStorage.clear();
-    // AsyncStorage.removeItem("user_id");
+    // AsyncStorage.clear();
+    AsyncStorage.removeItem("user_id");
+    AsyncStorage.removeItem("club");
     return {
       status: "success",
       message: "You are logged out",

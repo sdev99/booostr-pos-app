@@ -8,10 +8,14 @@ const selectJsonData = (state) => {
   }
 };
 
-// const selectUserData = (state) => selectJsonData(state.auth.userData) || [];
+const selectUserData = (state) => state.auth.userData || '';
 const selectEulaContent = (state) => state.eula.eulaContent || '';
 const selectClubList = (state) => state.clubList.clubList || '';
 
+export const memoizedUserData = createSelector(
+  [selectUserData],
+  (userData) => { return selectJsonData(userData)}
+);
 export const memoizedEulaContent = createSelector(
   [selectEulaContent],
   (eulaContent) => { return selectJsonData(eulaContent)}

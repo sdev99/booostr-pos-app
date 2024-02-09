@@ -1,6 +1,9 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, Modal } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, Modal, ActivityIndicator } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { useSelector, useDispatch } from "react-redux";
+import { logout } from "../actions/auth";
+import { memoizedUserData } from "../store/selectors";
 import Header from './Header';
 import BottomBar from './BottomBar';
 
@@ -28,11 +31,20 @@ const CustomModal = ({ isVisible, onClose, title, content }) => {
 };
 
 const SettingsScreen = ({ navigation }) => {
+  const dispatch = useDispatch();
   const [isAccountModalVisible, setAccountModalVisible] = useState(false);
-  const userData = { userName: "John Doe", emailAddress: "john@example.com" };
+  const loading = useSelector((state) => state.auth.loading);
+  const userData = useSelector(memoizedUserData);
 
   const handleLogout = () => {
-    navigation.navigate("Login");
+    dispatch(logout(userData.user_id)).then((response) => {
+      if (response.status === "success") {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Login" }],
+        });
+      }
+    });
   };
 
   const handleHelpAndSupport = () => {
@@ -44,7 +56,7 @@ const SettingsScreen = ({ navigation }) => {
     setAccountModalVisible(!isAccountModalVisible);
   };
   const handleAgreementSupport = () => {
-    navigation.navigate("Agrement");
+    navigation.navigate("Agrement", {onlyView:true});
   };
 
   return (
@@ -56,35 +68,41 @@ const SettingsScreen = ({ navigation }) => {
         </TouchableOpacity>
         <Text style={styles.title}>Settings</Text>
       </View>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.settingsWrap}>
-          <View style={styles.allItems}>
-            <TouchableOpacity style={styles.settingItem} onPress={toggleAccountModal}>
-              <Icon name="account" size={24} color="#000" style={styles.settingIcon} />
-              <Text style={styles.settingTitle}>Account</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.settingItem} onPress={handleHelpAndSupport}>
-              <Icon name="help-circle" size={24} color="#000" style={styles.settingIcon} />
-              <Text style={styles.settingTitle}>Help and Support</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.settingItem} onPress={handleAgreementSupport}>
-              <Icon name="help-circle" size={24} color="#000" style={styles.settingIcon} />
-              <Text style={styles.settingTitle}>End-user License Agreement</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.settingItem} onPress={handleLogout}>
-              <Icon name="logout" size={24} color="#000" style={styles.settingIcon} />
-              <Text style={styles.settingTitle}>Logout</Text>
-            </TouchableOpacity>
+
+      {loading
+        ? <View style={styles.containerLoader}>
+            <ActivityIndicator size="medium" color="#00c0ff" />
           </View>
-        </View>
-      </ScrollView>
+        : <ScrollView style={styles.scrollView}>
+            <View style={styles.settingsWrap}>
+              <View style={styles.allItems}>
+                <TouchableOpacity style={styles.settingItem} onPress={toggleAccountModal}>
+                  <Icon name="account" size={24} color="#000" style={styles.settingIcon} />
+                  <Text style={styles.settingTitle}>Account</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.settingItem} onPress={handleHelpAndSupport}>
+                  <Icon name="help-circle" size={24} color="#000" style={styles.settingIcon} />
+                  <Text style={styles.settingTitle}>Help and Support</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.settingItem} onPress={handleAgreementSupport}>
+                  <Icon name="help-circle" size={24} color="#000" style={styles.settingIcon} />
+                  <Text style={styles.settingTitle}>End-user License Agreement</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.settingItem} onPress={handleLogout}>
+                  <Icon name="logout" size={24} color="#000" style={styles.settingIcon} />
+                  <Text style={styles.settingTitle}>Logout</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+      }
 
       {/* Account Modal */}
       <CustomModal
         isVisible={isAccountModalVisible}
         onClose={toggleAccountModal}
         title="Account Information"
-        content={`User Name: ${userData.userName}\nEmail Address: ${userData.emailAddress}`}
+        content={`User Name: ${userData?.first_name} ${userData?.last_name}\nEmail Address: ${userData.user_email}`}
       />
 
       <View style={styles.bottomBar}>
@@ -170,6 +188,11 @@ const styles = StyleSheet.create({
   modalCloseButtonText: {
     color: "white",
     fontWeight: "bold",
+  },
+  containerLoader: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 

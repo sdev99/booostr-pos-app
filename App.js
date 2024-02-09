@@ -7,7 +7,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator } from "react-native-paper";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import LoginScreen from './src/screens/LoginScreen';
-import { fetchEulaUpdate, fetchEula } from './src/store/reducers/eulaSlice';
+import { fetchUserData } from './src/store/reducers/authSlice';
+import { fetchEulaUpdate } from './src/store/reducers/eulaSlice';
 import OrdersScreen from './src/screens/OrdersScreen';
 import CartScreen from './src/screens/CartScreen';
 import CheckoutScreen from './src/screens/CheckoutScreen';
@@ -26,27 +27,44 @@ const Stack = createNativeStackNavigator();
 
 const App = () => {
   const dispatch = useDispatch();
-  const [loading, setLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn ] = useState(false);
+  const loading = useSelector((state) => state.auth.loading);
+  const isLoggedIn = useSelector((state) => state.auth.isLoggedIn);
   const isEula = useSelector((state) => state.eula.eulaConsent);
   const isEulaLoading = useSelector((state) => state.eula.loading);
+  const [club, setClub] = useState([]);
+  const [isClubLoading, setIsClubLoading] = useState(true);
   // AsyncStorage.clear();
+  // AsyncStorage.removeItem('eula_consent');
   
   useEffect(() => {
     const fetchData = async () => {
       const storedUserId = await AsyncStorage.getItem("user_id");
       if (storedUserId){
-        setIsLoggedIn(true);
+        dispatch(fetchUserData(parseInt(JSON.parse(storedUserId))));
         dispatch(fetchEulaUpdate(parseInt(JSON.parse(storedUserId))));
       }
-      setLoading(false);
     };
 
     fetchData(); // Call the async function
     
   }, [dispatch]);
 
-  if ( (loading && !isLoggedIn) || (isLoggedIn && isEulaLoading) )
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const club = await AsyncStorage.getItem("club");
+        if( club ) setClub(JSON.parse(club));
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setIsClubLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if ( (loading && !isLoggedIn) || (isLoggedIn && isEulaLoading) || isClubLoading )
     return (
       <View
         style={{
@@ -62,7 +80,7 @@ const App = () => {
     <SafeAreaProvider>
       <View style={styles.container}>
         <NavigationContainer>
-          <Stack.Navigator initialRouteName={isLoggedIn && isEula ? "Club" : isLoggedIn && !isEula ? "Agrement" : "Login"} screenOptions={{ headerShown: false }}>
+          <Stack.Navigator initialRouteName={isLoggedIn && isEula && club ? "Dashboard" : isLoggedIn && isEula ? "Club" : isLoggedIn && !isEula ? "Agrement" : "Login"} screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Agrement" component={AgreementScreen} />
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Club" component={ClubList} />

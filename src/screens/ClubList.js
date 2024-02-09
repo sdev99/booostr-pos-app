@@ -11,45 +11,26 @@ import {
 } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchClubList } from "../store/reducers/clubListSlice";
-import { memoizedClubList } from "../store/selectors";
+import { memoizedClubList, memoizedUserData } from "../store/selectors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 
 const ClubList = ({ navigation }) => {
-  const [clubs, setClubs] = useState([
-    { post_id: "1", post_title: "Test submit club 01", role: "manager" },
-    { post_id: "2", post_title: "Test submit club 02", role: "support" },
-    { post_id: "3", post_title: "Test submit club 03", role: "manager" },
-    { post_id: "4", post_title: "Test submit club 04", role: "support" },
-    { post_id: "5", post_title: "Test submit club 05", role: "manager" },
-    { post_id: "6", post_title: "Test submit club 06", role: "support" },
-    { post_id: "7", post_title: "Test submit club 07", role: "manager" },
-    { post_id: "8", post_title: "Test submit club 08", role: "support" },
-    { post_id: "9", post_title: "Test submit club 09", role: "support" },
-    { post_id: "10", post_title: "Test submit club 10", role: "manager" },
-    { post_id: "11", post_title: "Test submit club 11", role: "manager" },
-    { post_id: "12", post_title: "Test submit club 12", role: "manager" },
- 
-  ]);
-
   const dispatch = useDispatch();
+  const userData = useSelector(memoizedUserData);
   const clubList = useSelector(memoizedClubList);
-  const loading = useSelector((state) => state.clubList.loading);
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSearchBarVisible, setIsSearchBarVisible] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  const userDataLoading = useSelector((state) => state.auth.loading);
+  const clubListLoading = useSelector((state) => state.clubList.loading);
 
   useFocusEffect(
     React.useCallback(() => {
       const fetchData = async () => {
         try {
-          const storedUserId = parseInt(JSON.parse(await AsyncStorage.getItem("user_id")));
-          if (storedUserId) {
-            dispatch(fetchClubList(storedUserId));
+          if (userData?.user_id) {
+            dispatch(fetchClubList(userData?.user_id));
           }
         } catch (error) {
-          console.error("Error fetching data:", error);
+          // console.error("Error fetching data:", error);
         }
       };
 
@@ -59,25 +40,15 @@ const ClubList = ({ navigation }) => {
 
   const handleClubClick = async (club) => {
     try {
-      setIsLoading(true);
-
-      // Simulate a loading delay (replace with your actual loading logic)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // After loading, navigate to the Dashboard screen
+      await AsyncStorage.setItem(
+        "club",
+        JSON.stringify(club)
+      );
       navigation.navigate("Dashboard");
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      console.error("Unable to set selected Club:", error);
     }
   };
-
-  const handleSearchTermChange = (newSearchTerm) => {
-    setSearchTerm(newSearchTerm);
-  };
-
-  const filteredClubs = clubList?.filter((item) =>
-    item.post_title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   const renderItem = ({ item }) => (
     <TouchableOpacity
@@ -102,33 +73,35 @@ const ClubList = ({ navigation }) => {
       <View style={styles.titleContainer}>
         <Text style={styles.title}>Club List</Text>
       </View>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.wrapText}>
-          Hello <Text style={styles.userName}>Ap Singh</Text> ! You are logged into Booostr POS, but it seems you are a profile manager for multiple clubs. Please choose the club POS system below that you would like to access.
-          </Text>
-        </View>
-        <View style={styles.headerRight}></View>
-      </View>
-      {loading
+      {userDataLoading || clubListLoading
         ? <View style={styles.containerLoader}>
-            <ActivityIndicator size="large" color="#00c0ff" />
+            <ActivityIndicator size="medium" color="#00c0ff" />
           </View>
-        : <View style={styles.clubListContainer}>
-            {clubList?.length > 0 ? (
-              <SectionList
-                sections={[
-                  {
-                    data: filteredClubs,
-                  },
-                ]}
-                renderItem={renderItem}
-                keyExtractor={(item) => item.post_id}
-              />
-            ) : (
-              <Text style={styles.notFound}>No clubs found.</Text>
-            )}
-          </View>
+        : <>
+            <View style={styles.header}>
+              <View style={styles.headerLeft}>
+                <Text style={styles.wrapText}>
+                Hello <Text style={styles.userName}>{userData?.first_name} {userData?.last_name}</Text> ! You are logged into Booostr POS, but it seems you are a profile manager for multiple clubs. Please choose the club POS system below that you would like to access.
+                </Text>
+              </View>
+              <View style={styles.headerRight}></View>
+            </View>
+            <View style={styles.clubListContainer}>
+              {clubList?.length > 0 ? (
+                <SectionList
+                  sections={[
+                    {
+                      data: clubList,
+                    },
+                  ]}
+                  renderItem={renderItem}
+                  keyExtractor={(item) => item.post_id}
+                />
+              ) : (
+                <Text style={styles.notFound}>No clubs found.</Text>
+              )}
+            </View>
+          </>
       }
     </View>
   );

@@ -7,6 +7,9 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import Header from "./Header";
 import BottomBar from "./BottomBar";
+import { useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ActivityIndicator } from "react-native-paper";
 
 const LatestOrdersScreen = ({ orderedItems }) => {
   const renderOrderedItem = ({ item }) => (
@@ -57,6 +60,24 @@ const TopSellingScreen = ({ orderedItems }) => {
 };
 
 const DashboardScreen = ({ navigation }) => {
+  const [club, setClub] = useState([]);
+  const [isClubLoading, setIsClubLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const club = await AsyncStorage.getItem("club");
+        if( club ) setClub(JSON.parse(club));
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setIsClubLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   const [metrics, setMetrics] = useState([
     { id: 1, name: "Revenue", icon: "cash", totalRev: "123 456.00" },
     { id: 2, name: "Orders", icon: "clipboard-list", totalRev: "1 039" },
@@ -109,39 +130,45 @@ const DashboardScreen = ({ navigation }) => {
   const Tab = createMaterialTopTabNavigator();
 
   return (
-    <View style={styles.container}>
-      <Header clubName="Hello Tester Club" onLogout={handleLogout} />
-      <View style={styles.titleContainer}>
-        <Text style={styles.title}>Dashboard</Text>
+    isClubLoading
+    ? <View style={styles.loaderContainer}>
+        <View style={styles.loader}>
+          <ActivityIndicator size="medium" color="#00c0ff" />
+        </View>
       </View>
-      <View style={styles.MetRow}>
-        <FlatList
-          data={metrics}
-          renderItem={renderMetricItem}
-          keyExtractor={(metric) => metric.id.toString()}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        />
+    : <View style={styles.container}>
+        <Header clubName={club.post_title} onLogout={handleLogout} />
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>Dashboard</Text>
+        </View>
+        <View style={styles.MetRow}>
+          <FlatList
+            data={metrics}
+            renderItem={renderMetricItem}
+            keyExtractor={(metric) => metric.id.toString()}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+          />
+        </View>
+        <Tab.Navigator
+            screenOptions={{
+              tabBarActiveTintColor: '#000',
+              tabBarIndicatorStyle: {
+                backgroundColor: '#00c0ff',
+              },
+            }}
+          >
+          <Tab.Screen name="Latest Orders">
+            {() => <LatestOrdersScreen orderedItems={orderedItems} />}
+          </Tab.Screen>
+          <Tab.Screen name="Top Selling">
+            {() => <TopSellingScreen orderedItems={orderedItems} />}
+          </Tab.Screen>
+        </Tab.Navigator>
+        <View style={styles.bottomBar}>
+          <BottomBar />
+        </View>
       </View>
-      <Tab.Navigator
-          screenOptions={{
-            tabBarActiveTintColor: '#000',
-            tabBarIndicatorStyle: {
-              backgroundColor: '#00c0ff',
-            },
-          }}
-        >
-        <Tab.Screen name="Latest Orders">
-          {() => <LatestOrdersScreen orderedItems={orderedItems} />}
-        </Tab.Screen>
-        <Tab.Screen name="Top Selling">
-          {() => <TopSellingScreen orderedItems={orderedItems} />}
-        </Tab.Screen>
-      </Tab.Navigator>
-      <View style={styles.bottomBar}>
-        <BottomBar />
-      </View>
-    </View>
   );
 };
 
@@ -235,6 +262,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginLeft: 10,
     color: "#515151",
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent:'center',
+    alignItems:'center',
+    paddingTop:80,
+    paddingBottom:40,
   },
 });
 

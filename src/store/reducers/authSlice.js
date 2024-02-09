@@ -5,8 +5,7 @@ import { POS_API_URL } from "../../config";
 
 const initialState = {
   isLoggedIn: false,
-  CurrentUserID: null,
-  userData: null,
+  userData: '',
   loading: false,
   error: false,
 };
@@ -47,14 +46,8 @@ const authSlice = createSlice({
       state.loading = false;
       state.error = true;
     },
-    setCurrentUseData: (state, action) => {
-      state.loading = false;
-      state.CurrentUserID = action.payload;
-      state.error = true;
-    },
     resetLogin: (state, action) => {
       (state.isLoggedIn = false),
-        (state.CurrentUserID = null),
         (state.userData = null),
         (state.loading = false),
         (state.error = false);
@@ -79,16 +72,16 @@ export const {
   logoutRequest,
 } = authSlice.actions;
 
-// export const fetchUserData = (userId) => async (dispatch) => {
-//   try {
-//     dispatch(CurrentUserRequest());
-//     const response = await axios.get(
-//       `${POST_API_URL}/pos_get_user_info?user_id=${userId}&time=${Date.now()}`
-//     );
-//     dispatch(CurrentUserSuccess(JSON.stringify(response.data)));
-//   } catch (error) {
-//     dispatch(CurrentUserError());
-//   }
-// };
+export const fetchUserData = (userId) => async (dispatch) => {
+  try {
+    dispatch(CurrentUserRequest());
+    const response = await axios.get(
+      `${POS_API_URL}/get-user-info?user_id=${userId}&time=${Date.now()}`
+    );
+    dispatch(CurrentUserSuccess(JSON.stringify(response.data)));
+  } catch (error) {
+    dispatch(CurrentUserError());
+  }
+};
 
 export default authSlice.reducer;

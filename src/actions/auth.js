@@ -7,7 +7,7 @@ import {
 } from "../store/reducers/authSlice";
 
 import AuthService from "../api/auth";
-import { fetchEula, fetchEulaUpdate } from "../store/reducers/eulaSlice";
+import { fetchEulaUpdate } from "../store/reducers/eulaSlice";
 
 export const login = (user) => (dispatch) => {
   dispatch(loginRequest());
@@ -44,11 +44,11 @@ export const logout = (CurrentUserID) => (dispatch) => {
   });
 };
 
-export const getUserData = (user_id) => (dispatch) => {
-  return AuthService.getUserDataById(user_id).then((response) => {
-    if (response.status === "success") {
-      Promise.resolve();
-      return response;
-    }
-  });
-};
+// export const getUserData = (user_id) => (dispatch) => {
+//   return AuthService.getUserDataById(user_id).then((response) => {
+//     if (response.status === "success") {
+//       Promise.resolve();
+//       return response;
+//     }
+//   });
+// };
