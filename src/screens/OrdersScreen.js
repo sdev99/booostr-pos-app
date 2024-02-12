@@ -28,6 +28,8 @@ const OrdersScreen = ({ navigation }) => {
     const [isCancelModalVisible, setCancelModalVisible] = useState(false);
     const [cart, setCart] = useState([]);
     const flatListRef = useRef(null);
+    const scrollViewRef = useRef(null);
+    const [previousLastItemPosition, setPreviousLastItemPosition] = useState(0);  
     
     useEffect(() => {
         const fetchData = async () => {
@@ -207,7 +209,13 @@ const OrdersScreen = ({ navigation }) => {
             console.error("Error fetching products:", error);
         });
 
-        setIsMoreProductLoading(false);
+        setTimeout(() => {
+            setIsMoreProductLoading(false);
+            if (scrollViewRef.current && previousLastItemPosition !== 0) {
+                console.log(previousLastItemPosition);
+                scrollViewRef.current.scrollTo({ y: previousLastItemPosition, animated: true });
+            }
+        }, 1000);
     }
 
     const handleCheckout = () => {
@@ -267,24 +275,28 @@ const OrdersScreen = ({ navigation }) => {
                             </View>
                         </View>
                     : <>
-                        <ScrollView 
+                        <ScrollView
+                            ref={scrollViewRef}
                             onScroll={({ nativeEvent }) => {
-                                const isCloseToBottom = nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >= nativeEvent.contentSize.height;
+                                const isCloseToBottom = nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >= nativeEvent.contentSize.height - 10;
                                 if (isCloseToBottom && !isMoreProductLoading && categoryCurrentPage[selectedCategory] < categoryTotalPages[selectedCategory]) {
+                                    setPreviousLastItemPosition(nativeEvent.layoutMeasurement.height-50);
                                     setIsMoreProductLoading(true);
                                     loadMoreContent();
                                 }
                             }}
                             scrollEventThrottle={16}
                             >
-                                { groupedProducts.map((item, index) => {return renderTwoProductsInRow(item, index)}) }
-                                { isMoreProductLoading &&
-                                    <View style={styles.loadMoreLoaderContainer}>
-                                        <View style={styles.loader}>
-                                        <ActivityIndicator size="medium" color="#00c0ff" />
+                                { isMoreProductLoading
+                                    ? <View style={styles.loaderContainer}>
+                                            <View style={styles.loader}>
+                                            <ActivityIndicator size="medium" color="#00c0ff" />
+                                            </View>
                                         </View>
-                                    </View>
+                                    : groupedProducts.map((item, index) => {return renderTwoProductsInRow(item, index)})
                                 }
+                                { (categoryCurrentPage[selectedCategory]== undefined || categoryCurrentPage[selectedCategory] < categoryTotalPages[selectedCategory]) && <View style={{height: 50}}></View>
+                                 }
                             </ScrollView>
                         </>
                 }
@@ -563,12 +575,6 @@ const styles = StyleSheet.create({
         alignItems:'center',
         paddingTop:80,
         paddingBottom:40,
-      },
-      loadMoreLoaderContainer: {
-        flex: 1,
-        justifyContent:'center',
-        alignItems:'center',
-        paddingBottom:10,
       },
 });
 
