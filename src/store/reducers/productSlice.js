@@ -4,9 +4,9 @@ import { resetAllStates } from "./resetSlice";
 import { POS_STORE_API_URL, POS_API_TOKEN } from "../../config";
 
 const initialState = {
-  productList: '',
-  currentPage: '',
-  totalPages: '',
+  productList: '{}',
+  currentPage: '{}',
+  totalPages: '{}',
   loading: false,
   error: false,
 };
@@ -52,15 +52,17 @@ export const {
   resetProductList
 } = productListSlice.actions;
 
-export const fetchProductList = (category, productList, currentPage, totalPages) => async (dispatch) => {
+export const fetchProductList = (club, category, productList, currentPage, totalPages) => async (dispatch) => {
   try {
     dispatch(fetchProductListStart());
     let url = '';
     let payload = {};
     if( category==0 ){
-      url = `${POS_STORE_API_URL}/get_pos_product_list`;
+      let page = currentPage[category] && currentPage[category] > 1 ? `?page=${currentPage[category]}` : '';
+      url = `${POS_STORE_API_URL}/get_pos_product_list${page}`;
     }else{
-      url = `${POS_STORE_API_URL}/pos-parent-category-product`;
+      let page = currentPage[category] && currentPage[category] > 1 ? `?page=${currentPage[category]}` : '';
+      url = `${POS_STORE_API_URL}/pos-parent-category-product${page}`;
       payload = {"category_id": category};
     }
     const response = await axios.post(
@@ -74,9 +76,9 @@ export const fetchProductList = (category, productList, currentPage, totalPages)
       }
     );
     if( response?.data?.result ){
-      productList[category] = [...productList[category], response.data.result.data];
-      currentPage[category] = [currentPage];
-      totalPages[category] = [totalPages];
+      productList[category] = productList[category] != undefined && productList[category]!='' ? [...productList[category], ...response.data.result.data] : response.data.result.data;
+      currentPage[category] = currentPage[category] != undefined && currentPage[category]!='' ? currentPage[category] : 1;
+      totalPages[category] = response.data.result.last_page;
       dispatch(fetchProductListSuccess({productList: productList, currentPage: currentPage, totalPages: totalPages}));
     }else{
       dispatch(fetchProductListError());

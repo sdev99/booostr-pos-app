@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image,Modal } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, Modal, ScrollView } from "react-native";
 import { Button as PaperButton } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ActivityIndicator } from "react-native-paper";
 import { memoizedProductCategoryList, memoizedProductList } from "../store/selectors";
 import { fetchProductCategoryList } from "../store/reducers/productCategorySlice";
+import { fetchProductList } from "../store/reducers/productSlice";
+import productPlaceholder from "../assets/product-placeholder.png";
 import Header from './Header';
 
 const OrdersScreen = ({ navigation }) => {
@@ -14,9 +16,19 @@ const OrdersScreen = ({ navigation }) => {
     const [club, setClub] = useState([]);
     const [isClubLoading, setIsClubLoading] = useState(true);
     const productCategoryListWithoutAll = useSelector(memoizedProductCategoryList);
-    const productCategoryList = [{id:1, name:'All'}, ...productCategoryListWithoutAll];
+    const productCategoryList = [{id:0, name:'All'}, ...productCategoryListWithoutAll];
     const isProductCategoryLoading = useSelector((state) => state.productCategoryList.loading);
-
+    const [selectedCategory, setSelectedCategory] = useState(0);
+    const productList = useSelector(memoizedProductList);
+    const isProductListLoading = useSelector((state) => state.productList.loading);
+    const filteredProducts = productList[selectedCategory] ? productList[selectedCategory] : {};
+    const categoryCurrentPage = JSON.parse(useSelector((state) => state.productList.currentPage));
+    const categoryTotalPages = JSON.parse(useSelector((state) => state.productList.totalPages));
+    const [isMoreProductLoading, setIsMoreProductLoading] = useState(false);
+    const [isCancelModalVisible, setCancelModalVisible] = useState(false);
+    const [cart, setCart] = useState([]);
+    const flatListRef = useRef(null);
+    
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -26,6 +38,10 @@ const OrdersScreen = ({ navigation }) => {
                     dispatch(fetchProductCategoryList(JSON.parse(club).post_slug))
                     .then(() => {
                         setSelectedCategory(productCategoryList[0].id);
+                        dispatch(fetchProductList(JSON.parse(club).post_slug, 0, {0:[]}, {0:1}, {0:1}))
+                        .catch((error) => {
+                            console.error("Error sending message:", error);
+                        });
                     })
                     .catch((error) => {
                         console.error("Error sending message:", error);
@@ -41,41 +57,36 @@ const OrdersScreen = ({ navigation }) => {
         fetchData();
     }, []);
   
-    const [isCancelModalVisible, setCancelModalVisible] = useState(false);
-    const [categories, setCategories] = useState([
-        { id: 1, name: "Mens", image: require("../assets/meals.png") },
-        { id: 2, name: "Womens", image: require("../assets/burgers.png") },
-        { id: 3, name: "Kids", image: require("../assets/sandwiches.png") },
-        { id: 4, name: "Shirts", image: require("../assets/sides.png") },
-        { id: 5, name: "T-Shirts", image: require("../assets/sandwiches.png") },
-        { id: 6, name: "Jeans", image: require("../assets/sandwiches.png") },
-        { id: 7, name: "Shorts", image: require("../assets/sandwiches.png") },
-        { id: 8, name: "Beauty", image: require("../assets/sandwiches.png") },
-        { id: 9, name: "Mens", image: require("../assets/sandwiches.png") },
-        { id: 10, name: "Kids", image: require("../assets/sandwiches.png") },
-    ]);
+    // const [categories, setCategories] = useState([
+    //     { id: 1, name: "Mens", image: require("../assets/meals.png") },
+    //     { id: 2, name: "Womens", image: require("../assets/burgers.png") },
+    //     { id: 3, name: "Kids", image: require("../assets/sandwiches.png") },
+    //     { id: 4, name: "Shirts", image: require("../assets/sides.png") },
+    //     { id: 5, name: "T-Shirts", image: require("../assets/sandwiches.png") },
+    //     { id: 6, name: "Jeans", image: require("../assets/sandwiches.png") },
+    //     { id: 7, name: "Shorts", image: require("../assets/sandwiches.png") },
+    //     { id: 8, name: "Beauty", image: require("../assets/sandwiches.png") },
+    //     { id: 9, name: "Mens", image: require("../assets/sandwiches.png") },
+    //     { id: 10, name: "Kids", image: require("../assets/sandwiches.png") },
+    // ]);
 
-    const [products, setProducts] = useState([
-        { id: 101, name: "Roadster", category: 0, price: 10.99, image: require("../assets/burger_img.png") },
-        { id: 102_1, name: "FBAR", category: 1, price: 11.99, image: require("../assets/burger_img-02.png") },
-        { id: 103, name: "CHKOKKO", category: 1, price: 12.99, image: require("../assets/burger_img-01.png") },
-        { id: 104, name: "HRX by Hrithik Roshan", category: 1, price: 13.99, image: require("../assets/burger_img-03.png") },
-        { id: 105, name: "Hypernation", category: 1, price: 10.99, image: require("../assets/burger_img-04.png") },
-        { id: 106, name: "Chicken Meal 6", category: 1, price: 11.99, image: require("../assets/burger_img.png") },
-        { id: 107, name: "Hypernation", category: 1, price: 12.99, image: require("../assets/burger_img-02.png") },
-        { id: 108, name: "Chicken Meal 8", category: 1, price: 13.99, image: require("../assets/burger_img.png") },
-        { id: 109, name: "HRX by Hrithik Roshan", category: 2, price: 7.99, image: require("../assets/burger_img-01.png") },
-        { id: 110, name: "FBAR", category: 3, price: 5.99, image: require("../assets/burger_img.png") },
-        { id: 111, name: "Roadster", category: 4, price: 2.99, image: require("../assets/burger_img.png") },
-        { id: 112, name: "CHKOKKO", category: 5, price: 1.99, image: require("../assets/burger_img-01.png") },
-        { id: 113, name: "Hypernation", category: 6, price: 4.99, image: require("../assets/burger_img.png") },
-        { id: 114, name: "HRX by Hrithik Roshan", category: 2, price: 8.99, image: require("../assets/burger_img-03.png") },
-        { id: 115, name: "Hypernation", category: 3, price: 6.99, image: require("../assets/burger_img-04.png") },
-    ]);
-
-    const [selectedCategory, setSelectedCategory] = useState(1);
-    const flatListRef = useRef(null);
-    const [cart, setCart] = useState([]);
+    // const [products, setProducts] = useState([
+    //     { id: 101, name: "Roadster", category: 0, price: 10.99, image: require("../assets/burger_img.png") },
+    //     { id: 102_1, name: "FBAR", category: 1, price: 11.99, image: require("../assets/burger_img-02.png") },
+    //     { id: 103, name: "CHKOKKO", category: 1, price: 12.99, image: require("../assets/burger_img-01.png") },
+    //     { id: 104, name: "HRX by Hrithik Roshan", category: 1, price: 13.99, image: require("../assets/burger_img-03.png") },
+    //     { id: 105, name: "Hypernation", category: 1, price: 10.99, image: require("../assets/burger_img-04.png") },
+    //     { id: 106, name: "Chicken Meal 6", category: 1, price: 11.99, image: require("../assets/burger_img.png") },
+    //     { id: 107, name: "Hypernation", category: 1, price: 12.99, image: require("../assets/burger_img-02.png") },
+    //     { id: 108, name: "Chicken Meal 8", category: 1, price: 13.99, image: require("../assets/burger_img.png") },
+    //     { id: 109, name: "HRX by Hrithik Roshan", category: 2, price: 7.99, image: require("../assets/burger_img-01.png") },
+    //     { id: 110, name: "FBAR", category: 3, price: 5.99, image: require("../assets/burger_img.png") },
+    //     { id: 111, name: "Roadster", category: 4, price: 2.99, image: require("../assets/burger_img.png") },
+    //     { id: 112, name: "CHKOKKO", category: 5, price: 1.99, image: require("../assets/burger_img-01.png") },
+    //     { id: 113, name: "Hypernation", category: 6, price: 4.99, image: require("../assets/burger_img.png") },
+    //     { id: 114, name: "HRX by Hrithik Roshan", category: 2, price: 8.99, image: require("../assets/burger_img-03.png") },
+    //     { id: 115, name: "Hypernation", category: 3, price: 6.99, image: require("../assets/burger_img-04.png") },
+    // ]);
     
 
     // useEffect(() => {
@@ -103,7 +114,7 @@ const OrdersScreen = ({ navigation }) => {
                 </View>
             </TouchableOpacity>
             <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
-                <Text style={styles.totalPrice}>Total: ${getTotalPrice().toFixed(2)}</Text>
+                <Text style={styles.totalPrice}>Total: ${getTotalPrice()}</Text>
                 <View style={styles.checkoutContent}>
                     <Text style={styles.checkoutText}>Checkout</Text>
                     <Icon style={styles.rightIcon} name="chevron-right" size={24} color="#FFF" />
@@ -113,11 +124,11 @@ const OrdersScreen = ({ navigation }) => {
     );
     
 
-      const renderProductItem = ({ item }) => (
+    const renderProductItem = ({ item }) => (
         <TouchableOpacity style={styles.productItem} onPress={() => handleAddToCart(item)}>
-            <Image source={item.image} style={styles.productImage} />
-            <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
-            <Text style={styles.productName}>{item.name}</Text>
+            <Image source={item?.media?.value ? {uri: item?.media?.value} : productPlaceholder} style={styles.productImage} />
+            <Text style={styles.productPrice}>${item.max_price}</Text>
+            <Text style={styles.productName}>{item.title}</Text>
             <PaperButton mode="contained" style={styles.addToCartButton}>
                 Add to Order
             </PaperButton>
@@ -148,20 +159,16 @@ const OrdersScreen = ({ navigation }) => {
         </TouchableOpacity>
     );
 
-    const filteredProducts = selectedCategory
-        ? products.filter((product) => product.category === selectedCategory)
-        : [];
-
     const groupedProducts = [];
-    for (let i = 0; i < filteredProducts.length; i += 2) {
+    for (let i = 0; i < filteredProducts?.length; i += 2) {
         groupedProducts.push([
             filteredProducts[i] || null,
             filteredProducts[i + 1] || null,
         ]);
     }
 
-    const renderTwoProductsInRow = ({ item }) => (
-        <View style={styles.twoProductsContainer}>
+    const renderTwoProductsInRow = (item, index) => (
+        <View style={styles.twoProductsContainer} key={index}>
             <View style={styles.productCard}>{item[0] && renderProductItem({ item: item[0] })}</View>
             <View style={styles.productCard}>{item[1] && renderProductItem({ item: item[1] })}</View>
         </View>
@@ -174,7 +181,34 @@ const OrdersScreen = ({ navigation }) => {
             index,
             viewPosition: 0.5, // 0 for the start, 0.5 for the middle, 1 for the end
         });
+
+        const fetchData = async () => {
+            try {
+                if( club && categoryCurrentPage[categoryId]== undefined ){
+                    dispatch(fetchProductList(club.post_slug, categoryId, productList, categoryCurrentPage, categoryTotalPages))
+                    .catch((error) => {
+                        console.error("Error fetching products:", error);
+                    });
+                }
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            }
+        };
+
+        fetchData();
     };
+
+    const loadMoreContent = async () => {
+        console.log('Getting more products');
+        let updatedCategoryCurrentPage = categoryCurrentPage;
+        updatedCategoryCurrentPage[selectedCategory] = categoryCurrentPage[selectedCategory]+1;
+        dispatch(fetchProductList(club.post_slug, selectedCategory, productList, updatedCategoryCurrentPage, categoryTotalPages))
+        .catch((error) => {
+            console.error("Error fetching products:", error);
+        });
+
+        setIsMoreProductLoading(false);
+    }
 
     const handleCheckout = () => {
         if (cart.length > 0) {
@@ -226,12 +260,34 @@ const OrdersScreen = ({ navigation }) => {
                 />
             </View>
             <View style={[styles.productContainer, { paddingBottom: cart.length > 0 ? 90 : 0 }]}>
-                <FlatList
-                    data={groupedProducts}
-                    renderItem={renderTwoProductsInRow}
-                    keyExtractor={(item, index) => index.toString()}
-                    numColumns={1}
-                />
+                { isProductListLoading
+                    ? <View style={styles.loaderContainer}>
+                            <View style={styles.loader}>
+                            <ActivityIndicator size="medium" color="#00c0ff" />
+                            </View>
+                        </View>
+                    : <>
+                        <ScrollView 
+                            onScroll={({ nativeEvent }) => {
+                                const isCloseToBottom = nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >= nativeEvent.contentSize.height;
+                                if (isCloseToBottom && !isMoreProductLoading && categoryCurrentPage[selectedCategory] < categoryTotalPages[selectedCategory]) {
+                                    setIsMoreProductLoading(true);
+                                    loadMoreContent();
+                                }
+                            }}
+                            scrollEventThrottle={16}
+                            >
+                                { groupedProducts.map((item, index) => {return renderTwoProductsInRow(item, index)}) }
+                                { isMoreProductLoading &&
+                                    <View style={styles.loadMoreLoaderContainer}>
+                                        <View style={styles.loader}>
+                                        <ActivityIndicator size="medium" color="#00c0ff" />
+                                        </View>
+                                    </View>
+                                }
+                            </ScrollView>
+                        </>
+                }
             </View>
             {cart.length > 0 && renderCheckoutButton()}
             {/* Cancel Order Modal */}
@@ -507,6 +563,12 @@ const styles = StyleSheet.create({
         alignItems:'center',
         paddingTop:80,
         paddingBottom:40,
+      },
+      loadMoreLoaderContainer: {
+        flex: 1,
+        justifyContent:'center',
+        alignItems:'center',
+        paddingBottom:10,
       },
 });
 
