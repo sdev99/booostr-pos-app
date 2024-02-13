@@ -8,6 +8,7 @@ import { ActivityIndicator } from "react-native-paper";
 import { memoizedProductCategoryList, memoizedProductList } from "../store/selectors";
 import { fetchProductCategoryList } from "../store/reducers/productCategorySlice";
 import { fetchProductList } from "../store/reducers/productSlice";
+import { addToOrderList } from "../store/reducers/orderListSlice";
 import productPlaceholder from "../assets/product-placeholder.png";
 import Header from './Header';
 
@@ -20,7 +21,6 @@ const OrdersScreen = ({ navigation }) => {
     const isProductCategoryLoading = useSelector((state) => state.productCategoryList.loading);
     const [selectedCategory, setSelectedCategory] = useState(0);
     const productList = useSelector(memoizedProductList);
-    const isProductListLoading = useSelector((state) => state.productList.loading);
     const filteredProducts = productList[selectedCategory] ? productList[selectedCategory] : {};
     const categoryCurrentPage = JSON.parse(useSelector((state) => state.productList.currentPage));
     const categoryTotalPages = JSON.parse(useSelector((state) => state.productList.totalPages));
@@ -31,6 +31,7 @@ const OrdersScreen = ({ navigation }) => {
     const scrollViewRef = useRef(null);
     const [previousLastItemPosition, setPreviousLastItemPosition] = useState(0);  
     
+    // Fetch Product List for ALL
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -42,11 +43,11 @@ const OrdersScreen = ({ navigation }) => {
                         setSelectedCategory(productCategoryList[0].id);
                         dispatch(fetchProductList(JSON.parse(club).post_slug, 0, {0:[]}, {0:1}, {0:1}))
                         .catch((error) => {
-                            console.error("Error sending message:", error);
+                            console.error("Error fetching product list:", error);
                         });
                     })
                     .catch((error) => {
-                        console.error("Error sending message:", error);
+                        console.error("Error fetching category list:", error);
                     });
                 }
             } catch (error) {
@@ -58,53 +59,33 @@ const OrdersScreen = ({ navigation }) => {
 
         fetchData();
     }, []);
-  
-    // const [categories, setCategories] = useState([
-    //     { id: 1, name: "Mens", image: require("../assets/meals.png") },
-    //     { id: 2, name: "Womens", image: require("../assets/burgers.png") },
-    //     { id: 3, name: "Kids", image: require("../assets/sandwiches.png") },
-    //     { id: 4, name: "Shirts", image: require("../assets/sides.png") },
-    //     { id: 5, name: "T-Shirts", image: require("../assets/sandwiches.png") },
-    //     { id: 6, name: "Jeans", image: require("../assets/sandwiches.png") },
-    //     { id: 7, name: "Shorts", image: require("../assets/sandwiches.png") },
-    //     { id: 8, name: "Beauty", image: require("../assets/sandwiches.png") },
-    //     { id: 9, name: "Mens", image: require("../assets/sandwiches.png") },
-    //     { id: 10, name: "Kids", image: require("../assets/sandwiches.png") },
-    // ]);
-
-    // const [products, setProducts] = useState([
-    //     { id: 101, name: "Roadster", category: 0, price: 10.99, image: require("../assets/burger_img.png") },
-    //     { id: 102_1, name: "FBAR", category: 1, price: 11.99, image: require("../assets/burger_img-02.png") },
-    //     { id: 103, name: "CHKOKKO", category: 1, price: 12.99, image: require("../assets/burger_img-01.png") },
-    //     { id: 104, name: "HRX by Hrithik Roshan", category: 1, price: 13.99, image: require("../assets/burger_img-03.png") },
-    //     { id: 105, name: "Hypernation", category: 1, price: 10.99, image: require("../assets/burger_img-04.png") },
-    //     { id: 106, name: "Chicken Meal 6", category: 1, price: 11.99, image: require("../assets/burger_img.png") },
-    //     { id: 107, name: "Hypernation", category: 1, price: 12.99, image: require("../assets/burger_img-02.png") },
-    //     { id: 108, name: "Chicken Meal 8", category: 1, price: 13.99, image: require("../assets/burger_img.png") },
-    //     { id: 109, name: "HRX by Hrithik Roshan", category: 2, price: 7.99, image: require("../assets/burger_img-01.png") },
-    //     { id: 110, name: "FBAR", category: 3, price: 5.99, image: require("../assets/burger_img.png") },
-    //     { id: 111, name: "Roadster", category: 4, price: 2.99, image: require("../assets/burger_img.png") },
-    //     { id: 112, name: "CHKOKKO", category: 5, price: 1.99, image: require("../assets/burger_img-01.png") },
-    //     { id: 113, name: "Hypernation", category: 6, price: 4.99, image: require("../assets/burger_img.png") },
-    //     { id: 114, name: "HRX by Hrithik Roshan", category: 2, price: 8.99, image: require("../assets/burger_img-03.png") },
-    //     { id: 115, name: "Hypernation", category: 3, price: 6.99, image: require("../assets/burger_img-04.png") },
-    // ]);
-    
-
-    // useEffect(() => {
-    //     // Set the first category as active when the component mounts
-    //     setSelectedCategory(categories[0].id);
-    // }, []);
 
     const handleAddToCart = (product) => {
         setCart([...cart, product]);
     };
 
     const getTotalPrice = () => {
-        return cart.reduce((total, item) => total + item.price, 0);
+        return cart.reduce((total, item) => total + item.max_price, 0).toFixed(2);
     };
-    const holdOrder = () => {
-        navigation.navigate("OnlineOrder");
+
+    const holdOrder = async () => {
+        try {
+            let order = {};
+            const d = new Date();
+            order['created_at'] = `${d.getFullYear()}-${(d.getMonth()+1+'').padStart(2, '0')}-${(d.getDate()+'').padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
+            order['items'] = cart;
+            order['status'] = 'on-hold';
+            dispatch(addToOrderList(order))
+            .then(() => {
+                setCart([]);
+                navigation.navigate("OnlineOrder");
+            })
+            .catch((error) => {
+                console.error("Error putting order on hold:", error);
+            });
+        } catch (error) {
+            console.error("Error putting order on hold:", error);
+        }
     };
 
     const renderCheckoutButton = () => (
@@ -125,11 +106,11 @@ const OrdersScreen = ({ navigation }) => {
         </View>
     );
     
-
+    // Render Products
     const renderProductItem = ({ item }) => (
         <TouchableOpacity style={styles.productItem} onPress={() => handleAddToCart(item)}>
             <Image source={item?.media?.value ? {uri: item?.media?.value} : productPlaceholder} style={styles.productImage} />
-            <Text style={styles.productPrice}>${item.max_price}</Text>
+            <Text style={styles.productPrice}>${item.max_price.toFixed(2)}</Text>
             <Text style={styles.productName}>{item.title}</Text>
             <PaperButton mode="contained" style={styles.addToCartButton}>
                 Add to Order
@@ -137,6 +118,7 @@ const OrdersScreen = ({ navigation }) => {
         </TouchableOpacity>
     );
 
+    // Render Category Items
     const renderCategoryItem = ({ item }) => (
         <TouchableOpacity
             style={[
@@ -161,6 +143,7 @@ const OrdersScreen = ({ navigation }) => {
         </TouchableOpacity>
     );
 
+    // Group Products in twos
     const groupedProducts = [];
     for (let i = 0; i < filteredProducts?.length; i += 2) {
         groupedProducts.push([
@@ -169,6 +152,7 @@ const OrdersScreen = ({ navigation }) => {
         ]);
     }
 
+    // Render the grouped products
     const renderTwoProductsInRow = (item, index) => (
         <View style={styles.twoProductsContainer} key={index}>
             <View style={styles.productCard}>{item[0] && renderProductItem({ item: item[0] })}</View>
@@ -176,6 +160,7 @@ const OrdersScreen = ({ navigation }) => {
         </View>
     );
 
+    // On click Scroll to Category
     const scrollToCategory = (categoryId) => {
         const index = productCategoryList.findIndex((category) => category.id === categoryId);
         flatListRef.current.scrollToIndex({
@@ -184,6 +169,7 @@ const OrdersScreen = ({ navigation }) => {
             viewPosition: 0.5, // 0 for the start, 0.5 for the middle, 1 for the end
         });
 
+        // Fetch Product List for the selected category
         const fetchData = async () => {
             try {
                 if( club && categoryCurrentPage[categoryId]== undefined ){
@@ -200,8 +186,8 @@ const OrdersScreen = ({ navigation }) => {
         fetchData();
     };
 
+    // Load more products
     const loadMoreContent = async () => {
-        console.log('Getting more products');
         let updatedCategoryCurrentPage = categoryCurrentPage;
         updatedCategoryCurrentPage[selectedCategory] = categoryCurrentPage[selectedCategory]+1;
         dispatch(fetchProductList(club.post_slug, selectedCategory, productList, updatedCategoryCurrentPage, categoryTotalPages))
@@ -212,10 +198,9 @@ const OrdersScreen = ({ navigation }) => {
         setTimeout(() => {
             setIsMoreProductLoading(false);
             if (scrollViewRef.current && previousLastItemPosition !== 0) {
-                console.log(previousLastItemPosition);
                 scrollViewRef.current.scrollTo({ y: previousLastItemPosition, animated: true });
             }
-        }, 1000);
+        }, 500);
     }
 
     const handleCheckout = () => {
@@ -226,14 +211,12 @@ const OrdersScreen = ({ navigation }) => {
         } else {
           alert("Your cart is empty. Add items to your cart before checkout.");
         }
-      };
-      const handleLogout = () => {
-        navigation.navigate("Login");
-      };
-      const handleCancelOrder = () => {
-        // Implement logic for canceling the order
+    };
+      
+    const handleCancelOrder = () => {
+        setCart([]);
         setCancelModalVisible(false); // Close the modal after handling cancel
-      };
+    };
 
       return (
         isClubLoading || isProductCategoryLoading
@@ -243,7 +226,7 @@ const OrdersScreen = ({ navigation }) => {
             </View>
           </View>
         : <View style={styles.container}>
-            <Header clubName={club?.post_title} onLogout={handleLogout} />
+            <Header clubName={club?.post_title} />
             <View style={styles.titleContainer}>
                 <View style={styles.titleLeft}>
                     <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -252,9 +235,10 @@ const OrdersScreen = ({ navigation }) => {
                     <Text style={styles.title}>New Order</Text>
                 </View>
                 <View style={styles.titleRight}>
-                    <TouchableOpacity onPress={() => setCancelModalVisible(true)}>
-                     <Text style={styles.titleCancel}>Cancel Order</Text>
+                    {cart.length > 0 && <TouchableOpacity onPress={() => setCancelModalVisible(true)}>
+                        <Text style={styles.titleCancel}>Cancel Order</Text>
                     </TouchableOpacity>
+                    }
                 </View>
             </View>
             <View style={styles.categoryContainer}>
@@ -268,13 +252,7 @@ const OrdersScreen = ({ navigation }) => {
                 />
             </View>
             <View style={[styles.productContainer, { paddingBottom: cart.length > 0 ? 90 : 0 }]}>
-                { isProductListLoading
-                    ? <View style={styles.loaderContainer}>
-                            <View style={styles.loader}>
-                            <ActivityIndicator size="medium" color="#00c0ff" />
-                            </View>
-                        </View>
-                    : <>
+                
                         <ScrollView
                             ref={scrollViewRef}
                             onScroll={({ nativeEvent }) => {
@@ -287,19 +265,14 @@ const OrdersScreen = ({ navigation }) => {
                             }}
                             scrollEventThrottle={16}
                             >
-                                { isMoreProductLoading
-                                    ? <View style={styles.loaderContainer}>
+                                { groupedProducts.map((item, index) => {return renderTwoProductsInRow(item, index)}) }
+                                { (categoryCurrentPage[selectedCategory]== undefined || categoryCurrentPage[selectedCategory] < categoryTotalPages[selectedCategory]) && <View style={styles.loadMoreContainer}>
                                             <View style={styles.loader}>
                                             <ActivityIndicator size="medium" color="#00c0ff" />
                                             </View>
                                         </View>
-                                    : groupedProducts.map((item, index) => {return renderTwoProductsInRow(item, index)})
-                                }
-                                { (categoryCurrentPage[selectedCategory]== undefined || categoryCurrentPage[selectedCategory] < categoryTotalPages[selectedCategory]) && <View style={{height: 50}}></View>
                                  }
                             </ScrollView>
-                        </>
-                }
             </View>
             {cart.length > 0 && renderCheckoutButton()}
             {/* Cancel Order Modal */}
@@ -576,6 +549,13 @@ const styles = StyleSheet.create({
         paddingTop:80,
         paddingBottom:40,
       },
+      loadMoreContainer: {
+        flex: 1,
+        justifyContent:'center',
+        alignItems:'center',
+        paddingTop:40,
+        paddingBottom:20,
+      }
 });
 
 export default OrdersScreen;

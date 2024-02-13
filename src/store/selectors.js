@@ -13,6 +13,7 @@ const selectEulaContent = (state) => state.eula.eulaContent || '';
 const selectClubList = (state) => state.clubList.clubList || '';
 const selectProductCategoryList = (state) => state.productCategoryList.categoryList || '';
 const selectProductList = (state) => state.productList.productList || '{}';
+const selectOrderList = (state) => state.orderList.orderList || '[]';
 
 export const memoizedUserData = createSelector(
   [selectUserData],
@@ -39,4 +40,8 @@ export const memoizedProductList = createSelector(
       return {};
     }
   }
+);
+export const memoizedOrderList = createSelector(
+  [selectOrderList],
+  (orderList) => { return selectJsonData(orderList)}
 );

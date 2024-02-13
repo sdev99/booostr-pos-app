@@ -1,27 +1,33 @@
-
 import React, { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ScrollView, Modal } from "react-native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Header from './Header';
 import BottomBar from './BottomBar';
+import { memoizedOrderList } from "../store/selectors";
+import { ActivityIndicator } from "react-native-paper";
+import { removeFromOrderList } from "../store/reducers/orderListSlice";
 
 const OnlineOrderScreen = ({ navigation }) => {
+  const dispatch = useDispatch();
+  const orderList = useSelector(memoizedOrderList);
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const [orderedItems, setOrderedItems] = useState([
-    { id: 1, name: "Loose Fit Polo shirt", orderId: "ORD001", status: "Pending", price: "$10.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Johan",date:"01/25/2024" },
-    { id: 2, name: "Regular Fit Polo-neck top", orderId: "ORD002", status: "Completed", price: "$15.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Deep",date:"01/25/2024" },
-    { id: 3, name: "Loose Fit Printed T-shirt", orderId: "ORD001", status: "Pending", price: "$10.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Kesha",date:"01/25/2024" },
-    { id: 4, name: "Oversized Fit Long-sleeved mesh top", orderId: "ORD002", status: "Completed", price: "$15.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Meck",date:"01/25/2024"},
-    { id: 5, name: "Regular Fit T-shirt", orderId: "ORD001", status: "Pending", price: "$10.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Saim",date:"01/25/2024" },
-    { id: 6, name: "Slim Fit Waffled polo shirt", orderId: "ORD002", status: "Completed", price: "$15.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Johan",date:"01/25/2024" },
-    { id: 7, name: "Slim Fit Pima cotton T-shirt", orderId: "ORD001", status: "Pending", price: "$10.00", numberOfItems: 2, timing: "12:30 PM",Customer:  "Doe",date:"01/25/2024"},
-    { id: 8, name: "Slim Fit Scuba zip-top polo shirt", orderId: "ORD002", status: "Completed", price: "$15.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Deep",date:"01/25/2024" },
-    { id: 9, name: "Regular Fit Jersey top", orderId: "ORD001", status: "Pending", price: "$10.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Singh",date:"01/25/2024" },
-    { id: 10, name: "Regular Fit Cotton polo shirt", orderId: "ORD002", status: "Completed", price: "$15.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Mack",date:"01/25/2024", },
-    { id: 11, name: "Oversized Fit T-shirt", orderId: "ORD001", status: "Pending", price: "$10.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Cristy",date:"01/25/2024", },
-    { id: 12, name: "Slim Fit Jersey top", orderId: "ORD002", status: "Completed", price: "$15.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Ap",date:"01/25/2024", },
-    { id: 13, name: "3-pack Regular Fit T-shirts", orderId: "ORD001", status: "Pending", price: "$10.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Singh",date:"01/25/2024", },
-    { id: 14, name: "Loose Fit Printed T-shirt", orderId: "ORD002", status: "Completed", price: "$15.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Saim",date:"01/25/2024", },
+    // { id: 1, name: "Loose Fit Polo shirt", orderId: "ORD001", status: "on-hold", price: "$10.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Johan",date:"01/25/2024" },
+    // { id: 2, name: "Regular Fit Polo-neck top", orderId: "ORD002", status: "completed", price: "$15.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Deep",date:"01/25/2024" },
+    // { id: 3, name: "Loose Fit Printed T-shirt", orderId: "ORD001", status: "on-hold", price: "$10.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Kesha",date:"01/25/2024" },
+    // { id: 4, name: "Oversized Fit Long-sleeved mesh top", orderId: "ORD002", status: "completed", price: "$15.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Meck",date:"01/25/2024"},
+    // { id: 5, name: "Regular Fit T-shirt", orderId: "ORD001", status: "on-hold", price: "$10.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Saim",date:"01/25/2024" },
+    // { id: 6, name: "Slim Fit Waffled polo shirt", orderId: "ORD002", status: "completed", price: "$15.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Johan",date:"01/25/2024" },
+    // { id: 7, name: "Slim Fit Pima cotton T-shirt", orderId: "ORD001", status: "on-hold", price: "$10.00", numberOfItems: 2, timing: "12:30 PM",Customer:  "Doe",date:"01/25/2024"},
+    // { id: 8, name: "Slim Fit Scuba zip-top polo shirt", orderId: "ORD002", status: "completed", price: "$15.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Deep",date:"01/25/2024" },
+    // { id: 9, name: "Regular Fit Jersey top", orderId: "ORD001", status: "on-hold", price: "$10.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Singh",date:"01/25/2024" },
+    // { id: 10, name: "Regular Fit Cotton polo shirt", orderId: "ORD002", status: "completed", price: "$15.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Mack",date:"01/25/2024", },
+    // { id: 11, name: "Oversized Fit T-shirt", orderId: "ORD001", status: "on-hold", price: "$10.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Cristy",date:"01/25/2024", },
+    // { id: 12, name: "Slim Fit Jersey top", orderId: "ORD002", status: "completed", price: "$15.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Ap",date:"01/25/2024", },
+    // { id: 13, name: "3-pack Regular Fit T-shirts", orderId: "ORD001", status: "on-hold", price: "$10.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Singh",date:"01/25/2024", },
+    // { id: 14, name: "Loose Fit Printed T-shirt", orderId: "ORD002", status: "completed", price: "$15.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Saim",date:"01/25/2024", },
     // Add more items as needed
   ]);
 
@@ -29,32 +35,52 @@ const OnlineOrderScreen = ({ navigation }) => {
     navigation.navigate("Login");
   };
 
-  const renderOrderedItem = ({ item }) => {
-    
+  const formatedOrderStatus = (status) => {
+    switch (status) {
+      case 'on-hold':
+        status = 'On Hold';
+        break;
+      case 'completed':
+        status = 'Completed';
+        break;
+      default:
+        break;
+    }
+    return status;
+  }
+
+  const getOrderTotalPrice = (items) => {
+    return '$' + items?.reduce((total, item) => total + item.max_price, 0).toFixed(2);
+  }
+
+  const getOnHoldOrderId = (order) => {
+    return '#OH'+(orderList.indexOf(order)+1).toString().padStart(5,"0");
+  }
+
+  const renderOrderedItem = (order) => {
     return (
-      <TouchableOpacity onPress={() => handleItemPress(item)}>
+      <TouchableOpacity onPress={() => handleItemPress(order)}>
         <View style={styles.orderedItemContainer}>
           <View style={styles.orderedItem}>
            {/* <View style={[styles.imageAndNameContainer, styles.pdBottom]}>
             <Image source={item.image} style={styles.orderedItemImage} />
               <Text style={styles.orderedItemText}>{item.name}</Text>
             </View>*/}
-            <Text style={[styles.orderedItemText, styles.pdBottom]}>{item.name}</Text>
-            <Text style={[styles.orderedItemText, styles.pdBottom]}>#{item.orderId}</Text>
-            <Text style={[styles.orderedItemStatus, styles.pdBottom, { color: item.status === "Completed" ? "green" : "red" }]}>
-              {item.status}
+            {/* <Text style={[styles.orderedItemText, styles.pdBottom]}>{item.name}</Text> */}
+            <Text style={[styles.orderedItemText, styles.pdBottom]}>{getOnHoldOrderId(order)}</Text>
+            <Text style={[styles.orderedItemStatus, styles.pdBottom, { color: order.status === "completed" ? "green" : "red" }]}>
+              {formatedOrderStatus(order.status)}
             </Text>
-            <Text style={[styles.orderedItemText, styles.pdBottom]}>{item.price}</Text>
+            <Text style={[styles.orderedItemText, styles.pdBottom]}>{getOrderTotalPrice(order.items)}</Text>
             <View style={[styles.tmRow,styles.tmRowTop]}>
-              <Text style={[styles.orderedItemText, styles.quantText]}>Number of items: {item.numberOfItems}</Text>
-              <Text style={styles.orderedItemText}>{item.timing}</Text>
-              <Text style={styles.orderedItemText}>{item.date}</Text>
-              
+              <Text style={[styles.orderedItemText, styles.quantText]}>Number of items: {order.items?.length}</Text>
+              <Text style={styles.orderedItemText}>{order?.created_at?.substring(11)}</Text>
+              <Text style={styles.orderedItemText}>{order?.created_at?.substring(0,10)}</Text>
             </View>
-            <View style={styles.tmRow}>
-               <Text style={[styles.CustomerText,styles.pdBottom]}>Customer: {item.Customer}</Text>
-               {item.status === "Pending" && (
-                <TouchableOpacity onPress={() => setCancelModalVisible(true)} style={styles.cancelButton}>
+            <View style={[styles.tmRow, order.status === "on-hold" && styles.flexEnd]}>
+               {/* <Text style={[styles.CustomerText,styles.pdBottom]}>Customer: {item.Customer}</Text> */}
+               {order.status === "on-hold" && (
+                <TouchableOpacity onPress={() => {setSelectedOrder(orderList.indexOf(order));setCancelModalVisible(true)}} style={styles.cancelButton}>
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
@@ -65,13 +91,24 @@ const OnlineOrderScreen = ({ navigation }) => {
     );
   };
 
-  const handleItemPress = (item) => {
+  const handleItemPress = (order) => {
     // Navigate to OrderDetailScreen and pass item details
-    navigation.navigate("OrderDetail", { item });
+    navigation.navigate("OrderDetail", { order: order });
   };
-  const handleCancelOrder = () => {
-    // Implement logic for canceling the order
-    setCancelModalVisible(false); // Close the modal after handling cancel
+
+  const handleCancelOrder = async () => {
+    try {
+      dispatch(removeFromOrderList(selectedOrder))
+      .then(() => {
+          setSelectedOrder(null);
+          setCancelModalVisible(false); // Close the modal after handling cancel
+      })
+      .catch((error) => {
+          console.error("Error putting order on hold:", error);
+      });
+    } catch (error) {
+        console.error("Error putting order on hold:", error);
+    }
   };
   const Tab = createMaterialTopTabNavigator();
   const [isCancelModalVisible, setCancelModalVisible] = useState(false);
@@ -113,9 +150,9 @@ const OnlineOrderScreen = ({ navigation }) => {
   const PendingOrdersScreen = () => (
     <View style={styles.pdMain}>
       <FlatList
-        data={orderedItems.filter((item) => item.status === "Pending")}
-        renderItem={renderOrderedItem}
-        keyExtractor={(item) => item.id.toString()}
+        data={orderList.filter((item) => item.status === "on-hold")}
+        renderItem={({item}) => renderOrderedItem(item)}
+        keyExtractor={(item) => orderList.indexOf(item).toString()}
       />
     </View>
   );
@@ -123,7 +160,7 @@ const OnlineOrderScreen = ({ navigation }) => {
   const CompletedOrdersScreen = () => (
     <View style={styles.cmMain}>
       <FlatList
-        data={orderedItems.filter((item) => item.status === "Completed")}
+        data={orderedItems.filter((item) => item.status === "completed")}
         renderItem={renderOrderedItem}
         keyExtractor={(item) => item.id.toString()}
       />
@@ -139,8 +176,9 @@ const OnlineOrderScreen = ({ navigation }) => {
         </TouchableOpacity>
         <Text style={styles.title}>Order View</Text>
       </View>
+      {/* <ScrollView><Text>{JSON.stringify(orderList)}</Text></ScrollView> */}
       <Tab.Navigator tabBar={CustomTabBar}>
-        <Tab.Screen name="Pending" component={PendingOrdersScreen} />
+        <Tab.Screen name="On Hold" component={PendingOrdersScreen} />
         <Tab.Screen name="Completed" component={CompletedOrdersScreen} />
       </Tab.Navigator>
       <View style={styles.bottomBar}>
@@ -254,6 +292,9 @@ const styles = StyleSheet.create({
     borderBottomWidth:1,
     backgroundColor:'none',
   },
+  flexEnd: {
+    justifyContent: "flex-end",
+  },
   quantText:{
     padding:8,
   },
@@ -282,8 +323,6 @@ const styles = StyleSheet.create({
   },
   imageAndNameContainer: {
     alignItems: "center",
-    
-    
   },
   pdBottom:{
     paddingVertical:10,

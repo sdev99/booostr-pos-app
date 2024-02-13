@@ -27,7 +27,7 @@ const clubListSlice = createSlice({
       state.error = true;
     },
     resetClubList: (state) => {
-      state.clubList = null;
+      state.clubList = '';
       state.error = false;
       state.loading = false;
     }

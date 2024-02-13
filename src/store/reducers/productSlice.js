@@ -31,9 +31,9 @@ const productListSlice = createSlice({
       state.error = true;
     },
     resetProductList: (state) => {
-      state.productList = null;
-      state.currentPage = 1;
-      state.totalPages = 1;
+      state.productList = '{}';
+      state.currentPage = '{}';
+      state.totalPages = '{}';
       state.error = false;
       state.loading = false;
     }

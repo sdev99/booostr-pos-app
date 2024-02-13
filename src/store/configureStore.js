@@ -5,6 +5,7 @@ import eulaReducer from "./reducers/eulaSlice";
 import clubListReducer from "./reducers/clubListSlice";
 import productCategoryListReducer from "./reducers/productCategorySlice";
 import productListReducer from "./reducers/productSlice";
+import orderListReducer from "./reducers/orderListSlice";
 import resetReducer from "./reducers/resetSlice";
 
 const rootReducer = combineReducers({
@@ -13,6 +14,7 @@ const rootReducer = combineReducers({
   clubList: clubListReducer,
   productCategoryList: productCategoryListReducer,
   productList: productListReducer,
+  orderList: orderListReducer,
   reset: resetReducer
 });
 

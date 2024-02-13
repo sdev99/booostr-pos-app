@@ -1,21 +1,58 @@
 // Header.js
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useDispatch } from "react-redux";
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { resetOrderList } from "../store/reducers/orderListSlice";
 
 const Header = ({ title, clubName }) => {
+  const dispatch = useDispatch();
   const navigation = useNavigation();
+  const [club, setClub] = useState(null);
+
+  // Fetch Club Data
+  useEffect(() => {
+    const fetchData = async () => {
+        try {
+            const club = await AsyncStorage.getItem("club");
+            if( club ){
+                setClub(JSON.parse(club));
+            }
+        } catch (error) {
+            console.error("Error fetching club data:", error);
+        }
+    };
+
+    fetchData();
+  }, []);
 
   const handleNewOrder = () => {
     // Navigate to the OrderScreen when the "New Order" button is pressed
     navigation.navigate("Orders");
   };
 
+  const handleLogout = async () => {
+    try {
+      try {
+        AsyncStorage.removeItem("club");
+        dispatch(resetOrderList());
+      } catch (error) {
+          console.error("Error changing club:", error);
+      }
+      navigation.navigate("Club");
+    } catch (error) {
+      console.error("Error changing club:", error);
+    }
+  };
+
   return (
     <View style={styles.headerContainer}>
       <View style={styles.leftContainer}>
         {/*<Image source={require("../assets/logo.png")} style={styles.clubImage} />*/}
-        <Text style={styles.clubName}>{clubName}</Text>
+        <Text style={styles.clubName} onPress={handleLogout}>
+          {club?.post_title}
+        </Text>
       </View>
       <TouchableOpacity style={styles.rightContainer} onPress={handleNewOrder}>
         <Text style={styles.newOrderButton}>New Order</Text>

@@ -1,21 +1,24 @@
 import React, { useState } from 'react';
+import { useSelector, useDispatch } from "react-redux";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Modal} from 'react-native';
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Header from './Header';
 import BottomBar from './BottomBar';
+import { memoizedOrderList } from "../store/selectors";
+import productPlaceholder from "../assets/product-placeholder.png";
 
 
-const OrderDetailScreen = ({ navigation }) => {
-  const [checkedItems, setCheckedItems] = useState({});
+const OrderDetailScreen = ({ route, navigation }) => {
+  const dispatch = useDispatch();
+  const orderList = useSelector(memoizedOrderList);
   const [isCancelModalVisible, setCancelModalVisible] = useState(false);
+  const order = route.params?.order;
 
   const sampleOrderDetails = [
-    { itemId: 1, itemName: 'Loose Fit Polo shirt', quantity: 2, image: require('../assets/burger_img.png') },
-    { itemId: 2, itemName: 'Regular Fit Polo-neck top', quantity: 3, image: require('../assets/burger_img-02.png') },
-    { itemId: 3, itemName: 'Loose Fit Polo shirt', quantity: 1, image: require('../assets/burger_img-03.png') },
-    { itemId: 4, itemName: 'Loose Fit Polo shirt', quantity: 2, image: require('../assets/burger_img-04.png') },
-    
-
+    // { itemId: 1, itemName: 'Loose Fit Polo shirt', quantity: 2, image: require('../assets/burger_img.png') },
+    // { itemId: 2, itemName: 'Regular Fit Polo-neck top', quantity: 3, image: require('../assets/burger_img-02.png') },
+    // { itemId: 3, itemName: 'Loose Fit Polo shirt', quantity: 1, image: require('../assets/burger_img-03.png') },
+    // { itemId: 4, itemName: 'Loose Fit Polo shirt', quantity: 2, image: require('../assets/burger_img-04.png') },
   ];
 
   const handleDeleteItem = (itemId) => {
@@ -60,15 +63,15 @@ const OrderDetailScreen = ({ navigation }) => {
       <View style={styles.itemsMain}>
         <View style={styles.itemsMainWrap}>
           <FlatList
-            data={sampleOrderDetails}
-            keyExtractor={(item) => item.itemId.toString()}
+            data={order.items}
+            keyExtractor={(item) => order.indexOf(item).toString()}
             renderItem={({ item }) => (
               <View style={styles.cartItem}>
-              <Image source={item.image} style={styles.cartItemImage} />
+              <Image source={item?.media?.value ? {uri: item?.media?.value} : productPlaceholder} style={styles.cartItemImage} />
               <View style={styles.cartItemDetails}>
-                <Text style={styles.cartItemName}>{item.itemName}</Text>
+                <Text style={styles.cartItemName}>{item.title}</Text>
                 <View style={styles.quantityContainer}>
-                  <Text style={styles.quantityText}>{item.quantity}</Text>
+                  <Text style={styles.quantityText}>{item?.quantity}</Text>
                 </View>
               </View>
               <View style={styles.cartItemPriceContainer}>

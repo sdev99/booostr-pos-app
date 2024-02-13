@@ -27,7 +27,7 @@ const productCategoryListSlice = createSlice({
       state.error = true;
     },
     resetProductCategoryList: (state) => {
-      state.categoryList = null;
+      state.categoryList = '';
       state.error = false;
       state.loading = false;
     }
