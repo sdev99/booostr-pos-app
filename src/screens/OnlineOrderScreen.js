@@ -6,7 +6,6 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Header from './Header';
 import BottomBar from './BottomBar';
 import { memoizedOrderList } from "../store/selectors";
-import { ActivityIndicator } from "react-native-paper";
 import { removeFromOrderList } from "../store/reducers/orderListSlice";
 
 const OnlineOrderScreen = ({ navigation }) => {
@@ -50,16 +49,20 @@ const OnlineOrderScreen = ({ navigation }) => {
   }
 
   const getOrderTotalPrice = (items) => {
-    return '$' + items?.reduce((total, item) => total + item.max_price, 0).toFixed(2);
+    return '$' + items?.reduce((total, item) => total + item.max_price*item.cart_quantity, 0).toFixed(2);
   }
 
   const getOnHoldOrderId = (order) => {
     return '#OH'+(orderList.indexOf(order)+1).toString().padStart(5,"0");
   }
 
+  const getOrderTotalItems = (items) => {
+    return items?.reduce((total, item) => total + item.cart_quantity, 0);
+  }
+
   const renderOrderedItem = (order) => {
     return (
-      <TouchableOpacity onPress={() => handleItemPress(order)}>
+      <TouchableOpacity onPress={() => handleItemPress(orderList.indexOf(order))}>
         <View style={styles.orderedItemContainer}>
           <View style={styles.orderedItem}>
            {/* <View style={[styles.imageAndNameContainer, styles.pdBottom]}>
@@ -73,7 +76,7 @@ const OnlineOrderScreen = ({ navigation }) => {
             </Text>
             <Text style={[styles.orderedItemText, styles.pdBottom]}>{getOrderTotalPrice(order.items)}</Text>
             <View style={[styles.tmRow,styles.tmRowTop]}>
-              <Text style={[styles.orderedItemText, styles.quantText]}>Number of items: {order.items?.length}</Text>
+              <Text style={[styles.orderedItemText, styles.quantText]}>Number of items: {getOrderTotalItems(order.items)}</Text>
               <Text style={styles.orderedItemText}>{order?.created_at?.substring(11)}</Text>
               <Text style={styles.orderedItemText}>{order?.created_at?.substring(0,10)}</Text>
             </View>
@@ -91,9 +94,9 @@ const OnlineOrderScreen = ({ navigation }) => {
     );
   };
 
-  const handleItemPress = (order) => {
+  const handleItemPress = (orderIndex) => {
     // Navigate to OrderDetailScreen and pass item details
-    navigation.navigate("OrderDetail", { order: order });
+    navigation.navigate("OrderDetail", { orderIndex: orderIndex });
   };
 
   const handleCancelOrder = async () => {

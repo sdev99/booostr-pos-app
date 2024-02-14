@@ -61,11 +61,19 @@ const OrdersScreen = ({ navigation }) => {
     }, []);
 
     const handleAddToCart = (product) => {
-        setCart([...cart, product]);
+        const index = cart.findIndex(obj => JSON.stringify(obj) === JSON.stringify(product));
+        if( index !== -1 ){
+            let updatedCart = [...cart];
+            updatedCart[index].cart_quantity += 1;
+            setCart(updatedCart);
+        }else{
+            product['cart_quantity'] = 1;
+            setCart([...cart, product]);
+        }
     };
 
     const getTotalPrice = () => {
-        return cart.reduce((total, item) => total + item.max_price, 0).toFixed(2);
+        return cart.reduce((total, item) => total + item.max_price*item.cart_quantity, 0).toFixed(2);
     };
 
     const holdOrder = async () => {

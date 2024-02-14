@@ -85,8 +85,6 @@ export const addToOrderList = (order) => async (dispatch, getState) => {
     const updatedOrderList = orderList ? [...orderList, order] : [order];
     
     dispatch(addToOrderListSuccess(JSON.stringify(updatedOrderList)));
-
-    dispatch(addToOrderListError());
   } catch (error) {
     dispatch(addToOrderListError());
     console.log(error);
@@ -101,11 +99,23 @@ export const removeFromOrderList = (order) => async (dispatch, getState) => {
     const updatedOrderList = orderList.filter((item, index) => index !== order);
     
     dispatch(removeFromOrderListSuccess(JSON.stringify(updatedOrderList)));
-
-    dispatch(removeFromOrderListError());
   } catch (error) {
     dispatch(removeFromOrderListError());
     console.log(error);
+  }
+};
+
+export const removeItemFromOrder = (orderIndex, productId) => async (dispatch, getState) => {
+  try {
+    dispatch(removeItemFromOrderStart());
+    
+    let updatedOrderList = [...JSON.parse(getState().orderList.orderList)];
+    updatedOrderList[orderIndex].items = updatedOrderList[orderIndex].items.filter((item) => item.id !== productId);
+    
+    dispatch(removeItemFromOrderSuccess(JSON.stringify(updatedOrderList)));
+  } catch (error) {
+    dispatch(removeItemFromOrderError());
+    // console.log(error);
   }
 };
 

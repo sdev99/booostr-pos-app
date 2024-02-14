@@ -6,13 +6,14 @@ import Header from './Header';
 import BottomBar from './BottomBar';
 import { memoizedOrderList } from "../store/selectors";
 import productPlaceholder from "../assets/product-placeholder.png";
+import { removeFromOrderList, removeItemFromOrder } from "../store/reducers/orderListSlice";
 
 
 const OrderDetailScreen = ({ route, navigation }) => {
   const dispatch = useDispatch();
   const orderList = useSelector(memoizedOrderList);
   const [isCancelModalVisible, setCancelModalVisible] = useState(false);
-  const order = route.params?.order;
+  const orderIndex = route.params?.orderIndex;
 
   const sampleOrderDetails = [
     // { itemId: 1, itemName: 'Loose Fit Polo shirt', quantity: 2, image: require('../assets/burger_img.png') },
@@ -21,10 +22,25 @@ const OrderDetailScreen = ({ route, navigation }) => {
     // { itemId: 4, itemName: 'Loose Fit Polo shirt', quantity: 2, image: require('../assets/burger_img-04.png') },
   ];
 
-  const handleDeleteItem = (itemId) => {
-    // Implement logic to remove the item from the order
-    // You can use this function when the delete button is pressed
-    console.log(`Delete button pressed for item ${itemId}`);
+  const handleDeleteItem = async (itemId) => {
+    try {
+      if(orderList[orderIndex].items.length === 1){
+        dispatch(removeFromOrderList(orderIndex))
+        .then(() => {
+          navigation.navigate('OnlineOrder');
+        })
+        .catch((error) => {
+            console.error("Error removing order from orderList:", error);
+        });
+      }else{
+        dispatch(removeItemFromOrder(orderIndex, itemId))
+        .catch((error) => {
+            console.error("Error removing item from order:", error);
+        });
+      }
+    } catch (error) {
+        console.error("Error removing item from order:", error);
+    }
   };
 
   const handleCompleteButtonPress = () => {
@@ -44,6 +60,10 @@ const OrderDetailScreen = ({ route, navigation }) => {
     setCancelModalVisible(false); // Close the modal after handling cancel
   };
 
+  const getOnHoldOrderId = (order) => {
+    return '#OH'+(orderList.indexOf(order)+1).toString().padStart(5,"0");
+  }
+
   return (
     <View style={styles.container}>
       <Header clubName="Hello Tester Club" onLogout={handleLogout} />
@@ -52,7 +72,7 @@ const OrderDetailScreen = ({ route, navigation }) => {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={24} color="black" />
           </TouchableOpacity>
-          <Text style={styles.title}>Order #240</Text>
+          <Text style={styles.title}>Order {getOnHoldOrderId(orderList[orderIndex])}</Text>
         </View>
         <View style={styles.titleRight}>
         <TouchableOpacity onPress={() => setCancelModalVisible(true)}>
@@ -63,22 +83,22 @@ const OrderDetailScreen = ({ route, navigation }) => {
       <View style={styles.itemsMain}>
         <View style={styles.itemsMainWrap}>
           <FlatList
-            data={order.items}
-            keyExtractor={(item) => order.indexOf(item).toString()}
+            data={orderList[orderIndex]?.items}
+            keyExtractor={(item) => orderList[orderIndex]?.items.indexOf(item).toString()}
             renderItem={({ item }) => (
               <View style={styles.cartItem}>
               <Image source={item?.media?.value ? {uri: item?.media?.value} : productPlaceholder} style={styles.cartItemImage} />
               <View style={styles.cartItemDetails}>
                 <Text style={styles.cartItemName}>{item.title}</Text>
                 <View style={styles.quantityContainer}>
-                  <Text style={styles.quantityText}>{item?.quantity}</Text>
+                  <Text style={styles.quantityText}>{item?.cart_quantity}</Text>
                 </View>
               </View>
               <View style={styles.cartItemPriceContainer}>
-                <Text style={styles.cartItemPrice}> ${calculateItemPrice(item).toFixed(2)}</Text>
+                <Text style={styles.cartItemPrice}> ${(item.max_price*item.cart_quantity).toFixed(2)}</Text>
                 <TouchableOpacity
                   style={styles.deleteButton}
-                  onPress={() => handleDeleteItem(item.itemId)}
+                  onPress={() => handleDeleteItem(item.id)}
                 >
                   <Icon name="delete" size={24} color="#2222224d" />
                 </TouchableOpacity>
@@ -133,13 +153,6 @@ const OrderDetailScreen = ({ route, navigation }) => {
     </View>
   );
 };
-
-const calculateItemPrice = (item) => {
-  // You may need to replace this calculation based on your data structure
-  return item.quantity * /* replace with the actual item price */ 5.99;
-};
-
-
 
 const styles = StyleSheet.create({
   container: {
