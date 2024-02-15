@@ -5,6 +5,7 @@ import { View, Text, Image, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { resetOrderList } from "../store/reducers/orderListSlice";
+import { resetCart } from "../store/reducers/cartSlice";
 
 const Header = ({ title, clubName }) => {
   const dispatch = useDispatch();
@@ -37,6 +38,7 @@ const Header = ({ title, clubName }) => {
       try {
         AsyncStorage.removeItem("club");
         dispatch(resetOrderList());
+        dispatch(resetCart());
       } catch (error) {
           console.error("Error changing club:", error);
       }

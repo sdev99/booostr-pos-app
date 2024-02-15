@@ -14,6 +14,7 @@ const selectClubList = (state) => state.clubList.clubList || '';
 const selectProductCategoryList = (state) => state.productCategoryList.categoryList || '';
 const selectProductList = (state) => state.productList.productList || '{}';
 const selectOrderList = (state) => state.orderList.orderList || '[]';
+const selectCartData = (state) => state.cart.cart || '[]';
 
 export const memoizedUserData = createSelector(
   [selectUserData],
@@ -44,4 +45,8 @@ export const memoizedProductList = createSelector(
 export const memoizedOrderList = createSelector(
   [selectOrderList],
   (orderList) => { return selectJsonData(orderList)}
+);
+export const memoizedCart = createSelector(
+  [selectCartData],
+  (cart) => { return selectJsonData(cart)}
 );

@@ -6,7 +6,7 @@ import Header from './Header';
 import BottomBar from './BottomBar';
 import { memoizedOrderList } from "../store/selectors";
 import productPlaceholder from "../assets/product-placeholder.png";
-import { removeFromOrderList, removeItemFromOrder } from "../store/reducers/orderListSlice";
+import { removeOrderFromOrderList, increaseItemInOrder, decreaseItemInOrder, removeItemFromOrder } from "../store/reducers/orderListSlice";
 
 
 const OrderDetailScreen = ({ route, navigation }) => {
@@ -25,7 +25,7 @@ const OrderDetailScreen = ({ route, navigation }) => {
   const handleDeleteItem = async (itemId) => {
     try {
       if(orderList[orderIndex].items.length === 1){
-        dispatch(removeFromOrderList(orderIndex))
+        dispatch(removeOrderFromOrderList(orderIndex))
         .then(() => {
           navigation.navigate('OnlineOrder');
         })
@@ -55,9 +55,41 @@ const OrderDetailScreen = ({ route, navigation }) => {
     // Handle logic for Continue Shopping button
    navigation.navigate('Orders');
   };
-  const handleCancelOrder = () => {
-    // Implement logic for canceling the order
-    setCancelModalVisible(false); // Close the modal after handling cancel
+  const handleIncreaseQuantity = async (itemIndex) => {
+    try {
+      dispatch(increaseItemInOrder(orderIndex, itemIndex))
+      .catch((error) => {
+          console.error("Error increasing item quantity:", error);
+      });
+    } catch (error) {
+      console.error("Error increasing item quantity:", error);
+    }
+  };
+  const handleDecreaseQuantity = async (itemIndex) => {
+    try {
+      dispatch(decreaseItemInOrder(orderIndex, itemIndex))
+      .then((itemsCount) => {
+        if( itemsCount === 0 ) navigation.navigate('OnlineOrder');
+      })
+      .catch((error) => {
+          console.error("Error decreasing item quantity:", error);
+      });
+    } catch (error) {
+      console.error("Error decreasing item quantity:", error);
+    }
+  };
+  const handleCancelOrder = async () => {
+    try {
+      dispatch(removeOrderFromOrderList(orderIndex))
+      .then(() => {
+        navigation.navigate('OnlineOrder');
+      })
+      .catch((error) => {
+          console.error("Error removing order from orderList:", error);
+      });
+    } catch (error) {
+      console.error("Error removing item from order:", error);
+    }
   };
 
   const getOnHoldOrderId = (order) => {
@@ -85,13 +117,19 @@ const OrderDetailScreen = ({ route, navigation }) => {
           <FlatList
             data={orderList[orderIndex]?.items}
             keyExtractor={(item) => orderList[orderIndex]?.items.indexOf(item).toString()}
-            renderItem={({ item }) => (
+            renderItem={({ item, index }) => (
               <View style={styles.cartItem}>
               <Image source={item?.media?.value ? {uri: item?.media?.value} : productPlaceholder} style={styles.cartItemImage} />
               <View style={styles.cartItemDetails}>
                 <Text style={styles.cartItemName}>{item.title}</Text>
                 <View style={styles.quantityContainer}>
+                  <TouchableOpacity style={styles.ButtonRounded} onPress={() => handleDecreaseQuantity(index)}>
+                    <Icon name="minus" size={20} color="#fff" />
+                  </TouchableOpacity>
                   <Text style={styles.quantityText}>{item?.cart_quantity}</Text>
+                  <TouchableOpacity style={styles.ButtonRounded} onPress={() => handleIncreaseQuantity(index)}>
+                    <Icon name="plus" size={20} color="#fff" />
+                  </TouchableOpacity>
                 </View>
               </View>
               <View style={styles.cartItemPriceContainer}>
@@ -363,6 +401,14 @@ const styles = StyleSheet.create({
   modalButtonText: {
     color: "#FFF",
     fontWeight: "bold",
+  },
+  ButtonRounded: {
+    width: 25,
+    height: 25,
+    backgroundColor: '#00c0ff',
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
 });

@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useFocusEffect } from '@react-navigation/native';
 import { useSelector, useDispatch } from "react-redux";
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, Modal, ScrollView } from "react-native";
 import { Button as PaperButton } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ActivityIndicator } from "react-native-paper";
-import { memoizedProductCategoryList, memoizedProductList } from "../store/selectors";
+import { memoizedProductCategoryList, memoizedProductList, memoizedCart } from "../store/selectors";
 import { fetchProductCategoryList } from "../store/reducers/productCategorySlice";
 import { fetchProductList } from "../store/reducers/productSlice";
 import { addToOrderList } from "../store/reducers/orderListSlice";
+import { addProductToCart, resetCart } from "../store/reducers/cartSlice";
 import productPlaceholder from "../assets/product-placeholder.png";
 import Header from './Header';
 
@@ -26,13 +28,22 @@ const OrdersScreen = ({ navigation }) => {
     const categoryTotalPages = JSON.parse(useSelector((state) => state.productList.totalPages));
     const [isMoreProductLoading, setIsMoreProductLoading] = useState(false);
     const [isCancelModalVisible, setCancelModalVisible] = useState(false);
-    const [cart, setCart] = useState([]);
+    const cart = useSelector(memoizedCart);
     const flatListRef = useRef(null);
     const scrollViewRef = useRef(null);
     const [previousLastItemPosition, setPreviousLastItemPosition] = useState(0);  
     
+    
+    useFocusEffect(
+        React.useCallback(() => {
+            // Empty cart
+            dispatch(resetCart());
+        }, [])
+    );
+
     // Fetch Product List for ALL
     useEffect(() => {
+
         const fetchData = async () => {
             try {
                 const club = await AsyncStorage.getItem("club");
@@ -61,14 +72,13 @@ const OrdersScreen = ({ navigation }) => {
     }, []);
 
     const handleAddToCart = (product) => {
-        const index = cart.findIndex(obj => JSON.stringify(obj) === JSON.stringify(product));
-        if( index !== -1 ){
-            let updatedCart = [...cart];
-            updatedCart[index].cart_quantity += 1;
-            setCart(updatedCart);
-        }else{
-            product['cart_quantity'] = 1;
-            setCart([...cart, product]);
+        try{
+            dispatch(addProductToCart(product))
+            .catch((error) => {
+                console.error("Error adding product to cart:", error);
+            });
+        } catch (error) {
+            console.error("Error adding product to cart:", error);
         }
     };
 
@@ -85,7 +95,7 @@ const OrdersScreen = ({ navigation }) => {
             order['status'] = 'on-hold';
             dispatch(addToOrderList(order))
             .then(() => {
-                setCart([]);
+                dispatch(resetCart());
                 navigation.navigate("OnlineOrder");
             })
             .catch((error) => {
@@ -213,9 +223,7 @@ const OrdersScreen = ({ navigation }) => {
 
     const handleCheckout = () => {
         if (cart.length > 0) {
-          navigation.navigate("Cart", {
-            cart,
-          });
+          navigation.navigate("Cart");
         } else {
           alert("Your cart is empty. Add items to your cart before checkout.");
         }

@@ -25,16 +25,42 @@ const orderListSlice = createSlice({
       state.loading = false;
       state.error = true;
     },
-    removeFromOrderListStart: (state) => {
+    removeOrderFromOrderListStart: (state) => {
       state.loading = true;
       state.error = false;
     },
-    removeFromOrderListSuccess: (state, action) => {
+    removeOrderFromOrderListSuccess: (state, action) => {
       state.orderList = action.payload;
       state.loading = false;
       state.error = false;
     },
-    removeFromOrderListError: (state) => {
+    removeOrderFromOrderListError: (state) => {
+      state.loading = false;
+      state.error = true;
+    },
+    increaseItemInOrderStart: (state) => {
+      state.loading = true;
+      state.error = false;
+    },
+    increaseItemInOrderSuccess: (state, action) => {
+      state.orderList = action.payload;
+      state.loading = false;
+      state.error = false;
+    },
+    increaseItemInOrderError: (state) => {
+      state.loading = false;
+      state.error = true;
+    },
+    decreaseItemInOrderStart: (state) => {
+      state.loading = true;
+      state.error = false;
+    },
+    decreaseItemInOrderSuccess: (state, action) => {
+      state.orderList = action.payload;
+      state.loading = false;
+      state.error = false;
+    },
+    decreaseItemInOrderError: (state) => {
       state.loading = false;
       state.error = true;
     },
@@ -68,9 +94,15 @@ export const {
   addToOrderListStart,
   addToOrderListSuccess,
   addToOrderListError,
-  removeFromOrderListStart,
-  removeFromOrderListSuccess,
-  removeFromOrderListError,
+  removeOrderFromOrderListStart,
+  removeOrderFromOrderListSuccess,
+  removeOrderFromOrderListError,
+  increaseItemInOrderStart,
+  increaseItemInOrderSuccess,
+  increaseItemInOrderError,
+  decreaseItemInOrderStart,
+  decreaseItemInOrderSuccess,
+  decreaseItemInOrderError,
   removeItemFromOrderStart,
   removeItemFromOrderSuccess,
   removeItemFromOrderError,
@@ -91,16 +123,53 @@ export const addToOrderList = (order) => async (dispatch, getState) => {
   }
 };
 
-export const removeFromOrderList = (order) => async (dispatch, getState) => {
+export const removeOrderFromOrderList = (order) => async (dispatch, getState) => {
   try {
-    dispatch(removeFromOrderListStart());
+    dispatch(removeOrderFromOrderListStart());
 
     const orderList = JSON.parse(getState().orderList.orderList);
     const updatedOrderList = orderList.filter((item, index) => index !== order);
     
-    dispatch(removeFromOrderListSuccess(JSON.stringify(updatedOrderList)));
+    dispatch(removeOrderFromOrderListSuccess(JSON.stringify(updatedOrderList)));
   } catch (error) {
-    dispatch(removeFromOrderListError());
+    dispatch(removeOrderFromOrderListError());
+    console.log(error);
+  }
+};
+
+export const increaseItemInOrder = (orderIndex, itemIndex) => async (dispatch, getState) => {
+  try {
+    dispatch(increaseItemInOrderStart());
+    
+    let updatedOrderList = [...JSON.parse(getState().orderList.orderList)];
+    updatedOrderList[orderIndex].items[itemIndex].cart_quantity += 1;
+    
+    dispatch(increaseItemInOrderSuccess(JSON.stringify(updatedOrderList)));
+  } catch (error) {
+    dispatch(increaseItemInOrderError());
+    console.log(error);
+  }
+};
+
+export const decreaseItemInOrder = (orderIndex, itemIndex) => async (dispatch, getState) => {
+  try {
+    dispatch(decreaseItemInOrderStart());
+    
+    let updatedOrderList = [...JSON.parse(getState().orderList.orderList)];
+    
+    if( updatedOrderList[orderIndex].items[itemIndex].cart_quantity === 1 ){
+      updatedOrderList[orderIndex].items = updatedOrderList[orderIndex].items.filter((item, index) => index!==itemIndex);
+    }else{
+      updatedOrderList[orderIndex].items[itemIndex].cart_quantity -= 1;
+    }
+
+    dispatch(decreaseItemInOrderSuccess(JSON.stringify(updatedOrderList)));
+    if( updatedOrderList[orderIndex].items.length === 0 ){
+      dispatch(removeOrderFromOrderList(orderIndex));
+      return 0;
+    }
+  } catch (error) {
+    dispatch(decreaseItemInOrderError());
     console.log(error);
   }
 };

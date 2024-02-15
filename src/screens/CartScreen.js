@@ -1,57 +1,28 @@
 import React, { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, Modal, Dimensions } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-
+import productPlaceholder from "../assets/product-placeholder.png";
 import Header from './Header';
+import { memoizedCart } from "../store/selectors";
+import { addProductToCart, decreaseProductFromCart, removeProductFromCart, resetCart } from "../store/reducers/cartSlice";
 
 const screenHeight = Dimensions.get('window').height;
 
-const CartScreen = ({ navigation, route }) => {
+const CartScreen = ({ navigation }) => {
+  const dispatch = useDispatch();
   const [isCancelModalVisible, setCancelModalVisible] = useState(false);
-
-  // Check if route.params exists and has the 'cart' property
-  const cart = route.params?.cart || [];
+  const cart = useSelector(memoizedCart);
 
   const getTotalPrice = () => {
     // Calculate total of all items without tax
-    const subtotal = cart.reduce((acc, item) => acc + item.price, 0);
+    const subtotal = cart?.reduce((total, item) => total + item.max_price*item.cart_quantity, 0);
 
     // Calculate total with 10% tax
-    const tax = subtotal * 0.1;
+    const tax = subtotal * 0.06;
     const totalDue = subtotal + tax;
 
     return { subtotal, tax, totalDue };
-  };
-
-  const renderCartItem = ({ item }) => (
-    <View style={styles.cartItem}>
-      <Image source={item.image} style={styles.cartItemImage} />
-      <View style={styles.cartItemDetails}>
-        <Text style={styles.cartItemName}>{item.name}</Text>
-        <View style={styles.quantityContainer}>
-          <TouchableOpacity style={styles.ButtonRounded}>
-            <Icon name="minus" size={20} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.quantityText}>1</Text>
-          <TouchableOpacity style={styles.ButtonRounded}>
-            <Icon name="plus" size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      </View>
-      <View style={styles.cartItemPriceContainer} >
-        <Text style={styles.taxText}> ${item.price.toFixed(2)}</Text>
-       {/* <Text style={styles.taxText}>Tax (10%): ${(item.price * 0.1).toFixed(2)}</Text>
-        <Text style={styles.cartItemPrice}>Total Due: ${(item.price + item.price * 0.1).toFixed(2)}</Text>*/}
-        <TouchableOpacity onPress={() => handleRemoveFromCart(item)}>
-          <Icon name="delete" size={24} color="#2222224d" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  const handleRemoveFromCart = (item) => {
-    // Implement logic to remove the item from the cart
-    // You can navigate to another screen or perform other actions
   };
 
   const handleCheckout = () => {
@@ -62,10 +33,79 @@ const CartScreen = ({ navigation, route }) => {
     navigation.navigate("Login");
   };
 
-  const handleCancelOrder = () => {
-    // Implement logic for canceling the order
-    setCancelModalVisible(false); // Close the modal after handling cancel
+  const handleCancelOrder = async () => {
+    try {
+      dispatch(resetCart())
+      navigation.navigate("Orders");
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+    }
   };
+
+  const handleIncreaseQuantity = async (product) => {
+    try {
+      dispatch(addProductToCart(product))
+      .catch((error) => {
+          console.error("Error adding product to cart:", error);
+      });
+    } catch (error) {
+      console.error("Error adding product to cart:", error);
+    }
+  }
+
+  const handledecreaseQuantity = async (productIndex) => {
+    try {
+      dispatch(decreaseProductFromCart(productIndex))
+      .then((cartLength) => {
+        if( cartLength === 0 ) navigation.navigate("Orders");
+      })
+      .catch((error) => {
+          console.error("Error decreasing product from cart:", error);
+      });
+    } catch (error) {
+      console.error("Error decreasing product from cart:", error);
+    }
+  }
+
+  const handleRemoveFromCart = (productIndex) => {
+    try {
+      dispatch(removeProductFromCart(productIndex))
+      .then(() => {
+        if( cart.length === 1 ) navigation.navigate("Orders");
+      })
+      .catch((error) => {
+          console.error("Error removing product from cart:", error);
+      });
+    } catch (error) {
+      console.error("Error removing product from cart:", error);
+    }
+  };
+
+  const renderCartItem = ({ item, index }) => (
+    <View style={styles.cartItem}>
+      <Image source={item?.media?.value ? {uri: item?.media?.value} : productPlaceholder} style={styles.cartItemImage} />
+      <View style={styles.cartItemDetails}>
+        <Text style={styles.cartItemName}>{item.title}</Text>
+        <View style={styles.quantityContainer}>
+          <TouchableOpacity style={styles.ButtonRounded} onPress={() => handledecreaseQuantity(index)}>
+            <Icon name="minus" size={20} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.quantityText}>{item?.cart_quantity}</Text>
+          <TouchableOpacity style={styles.ButtonRounded} onPress={() => handleIncreaseQuantity(item)}>
+            <Icon name="plus" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </View>
+      <View style={styles.cartItemPriceContainer} >
+        <Text style={styles.taxText}> ${(item.max_price*item.cart_quantity).toFixed(2)}</Text>
+       {/* <Text style={styles.taxText}>Tax (10%): ${(item.price * 0.1).toFixed(2)}</Text>
+        <Text style={styles.cartItemPrice}>Total Due: ${(item.price + item.price * 0.1).toFixed(2)}</Text>*/}
+        <TouchableOpacity onPress={() => handleRemoveFromCart(index)}>
+          <Icon name="delete" size={24} color="#2222224d" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -90,7 +130,7 @@ const CartScreen = ({ navigation, route }) => {
               Subtotal: ${getTotalPrice().subtotal.toFixed(2)}
             </Text>
             <Text style={styles.totalText}>
-              Tax (10%): ${getTotalPrice().tax.toFixed(2)}
+              Tax (6%): ${getTotalPrice().tax.toFixed(2)}
             </Text>
             <Text style={[styles.totalText, styles.totalAmount]}>
               Total Due: ${getTotalPrice().totalDue.toFixed(2)}
@@ -101,7 +141,7 @@ const CartScreen = ({ navigation, route }) => {
           <FlatList
             data={cart}
             renderItem={renderCartItem}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={(item) => cart.indexOf(item).toString()}
           />
         </View>
       </View>

@@ -6,6 +6,7 @@ import clubListReducer from "./reducers/clubListSlice";
 import productCategoryListReducer from "./reducers/productCategorySlice";
 import productListReducer from "./reducers/productSlice";
 import orderListReducer from "./reducers/orderListSlice";
+import cartReducer from "./reducers/cartSlice";
 import resetReducer from "./reducers/resetSlice";
 
 const rootReducer = combineReducers({
@@ -15,6 +16,7 @@ const rootReducer = combineReducers({
   productCategoryList: productCategoryListReducer,
   productList: productListReducer,
   orderList: orderListReducer,
+  cart: cartReducer,
   reset: resetReducer
 });
 

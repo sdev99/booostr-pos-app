@@ -6,7 +6,7 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Header from './Header';
 import BottomBar from './BottomBar';
 import { memoizedOrderList } from "../store/selectors";
-import { removeFromOrderList } from "../store/reducers/orderListSlice";
+import { removeOrderFromOrderList } from "../store/reducers/orderListSlice";
 
 const OnlineOrderScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -101,7 +101,7 @@ const OnlineOrderScreen = ({ navigation }) => {
 
   const handleCancelOrder = async () => {
     try {
-      dispatch(removeFromOrderList(selectedOrder))
+      dispatch(removeOrderFromOrderList(selectedOrder))
       .then(() => {
           setSelectedOrder(null);
           setCancelModalVisible(false); // Close the modal after handling cancel
