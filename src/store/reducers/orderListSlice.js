@@ -117,9 +117,11 @@ export const addToOrderList = (order) => async (dispatch, getState) => {
     const updatedOrderList = orderList ? [...orderList, order] : [order];
     
     dispatch(addToOrderListSuccess(JSON.stringify(updatedOrderList)));
+    return 'success';
   } catch (error) {
     dispatch(addToOrderListError());
     console.log(error);
+    return error.toString();
   }
 };
 

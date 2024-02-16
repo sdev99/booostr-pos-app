@@ -1,17 +1,22 @@
 import React, { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { View, Text, TouchableOpacity, Image, TextInput, Alert, ScrollView, StyleSheet, Modal, Dimensions  } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { CheckBox, Button } from 'react-native-elements';
 import Header from './Header';
+import { memoizedCart } from "../store/selectors";
+import { resetCart } from "../store/reducers/cartSlice";
+import { processCashOrder } from "../actions/order";
 //import { FontAwesome } from "@expo/vector-icons";
 
 const { height } = Dimensions.get("window");
 
-const CheckoutScreen = ({ navigation, route }) => {
+const CheckoutScreen = ({ navigation }) => {
+  const dispatch = useDispatch();
+  const cart = useSelector(memoizedCart);
+  const processingOrder = useSelector((state) => state.productList.loading);
   //const { totalAmount } = route?.params || {};
-  const totalAmount = "13.99";
-  const [amountTendered, setAmountTendered] = useState(totalAmount ? totalAmount.toString() : "0");
   
   const [paymentType, setPaymentType] = useState("card");
   const [selectedCardType, setSelectedCardType] = useState("mastercard");
@@ -21,6 +26,20 @@ const CheckoutScreen = ({ navigation, route }) => {
     expirationDate: "",
     cvc: "",
   });
+  
+  const getTotalPrice = () => {
+    // Calculate total of all items without tax
+    const subtotal = cart?.reduce((total, item) => total + item.max_price*item.cart_quantity, 0);
+    
+    // Calculate total with 10% tax
+    const tax = subtotal * 0.06;
+    const totalDue = subtotal + tax;
+    
+    return { subtotal, tax, totalDue };
+  };
+  
+  const totalAmount = getTotalPrice().totalDue;
+  const [amountTendered, setAmountTendered] = useState(totalAmount ? totalAmount.toString() : "0");
 
   const handleKeypadPress = (value) => {
     if (value === "C") {
@@ -100,7 +119,9 @@ const CheckoutScreen = ({ navigation, route }) => {
     const totalAmount = calculateTotal();
     navigation.navigate("Cash", { totalAmount });
   };*/}
-  const handleProcessCash = () => {
+  const handleProcessCash = async () => {
+    if( processingOrder ) return;
+
     const tenderedAmount = parseFloat(amountTendered);
     if (tenderedAmount < totalAmount) {
       Alert.alert(
@@ -115,14 +136,41 @@ const CheckoutScreen = ({ navigation, route }) => {
         { cancelable: false }
       );
     } else {
-      navigation.navigate("CashReceipt", { amountTendered });
+      try{
+        let order = {};
+        const d = new Date();
+        order['created_at'] = `${d.getFullYear()}-${(d.getMonth()+1+'').padStart(2, '0')}-${(d.getDate()+'').padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
+        order['items'] = cart;
+        order['order_total'] = totalAmount;
+        order['order_subtotal'] = getTotalPrice().subtotal;
+        order['order_tax'] = getTotalPrice().tax;
+        order['tax'] = '6%';
+        order['tendered_amount'] = tenderedAmount;
+        dispatch(processCashOrder(order))
+        .then((response) => {
+          if( response==='success' ){
+            navigation.navigate("CashReceipt", { order });
+          }else{
+            alert(response);
+          }
+        })
+        .catch((error) => {
+          alert(error.toString());
+        });
+      }catch(error){
+        alert(error.toString());
+      }
     }
   };
   
   
-  const handleCancelOrder = () => {
-    // Implement logic for canceling the order
-    setCancelModalVisible(false); // Close the modal after handling cancel
+  const handleCancelOrder = async () => {
+    try {
+      dispatch(resetCart())
+      navigation.navigate("Orders");
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+    }
   };
   const renderSelectionButton = (label, value) => (
     <TouchableOpacity
@@ -170,14 +218,14 @@ const CheckoutScreen = ({ navigation, route }) => {
       </View>
       <View style={styles.totalContainerMain}>
         <View style={styles.totalContainerNew}>
-          <Text style={styles.totalTextNew}>
+          {/* <Text style={styles.totalTextNew}>
             Order: #ORD123
-          </Text>
+          </Text> */}
           <Text style={styles.totalTextNew}>
-           Total Items: 2
+           Total Items: {cart.reduce((total, item) => total + item.cart_quantity, 0)}
           </Text>
           <Text style={[styles.totalTextNew, styles.totalAmountNew]}>
-            Total Due: $13.99
+            ${getTotalPrice().totalDue.toFixed(2)}
           </Text>
         </View>
       </View>
@@ -289,7 +337,7 @@ const CheckoutScreen = ({ navigation, route }) => {
              <View style={styles.mainWrap}>
                 <View style={styles.dueContainer}>
                   <Text style={styles.dueText}> Amount due</Text>
-                  <Text style={styles.dueAmount}>$13.99</Text>
+                  <Text style={styles.dueAmount}>${getTotalPrice().totalDue.toFixed(2)}</Text>
                 </View>
                 <View style={styles.mainWrapDiv}>
                   
@@ -304,7 +352,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                         style={styles.amountInput}
                         placeholder="Amount Tendered"
                         keyboardType="numeric"
-                        value={amountTendered === "0" ? `$${totalAmount}` : `$${parseFloat(amountTendered)}`}
+                        value={amountTendered === "0" ? `$${totalAmount}` : amountTendered === '' ? `$0` : `$${parseFloat(amountTendered)}`}
                         onChangeText={(text) => setAmountTendered(text.replace(/[^0-9.]/g, ""))}
                       />
                       </View>
@@ -364,7 +412,7 @@ const CheckoutScreen = ({ navigation, route }) => {
         ]}
         onPress={handleProcessCash}
       >
-        <Text style={styles.processButtonText}>PROCESS</Text>
+        <Text style={styles.processButtonText}>{ processingOrder ? 'PROCESSING' : 'PROCESS'}</Text>
       </TouchableOpacity>
       )}
       {/* Cancel Order Modal */}

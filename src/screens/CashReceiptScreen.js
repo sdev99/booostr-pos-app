@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSelector, useDispatch } from "react-redux";
 import {
   View,
   Text,
@@ -12,8 +13,10 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Header from './Header';
+import { memoizedOrderList } from "../store/selectors";
 
-const CashReceiptScreen = ({ orderTotal, amountTendered, changeDue, navigation }) => {
+const CashReceiptScreen = ({ orderTotal, amountTendered, changeDue, navigation, route }) => {
+  const order = route.params.order;
  // const defaultLanguage = 'English';
   //const [selectedLanguage, setSelectedLanguage] = useState('');
   //const [emailReceipt, setEmailReceipt] = useState(false);
@@ -52,8 +55,6 @@ const handleAddContact = () => {
   setModalVisible(false);
   setSuccessMessageVisible(true);
 };
-
- 
 
   const handleLogout = () => {
     navigation.navigate('Login');
@@ -136,15 +137,15 @@ const handleAddContact = () => {
         <View style={[styles.row, styles.dueWrap]}>
           <View style={styles.dueContainer}>
             <Text style={styles.dueText}>Order Total</Text>
-            <Text style={styles.dueAmount}>${orderTotalValue.toFixed(2)}</Text>
+            <Text style={styles.dueAmount}>${order.order_total.toFixed(2)}</Text>
           </View>
           <View style={[styles.dueContainer, styles.amontContainer]}>
             <Text style={styles.dueText}>Amount Tendered</Text>
-            <Text style={styles.dueAmount}>${amountTenderedValue.toFixed(2)}</Text>
+            <Text style={styles.dueAmount}>${order.tendered_amount.toFixed(2)}</Text>
           </View>
           <View style={styles.dueContainer}>
             <Text style={styles.dueText}>Change Due</Text>
-            <Text style={[styles.dueAmount, styles.dueChange]}>${changeDueValue.toFixed(2)}</Text>
+            <Text style={[styles.dueAmount, styles.dueChange]}>${(order.tendered_amount - order.order_total).toFixed(2)}</Text>
           </View>
         </View>
         
@@ -162,20 +163,20 @@ const handleAddContact = () => {
                 </View>
 
                 {/* Receipt items */}
-                {receiptItems.map((item, index) => (
+                {order.items.map((item, index) => (
                   <View key={index} style={styles.receiptItem}>
-                    <Text style={[styles.testHd, styles.headingFirst]}>{item.itemName}</Text>
-                    <Text style={styles.testHd}>{`$${item.price}`}</Text>
-                    <Text style={styles.testHd}>{item.quantity}</Text>
-                    <Text style={[ styles.testHd, styles.price]}>{`$${item.quantity * item.price}`}.00</Text>
+                    <Text style={[styles.testHd, styles.headingFirst]}>{item.title}</Text>
+                    <Text style={styles.testHd}>{`$${item.max_price}`}</Text>
+                    <Text style={styles.testHd}>{item.cart_quantity}</Text>
+                    <Text style={[ styles.testHd, styles.price]}>${(item.cart_quantity*item.max_price).toFixed(2)}</Text>
                   </View>
                 ))}
 
                 {/* Subtotal, GST, and Total */}
                 <View style={styles.totalContainer}>
-                  <Text style={styles.totalText}>Sub total:  ${calculateSubtotal().toFixed(2)}</Text>
-                  <Text style={styles.totalText}>Tax (10%):  ${calculateGST().toFixed(2)}</Text>
-                  <Text style={[styles.totalText, styles.totalAmount]}>Total: ${calculateTotal().toFixed(2)}</Text>
+                  <Text style={styles.totalText}>Sub total:  ${order.order_subtotal.toFixed(2)}</Text>
+                  <Text style={styles.totalText}>Tax (10%):  ${order.order_tax.toFixed(2)}</Text>
+                  <Text style={[styles.totalText, styles.totalAmount]}>Total: ${order.order_total.toFixed(2)}</Text>
                 </View>
               </View>
             </View>
