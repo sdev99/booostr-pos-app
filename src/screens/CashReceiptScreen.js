@@ -13,10 +13,14 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Header from './Header';
+import { sendReceipt } from "../actions/email";
 import { memoizedOrderList } from "../store/selectors";
 
 const CashReceiptScreen = ({ orderTotal, amountTendered, changeDue, navigation, route }) => {
-  const order = route.params.order;
+  // const order = route.params.order;
+  const dispatch = useDispatch();
+  const order = useSelector(memoizedOrderList).slice(-1)[0];
+
  // const defaultLanguage = 'English';
   //const [selectedLanguage, setSelectedLanguage] = useState('');
   //const [emailReceipt, setEmailReceipt] = useState(false);
@@ -48,12 +52,20 @@ const calculateGST = () => {
 const calculateTotal = () => {
   return calculateSubtotal() + calculateGST();
 };
-const handleAddContact = () => {
-  // Implement logic for adding contact to the club's Contact Manager
-  // You can use APIs or perform the necessary actions here
-  // After adding the contact, you can show the success message and close the modal
+const handleSendReceipt = () => {
+  let emailOrder = {...order, client_name: firstName, client_email: email};
+  dispatch(sendReceipt(emailOrder))
+  .then((response) => {
+    if (response?.status == "success") {
+      setSuccessMessageVisible(true);
+    }else{
+      alert(`Unable to send email.\n${response}`);
+    }
+  })
+  .catch((error) => {
+    alert(`Unable to send email.\n`+error.toString());
+  });
   setModalVisible(false);
-  setSuccessMessageVisible(true);
 };
 
   const handleLogout = () => {
@@ -141,11 +153,11 @@ const handleAddContact = () => {
           </View>
           <View style={[styles.dueContainer, styles.amontContainer]}>
             <Text style={styles.dueText}>Amount Tendered</Text>
-            <Text style={styles.dueAmount}>${order.tendered_amount.toFixed(2)}</Text>
+            <Text style={styles.dueAmount}>${order.payment_details.tendered_amount.toFixed(2)}</Text>
           </View>
           <View style={styles.dueContainer}>
             <Text style={styles.dueText}>Change Due</Text>
-            <Text style={[styles.dueAmount, styles.dueChange]}>${(order.tendered_amount - order.order_total).toFixed(2)}</Text>
+            <Text style={[styles.dueAmount, styles.dueChange]}>${(order.payment_details.tendered_amount - order.order_total).toFixed(2)}</Text>
           </View>
         </View>
         
@@ -275,8 +287,8 @@ const handleAddContact = () => {
               onChangeText={(text) => setEmail(text)}
               value={email}
             />
-            <TouchableOpacity style={styles.modalButton} onPress={handleAddContact}>
-              <Text style={styles.modalButtonText}>Add Contact</Text>
+            <TouchableOpacity style={styles.modalButton} onPress={handleSendReceipt}>
+              <Text style={styles.modalButtonText}>Send Receipt</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.modalButton} onPress={() => setModalVisible(false)}>
               <Text style={styles.modalButtonText}>Cancel</Text>

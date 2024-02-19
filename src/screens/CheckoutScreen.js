@@ -145,7 +145,8 @@ const CheckoutScreen = ({ navigation }) => {
         order['order_subtotal'] = getTotalPrice().subtotal;
         order['order_tax'] = getTotalPrice().tax;
         order['tax'] = '6%';
-        order['tendered_amount'] = tenderedAmount;
+        order['payment_method'] = 'cash';
+        order['payment_details']= {'tendered_amount':tenderedAmount};
         dispatch(processCashOrder(order))
         .then((response) => {
           if( response==='success' ){
@@ -155,7 +156,7 @@ const CheckoutScreen = ({ navigation }) => {
           }
         })
         .catch((error) => {
-          alert(error.toString());
+          alert('dsdsdsds'+error.toString());
         });
       }catch(error){
         alert(error.toString());
@@ -240,6 +241,13 @@ const CheckoutScreen = ({ navigation }) => {
             <Text style={[styles.paymentTabText, paymentType === "card" && styles.activeTabText]}>Card</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            style={[styles.paymentTab, paymentType === "stripe-reader" && styles.activeTab]}
+            onPress={() => setPaymentType("stripe-reader")}
+          >
+            <Image source={require("../assets/card-image.png")} style={[styles.paymentTabImage, paymentType === "stripe-reader" && styles.activeTabImg]} />
+            <Text style={[styles.paymentTabText, paymentType === "stripe-reader" && styles.activeTabText]}>Stripe Reader</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.paymentTab, paymentType === "cash" && styles.activeTab]}
             onPress={() => setPaymentType("cash")}
           >
@@ -316,6 +324,10 @@ const CheckoutScreen = ({ navigation }) => {
                 containerStyle={styles.checkbox}
               />
             </View>*/}
+          </View>
+        ) : paymentType === "stripe-reader" ? (
+          <View style={styles.cardForm}>
+            <Text>Waiting...</Text>
           </View>
         ) : (
           <View style={styles.cashInstructionsContainer}>
