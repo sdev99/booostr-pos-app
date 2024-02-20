@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { View, Text, TouchableOpacity, Image, TextInput, Alert, ScrollView, StyleSheet, Modal, Dimensions  } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -8,6 +8,8 @@ import Header from './Header';
 import { memoizedCart } from "../store/selectors";
 import { resetCart } from "../store/reducers/cartSlice";
 import { processCashOrder } from "../actions/order";
+import {CardField, useConfirmPayment} from '@stripe/stripe-react-native';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 //import { FontAwesome } from "@expo/vector-icons";
 
 const { height } = Dimensions.get("window");
@@ -16,6 +18,7 @@ const CheckoutScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const cart = useSelector(memoizedCart);
   const processingOrder = useSelector((state) => state.productList.loading);
+  // const [cardDetails, setCardDetails] = useState();
   //const { totalAmount } = route?.params || {};
   
   const [paymentType, setPaymentType] = useState("card");
@@ -40,6 +43,24 @@ const CheckoutScreen = ({ navigation }) => {
   
   const totalAmount = getTotalPrice().totalDue;
   const [amountTendered, setAmountTendered] = useState(totalAmount ? totalAmount.toString() : "0");
+  
+  const [club, setClub] = useState(null);
+
+  // Fetch Club Data
+  useEffect(() => {
+    const fetchData = async () => {
+        try {
+            const club = await AsyncStorage.getItem("club");
+            if( club ){
+                setClub(JSON.parse(club));
+            }
+        } catch (error) {
+            console.error("Error fetching club data:", error);
+        }
+    };
+
+    fetchData();
+  }, []);
 
   const handleKeypadPress = (value) => {
     if (value === "C") {
@@ -147,6 +168,7 @@ const CheckoutScreen = ({ navigation }) => {
         order['tax'] = '6%';
         order['payment_method'] = 'cash';
         order['payment_details']= {'tendered_amount':tenderedAmount};
+        order['club_name']= club?.post_title;
         dispatch(processCashOrder(order))
         .then((response) => {
           if( response==='success' ){
@@ -293,6 +315,13 @@ const CheckoutScreen = ({ navigation }) => {
               placeholder="Cardholder Name"
               onChangeText={(text) => setCardDetails({ ...cardDetails, cardholderName: text })}
               value={cardDetails.cardholderName}
+            />
+            <CardField
+              postalCodeEnabled={false}
+              placeholders={'Card Number'}
+              cardStyle={styles.card}
+              style={styles.cardContainer}
+              onCardChange={cardDetails => {setCardDetails(cardDetails)}}
             />
             <View style={styles.row}>
               <TextInput
@@ -976,6 +1005,12 @@ const styles = StyleSheet.create({
   keypadButtonText: {
     fontSize: 18,
   },
+  card: {
+    backgroundColor: "#efefef",
+  },
+  cardContainer: {
+    height: 50
+  }
 });
 
 export default CheckoutScreen;
