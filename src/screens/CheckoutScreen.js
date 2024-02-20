@@ -18,17 +18,18 @@ const CheckoutScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const cart = useSelector(memoizedCart);
   const processingOrder = useSelector((state) => state.productList.loading);
-  // const [cardDetails, setCardDetails] = useState();
+  const [cardDetails, setCardDetails] = useState();
+  const {confirmPayment, loading} = useConfirmPayment();
   //const { totalAmount } = route?.params || {};
   
   const [paymentType, setPaymentType] = useState("card");
   const [selectedCardType, setSelectedCardType] = useState("mastercard");
-  const [cardDetails, setCardDetails] = useState({
-    cardholderName: "",
-    cardNumber: "",
-    expirationDate: "",
-    cvc: "",
-  });
+  // const [cardDetails, setCardDetails] = useState({
+  //   cardholderName: "",
+  //   cardNumber: "",
+  //   expirationDate: "",
+  //   cvc: "",
+  // });
   
   const getTotalPrice = () => {
     // Calculate total of all items without tax
@@ -111,27 +112,31 @@ const CheckoutScreen = ({ navigation }) => {
 };
 
 
-  const handlePay = () => {
-    if (paymentType === "card") {
-      // Implement logic to process card payment
-      if (validateCardDetails()) {
-        // Proceed with payment
-        // Navigate to PaymentSuccessScreen on successful payment
-        navigation.navigate("PaymentSuccess");
-      } else {
-        Alert.alert("Invalid Card Details", "Please check your card information and try again.");
-      }
-    } else if (paymentType === "cash") {
-      navigation.navigate("CashScreen", { totalAmount }); // Pass totalAmount to CashScreen
+  const handlePay = async () => {
+    if( !cardDetails?.complete ){
+      alert("Please enter complete card details.");
+      return;
     }
+    // if (paymentType === "card") {
+    //   // Implement logic to process card payment
+    //   if (validateCardDetails()) {
+    //     // Proceed with payment
+    //     // Navigate to PaymentSuccessScreen on successful payment
+    //     navigation.navigate("PaymentSuccess");
+    //   } else {
+    //     Alert.alert("Invalid Card Details", "Please check your card information and try again.");
+    //   }
+    // } else if (paymentType === "cash") {
+    //   navigation.navigate("CashScreen", { totalAmount }); // Pass totalAmount to CashScreen
+    // }
   };
 
-  const validateCardDetails = () => {
-    // Implement validation logic for card details
-    // Return true if card details are valid, false otherwise
-    // You may want to implement more sophisticated validation
-    return cardDetails.cardholderName && cardDetails.cardNumber && cardDetails.expirationDate && cardDetails.cvv;
-  };
+  // const validateCardDetails = () => {
+  //   // Implement validation logic for card details
+  //   // Return true if card details are valid, false otherwise
+  //   // You may want to implement more sophisticated validation
+  //   return cardDetails.cardholderName && cardDetails.cardNumber && cardDetails.expirationDate && cardDetails.cvv;
+  // };
 
   const handleLogout = () => {
     navigation.navigate("Login");
@@ -279,7 +284,7 @@ const CheckoutScreen = ({ navigation }) => {
         </View>
         
         {/* Card type selection row within the card tab */}
-        {paymentType === "card" && (
+        {/* {paymentType === "card" && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardTypeScrollContainer}>
             <TouchableOpacity
               style={[styles.cardType, selectedCardType === "mastercard" && styles.activeCardType]} onPress={() => setSelectedCardType("mastercard")}>
@@ -304,18 +309,18 @@ const CheckoutScreen = ({ navigation }) => {
               <Image source={require("../assets/discover-card.png")} style={styles.cardTypeImage} />
             </TouchableOpacity>
           </ScrollView>
-        )}
+        )} */}
         <ScrollView style={{ ...styles.scView, height: height * 0.62 }}>
           <View style={styles.scViewWrap}>
         {/* Display form based on the selected payment type */}
         {paymentType === "card" ? (
           <View style={styles.cardForm}>
-            <TextInput
+            {/* <TextInput
               style={styles.input}
               placeholder="Cardholder Name"
               onChangeText={(text) => setCardDetails({ ...cardDetails, cardholderName: text })}
               value={cardDetails.cardholderName}
-            />
+            /> */}
             <CardField
               postalCodeEnabled={false}
               placeholders={'Card Number'}
@@ -323,7 +328,7 @@ const CheckoutScreen = ({ navigation }) => {
               style={styles.cardContainer}
               onCardChange={cardDetails => {setCardDetails(cardDetails)}}
             />
-            <View style={styles.row}>
+            {/* <View style={styles.row}>
               <TextInput
                 style={[styles.input, { flex: 1 }]}
                 placeholder="Card Number"
@@ -344,7 +349,7 @@ const CheckoutScreen = ({ navigation }) => {
                   onChangeText={(text) => setCardDetails({ ...cardDetails, cvv: text })}
                   value={cardDetails.cvv}
                 />
-            </View>
+            </View> */}
             {/*<View style={styles.checkboxContainer}>
               <CheckBox
                 title="Save Credit Card Information"
@@ -437,9 +442,9 @@ const CheckoutScreen = ({ navigation }) => {
       </View>
       {paymentType === "card" && (
       <TouchableOpacity
-        style={[styles.payButton, !validateCardDetails() && styles.disabledButton]}
+        style={[styles.payButton, loading && styles.disabledButton]}
         onPress={handlePay}
-        disabled={!validateCardDetails()}
+        disabled={loading}
       >
         <Text style={styles.payButtonText}>Pay</Text>
         <Icon style={styles.rightIcon} name="chevron-right" size={24} color="#FFF" />
@@ -1006,10 +1011,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   card: {
-    backgroundColor: "#efefef",
+    backgroundColor: "#e7effc",
+    borderWidth: 2,
+    borderColor: "#00c0ff",
+    borderRadius: 6,
   },
   cardContainer: {
-    height: 50
+    height: 50,
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: "400",
+    fontStyle: "normal",
+    color: "#515151",
   }
 });
 
