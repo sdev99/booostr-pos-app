@@ -5,11 +5,11 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { CheckBox, Button } from 'react-native-elements';
 import Header from './Header';
-import { memoizedCart, memoizedStoreData } from "../store/selectors";
+import { memoizedCart, memoizedStoreData, memoizedUserData } from "../store/selectors";
 import { resetCart } from "../store/reducers/cartSlice";
 import { processCashOrder } from "../actions/order";
-import {CardField, useConfirmPayment} from '@stripe/stripe-react-native';
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { processOrder } from "../actions/order";
 //import { FontAwesome } from "@expo/vector-icons";
 
 const { height } = Dimensions.get("window");
@@ -17,20 +17,81 @@ const { height } = Dimensions.get("window");
 const CheckoutScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const cart = useSelector(memoizedCart);
+  const userData = useSelector(memoizedUserData);
   const storeData = useSelector(memoizedStoreData);
   const processingOrder = useSelector((state) => state.productList.loading);
-  const [cardDetails, setCardDetails] = useState();
-  const {confirmPayment, loading} = useConfirmPayment();
   //const { totalAmount } = route?.params || {};
   
   const [paymentType, setPaymentType] = useState("card");
   const [selectedCardType, setSelectedCardType] = useState("mastercard");
-  // const [cardDetails, setCardDetails] = useState({
-  //   cardholderName: "",
-  //   cardNumber: "",
-  //   expirationDate: "",
-  //   cvc: "",
-  // });
+  const [cardDetails, setCardDetails] = useState({
+    cardholderName: "",
+    cardNumber: "",
+    expirationDate: "",
+    cvc: "",
+  });
+  const [validationStatus, setValidationStatus] = useState({
+    cardholderName: false,
+    cardNumber: false,
+    expirationDate: false,
+    cvc: false,
+  });
+
+  const formatCardNumber = (inputCardNumber) => {
+    const cleanedInput = inputCardNumber.replace(/\D/g, '');
+    let formattedCardNumber = '';
+    for (let i = 0; i < cleanedInput.length; i++) {
+      if (i > 0 && i % 4 === 0) {
+        formattedCardNumber += ' ';
+      }
+      formattedCardNumber += cleanedInput[i];
+    }
+    return formattedCardNumber;
+  };
+
+  const isValidCardNumber = (inputCardNumber) => {
+    const cardNumberWithoutSpaces = inputCardNumber.replace(/\s/g, '');
+    return /^\d{16}$/.test(cardNumberWithoutSpaces); // Basic check for 16 digits
+  };
+
+  const handleCardNumberChange = (inputCardNumber) => {
+    const formattedCardNumber = formatCardNumber(inputCardNumber);
+    setCardDetails((prevState) => ({
+      ...prevState,
+      cardNumber: formattedCardNumber,
+    }));
+    const isValid = isValidCardNumber(inputCardNumber);
+    setValidationStatus((prevState) => ({
+      ...prevState,
+      cardNumber: isValid,
+    }));
+  };
+
+  const formatExpirationDate = (inputExpirationDate) => {
+    const cleanedInput = inputExpirationDate.replace(/\D/g, '');
+    if (cleanedInput.length <= 2) {
+      return cleanedInput;
+    }
+    return `${cleanedInput.slice(0, 2)}/${cleanedInput.slice(2, 4)}`;
+  };
+
+  const handleExpirationDateChange = (inputExpirationDate) => {
+    const formattedExpirationDate = formatExpirationDate(inputExpirationDate);
+    setCardDetails((prevState) => ({
+      ...prevState,
+      expirationDate: formattedExpirationDate,
+    }));
+    
+    const [month, year] = formattedExpirationDate.split('/');
+    const currentDate = new Date();
+    const expirationDate = new Date(`20${year}`, month - 1); // Assuming 20 is added to the year (e.g., 20YY)
+    const isValidExpirationDate = expirationDate > currentDate;
+
+    setValidationStatus((prevState) => ({
+      ...prevState,
+      expirationDate: isValidExpirationDate,
+    }));
+  };
   
   const getTotalPrice = () => {
     // Calculate total of all items without tax
@@ -87,7 +148,7 @@ const CheckoutScreen = ({ navigation }) => {
   const handleClearPress = () => {
     setAmountTendered("0");
   };
-  //const [saveCardInfo, setSaveCardInfo] = useState(false);
+  // const [saveCardInfo, setSaveCardInfo] = useState(false);
   const [isCancelModalVisible, setCancelModalVisible] = useState(false);
   //const [radioSelected, setRadioSelected] = useState(false);
   const receiptItems = [
@@ -114,30 +175,54 @@ const CheckoutScreen = ({ navigation }) => {
 
 
   const handlePay = async () => {
-    if( !cardDetails?.complete ){
-      alert("Please enter complete card details.");
-      return;
+    if (paymentType === "card") {
+
+
+      if (validateCardDetails()) {
+        try{
+          let order = {};
+          const d = new Date();
+          order['created_at'] = `${d.getFullYear()}-${(d.getMonth()+1+'').padStart(2, '0')}-${(d.getDate()+'').padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
+          order['items'] = cart;
+          order['order_total'] = totalAmount;
+          order['order_subtotal'] = getTotalPrice().subtotal;
+          order['order_tax'] = getTotalPrice().tax;
+          order['tax'] = `${storeData?.tax}%`;
+          order['payment_method'] = 'card';
+          order['payment_details'] = {'card_details':cardDetails};
+          order['wpuid'] = userData.user_id;
+          dispatch(processOrder(order, club))
+          .then((response) => {
+            if( response==='success' ){
+              alert('success');
+              // navigation.navigate("PaymentSuccess", { order });
+            }else{
+              alert(response);
+            }
+          })
+          .catch((error) => {
+            alert(error.toString());
+          });
+        }catch(error){
+          alert(error.toString());
+        }
+      } else {
+        alert("Invalid Card Details\nPlease check your card information and try again.");
+      }
+
+
+    } else if (paymentType === "cash") {
+
+
+      navigation.navigate("CashScreen", { totalAmount }); // Pass totalAmount to CashScreen
+
+
     }
-    // if (paymentType === "card") {
-    //   // Implement logic to process card payment
-    //   if (validateCardDetails()) {
-    //     // Proceed with payment
-    //     // Navigate to PaymentSuccessScreen on successful payment
-    //     navigation.navigate("PaymentSuccess");
-    //   } else {
-    //     Alert.alert("Invalid Card Details", "Please check your card information and try again.");
-    //   }
-    // } else if (paymentType === "cash") {
-    //   navigation.navigate("CashScreen", { totalAmount }); // Pass totalAmount to CashScreen
-    // }
   };
 
-  // const validateCardDetails = () => {
-  //   // Implement validation logic for card details
-  //   // Return true if card details are valid, false otherwise
-  //   // You may want to implement more sophisticated validation
-  //   return cardDetails.cardholderName && cardDetails.cardNumber && cardDetails.expirationDate && cardDetails.cvv;
-  // };
+  const validateCardDetails = () => {
+    return validationStatus.cardholderName && validationStatus.cardNumber && validationStatus.expirationDate && validationStatus.cvc;
+  };
 
   const handleLogout = () => {
     navigation.navigate("Login");
@@ -251,7 +336,7 @@ const CheckoutScreen = ({ navigation }) => {
             Order: #ORD123
           </Text> */}
           <Text style={styles.totalTextNew}>
-           Total Items: {cart.reduce((total, item) => total + item.cart_quantity, 0)}
+          Total Items: {cart.reduce((total, item) => total + item.cart_quantity, 0)}
           </Text>
           <Text style={[styles.totalTextNew, styles.totalAmountNew]}>
             ${getTotalPrice().totalDue.toFixed(2)}
@@ -269,13 +354,6 @@ const CheckoutScreen = ({ navigation }) => {
             <Text style={[styles.paymentTabText, paymentType === "card" && styles.activeTabText]}>Card</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.paymentTab, paymentType === "stripe-reader" && styles.activeTab]}
-            onPress={() => setPaymentType("stripe-reader")}
-          >
-            <Image source={require("../assets/card-image.png")} style={[styles.paymentTabImage, paymentType === "stripe-reader" && styles.activeTabImg]} />
-            <Text style={[styles.paymentTabText, paymentType === "stripe-reader" && styles.activeTabText]}>Stripe Reader</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
             style={[styles.paymentTab, paymentType === "cash" && styles.activeTab]}
             onPress={() => setPaymentType("cash")}
           >
@@ -285,7 +363,7 @@ const CheckoutScreen = ({ navigation }) => {
         </View>
         
         {/* Card type selection row within the card tab */}
-        {/* {paymentType === "card" && (
+        {paymentType === "card" && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardTypeScrollContainer}>
             <TouchableOpacity
               style={[styles.cardType, selectedCardType === "mastercard" && styles.activeCardType]} onPress={() => setSelectedCardType("mastercard")}>
@@ -310,63 +388,65 @@ const CheckoutScreen = ({ navigation }) => {
               <Image source={require("../assets/discover-card.png")} style={styles.cardTypeImage} />
             </TouchableOpacity>
           </ScrollView>
-        )} */}
+        )}
         <ScrollView style={{ ...styles.scView, height: height * 0.62 }}>
           <View style={styles.scViewWrap}>
         {/* Display form based on the selected payment type */}
         {paymentType === "card" ? (
           <View style={styles.cardForm}>
-            {/* <TextInput
+            <TextInput
               style={styles.input}
               placeholder="Cardholder Name"
-              onChangeText={(text) => setCardDetails({ ...cardDetails, cardholderName: text })}
+              onChangeText={(text) => {
+                setCardDetails({ ...cardDetails, cardholderName: text });
+                setValidationStatus({ ...validationStatus, cardholderName: text.length > 0 });
+              }}
               value={cardDetails.cardholderName}
-            /> */}
-            <CardField
-              postalCodeEnabled={false}
-              placeholders={'Card Number'}
-              cardStyle={styles.card}
-              style={styles.cardContainer}
-              onCardChange={cardDetails => {setCardDetails(cardDetails)}}
             />
-            {/* <View style={styles.row}>
+            <View style={styles.row}>
               <TextInput
                 style={[styles.input, { flex: 1 }]}
                 placeholder="Card Number"
-                onChangeText={(text) => setCardDetails({ ...cardDetails, cardNumber: text })}
+                // onChangeText={(text) => setCardDetails({ ...cardDetails, cardNumber: text })}
+                onChangeText={handleCardNumberChange}
                 value={cardDetails.cardNumber}
+                maxLength={19}
               />
             </View>
             <View style={styles.row}>
                 <TextInput
                   style={[styles.input, { flex: 1 }]}
                   placeholder="Expiration Date (MM/YY)"
-                  onChangeText={(text) => setCardDetails({ ...cardDetails, expirationDate: text })}
+                  // onChangeText={(text) => setCardDetails({ ...cardDetails, expirationDate: text })}
+                  onChangeText={handleExpirationDateChange}
                   value={cardDetails.expirationDate}
+                  keyboardType="numeric"                  
                 />
                 <TextInput
                   style={[styles.input, { flex: 1, marginLeft:5 }]}
                   placeholder="CVV"
-                  onChangeText={(text) => setCardDetails({ ...cardDetails, cvv: text })}
-                  value={cardDetails.cvv}
+                  onChangeText={(text) => {
+                    const cleanedText = text.replace(/\D/g, ''); // Remove non-digit characters
+                    setCardDetails({ ...cardDetails, cvc: cleanedText });
+                    setValidationStatus({ ...validationStatus, cvc: cleanedText.length === 3 }); // Set cvc validation status based on the length of cleanedText
+                  }}
+                  value={cardDetails.cvc}
+                  keyboardType="numeric"
+                  maxLength={3}
                 />
-            </View> */}
-            {/*<View style={styles.checkboxContainer}>
+            </View>
+            {/* <View style={styles.checkboxContainer}>
               <CheckBox
                 title="Save Credit Card Information"
                 checked={saveCardInfo}
                 onPress={() => setSaveCardInfo(!saveCardInfo)}
                 containerStyle={styles.checkbox}
               />
-            </View>*/}
-          </View>
-        ) : paymentType === "stripe-reader" ? (
-          <View style={styles.cardForm}>
-            <Text>Waiting...</Text>
+            </View> */}
           </View>
         ) : (
           <View style={styles.cashInstructionsContainer}>
-             {/*<View style={styles.radioContainer}>
+            {/*<View style={styles.radioContainer}>
                 <CheckBox
                   title="Cash on Delivery (COD)"
                   checked={radioSelected}
@@ -377,11 +457,11 @@ const CheckoutScreen = ({ navigation }) => {
               </View>*/}
               <View style={styles.cashInstructionsWrapr}>
               {/* <View style={styles.iconContainer}>
-               <FontAwesome name="money" size={30} color="#fff" />
+              <FontAwesome name="money" size={30} color="#fff" />
               </View>
               <Text style={styles.cashInstructions}>Cash on Delivery: Prepare cash for payment upon delivery.</Text> */}
-             
-             <View style={styles.mainWrap}>
+            
+            <View style={styles.mainWrap}>
                 <View style={styles.dueContainer}>
                   <Text style={styles.dueText}> Amount due</Text>
                   <Text style={styles.dueAmount}>${getTotalPrice().totalDue.toFixed(2)}</Text>
@@ -443,15 +523,15 @@ const CheckoutScreen = ({ navigation }) => {
       </View>
       {paymentType === "card" && (
       <TouchableOpacity
-        style={[styles.payButton, loading && styles.disabledButton]}
+        style={[styles.payButton, !validateCardDetails() && styles.disabledButton]}
         onPress={handlePay}
-        disabled={loading}
+        disabled={!validateCardDetails()}
       >
         <Text style={styles.payButtonText}>Pay</Text>
         <Icon style={styles.rightIcon} name="chevron-right" size={24} color="#FFF" />
       </TouchableOpacity>
     )}
-     {paymentType === "cash" && (
+    {paymentType === "cash" && (
         <TouchableOpacity
         style={[
           styles.processButton,
@@ -1010,20 +1090,6 @@ const styles = StyleSheet.create({
   },
   keypadButtonText: {
     fontSize: 18,
-  },
-  card: {
-    backgroundColor: "#e7effc",
-    borderWidth: 2,
-    borderColor: "#00c0ff",
-    borderRadius: 6,
-  },
-  cardContainer: {
-    height: 50,
-    fontSize: 14,
-    lineHeight: 19,
-    fontWeight: "400",
-    fontStyle: "normal",
-    color: "#515151",
   }
 });
 

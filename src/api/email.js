@@ -24,7 +24,6 @@ const sendReceipt = async (order) => {
     }
   } catch (error) {
     return error.toString();
-  } finally {
   }
 };
 
