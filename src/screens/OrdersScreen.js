@@ -6,7 +6,8 @@ import { Button as PaperButton } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ActivityIndicator } from "react-native-paper";
-import { memoizedProductCategoryList, memoizedProductList, memoizedCart } from "../store/selectors";
+import { memoizedProductCategoryList, memoizedProductList, memoizedCart, memoizedStoreData } from "../store/selectors";
+import { fetchStoreData } from "../store/reducers/storeDetailSlice";
 import { fetchProductCategoryList } from "../store/reducers/productCategorySlice";
 import { fetchProductList } from "../store/reducers/productSlice";
 import { addToOrderList } from "../store/reducers/orderListSlice";
@@ -18,6 +19,7 @@ const OrdersScreen = ({ navigation }) => {
     const dispatch = useDispatch();
     const [club, setClub] = useState([]);
     const [isClubLoading, setIsClubLoading] = useState(true);
+    const storeData = useSelector(memoizedStoreData);
     const productCategoryListWithoutAll = useSelector(memoizedProductCategoryList);
     const productCategoryList = [{id:0, name:'All'}, ...productCategoryListWithoutAll];
     const isProductCategoryLoading = useSelector((state) => state.productCategoryList.loading);
@@ -31,9 +33,8 @@ const OrdersScreen = ({ navigation }) => {
     const cart = useSelector(memoizedCart);
     const flatListRef = useRef(null);
     const scrollViewRef = useRef(null);
-    const [previousLastItemPosition, setPreviousLastItemPosition] = useState(0);  
-    
-    
+    const [previousLastItemPosition, setPreviousLastItemPosition] = useState(0);
+
     useFocusEffect(
         React.useCallback(() => {
             // Empty cart
@@ -49,6 +50,7 @@ const OrdersScreen = ({ navigation }) => {
                 const club = await AsyncStorage.getItem("club");
                 if( club ){
                     setClub(JSON.parse(club));
+                    dispatch(fetchStoreData(JSON.parse(club)));
                     dispatch(fetchProductCategoryList(JSON.parse(club).post_slug))
                     .then(() => {
                         setSelectedCategory(productCategoryList[0].id);

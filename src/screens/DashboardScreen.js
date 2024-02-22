@@ -1,5 +1,6 @@
 // DashboardScreen.js
 import React, { useState } from "react";
+import { useDispatch } from "react-redux";
 import { View, Text, FlatList, Image, StyleSheet, Dimensions } from "react-native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -10,6 +11,7 @@ import BottomBar from "./BottomBar";
 import { useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ActivityIndicator } from "react-native-paper";
+import { fetchStoreData } from "../store/reducers/storeDetailSlice";
 
 const LatestOrdersScreen = ({ orderedItems }) => {
   const renderOrderedItem = ({ item }) => (
@@ -60,6 +62,7 @@ const TopSellingScreen = ({ orderedItems }) => {
 };
 
 const DashboardScreen = ({ navigation }) => {
+  const dispatch = useDispatch();
   const [club, setClub] = useState([]);
   const [isClubLoading, setIsClubLoading] = useState(true);
 
@@ -67,7 +70,10 @@ const DashboardScreen = ({ navigation }) => {
     const fetchData = async () => {
       try {
         const club = await AsyncStorage.getItem("club");
-        if( club ) setClub(JSON.parse(club));
+        if( club ){
+          setClub(JSON.parse(club));
+          dispatch(fetchStoreData(JSON.parse(club)));
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {

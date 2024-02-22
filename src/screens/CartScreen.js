@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, Modal, Dimen
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import productPlaceholder from "../assets/product-placeholder.png";
 import Header from './Header';
-import { memoizedCart } from "../store/selectors";
+import { memoizedCart, memoizedStoreData } from "../store/selectors";
 import { addProductToCart, decreaseProductFromCart, removeProductFromCart, resetCart } from "../store/reducers/cartSlice";
 
 const screenHeight = Dimensions.get('window').height;
@@ -13,13 +13,14 @@ const CartScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const [isCancelModalVisible, setCancelModalVisible] = useState(false);
   const cart = useSelector(memoizedCart);
+  const storeData = useSelector(memoizedStoreData);
 
   const getTotalPrice = () => {
     // Calculate total of all items without tax
     const subtotal = cart?.reduce((total, item) => total + item.max_price*item.cart_quantity, 0);
 
     // Calculate total with 10% tax
-    const tax = subtotal * 0.06;
+    const tax = subtotal * parseFloat(storeData?.tax) / 100;
     const totalDue = subtotal + tax;
 
     return { subtotal, tax, totalDue };
@@ -130,7 +131,7 @@ const CartScreen = ({ navigation }) => {
               Subtotal: ${getTotalPrice().subtotal.toFixed(2)}
             </Text>
             <Text style={styles.totalText}>
-              Tax (6%): ${getTotalPrice().tax.toFixed(2)}
+              Tax ({storeData?.tax}%): ${getTotalPrice().tax.toFixed(2)}
             </Text>
             <Text style={[styles.totalText, styles.totalAmount]}>
               Total Due: ${getTotalPrice().totalDue.toFixed(2)}

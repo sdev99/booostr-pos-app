@@ -5,7 +5,7 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { CheckBox, Button } from 'react-native-elements';
 import Header from './Header';
-import { memoizedCart } from "../store/selectors";
+import { memoizedCart, memoizedStoreData } from "../store/selectors";
 import { resetCart } from "../store/reducers/cartSlice";
 import { processCashOrder } from "../actions/order";
 import {CardField, useConfirmPayment} from '@stripe/stripe-react-native';
@@ -17,6 +17,7 @@ const { height } = Dimensions.get("window");
 const CheckoutScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const cart = useSelector(memoizedCart);
+  const storeData = useSelector(memoizedStoreData);
   const processingOrder = useSelector((state) => state.productList.loading);
   const [cardDetails, setCardDetails] = useState();
   const {confirmPayment, loading} = useConfirmPayment();
@@ -36,7 +37,7 @@ const CheckoutScreen = ({ navigation }) => {
     const subtotal = cart?.reduce((total, item) => total + item.max_price*item.cart_quantity, 0);
     
     // Calculate total with 10% tax
-    const tax = subtotal * 0.06;
+    const tax = subtotal * parseFloat(storeData?.tax) / 100;
     const totalDue = subtotal + tax;
     
     return { subtotal, tax, totalDue };
@@ -170,7 +171,7 @@ const CheckoutScreen = ({ navigation }) => {
         order['order_total'] = totalAmount;
         order['order_subtotal'] = getTotalPrice().subtotal;
         order['order_tax'] = getTotalPrice().tax;
-        order['tax'] = '6%';
+        order['tax'] = `${storeData?.tax}%`;
         order['payment_method'] = 'cash';
         order['payment_details']= {'tendered_amount':tenderedAmount};
         order['club_name']= club?.post_title;
