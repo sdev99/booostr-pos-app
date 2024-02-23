@@ -7,9 +7,10 @@ import { CheckBox, Button } from 'react-native-elements';
 import Header from './Header';
 import { memoizedCart, memoizedStoreData, memoizedUserData } from "../store/selectors";
 import { resetCart } from "../store/reducers/cartSlice";
-import { processCashOrder } from "../actions/order";
+// import { processCashOrder } from "../actions/order";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { processOrder } from "../actions/order";
+import { addToOrderList } from "../store/reducers/orderListSlice";
 //import { FontAwesome } from "@expo/vector-icons";
 
 const { height } = Dimensions.get("window");
@@ -189,13 +190,23 @@ const CheckoutScreen = ({ navigation }) => {
           order['order_tax'] = getTotalPrice().tax;
           order['tax'] = `${storeData?.tax}%`;
           order['payment_method'] = 'card';
-          order['payment_details'] = {'card_details':cardDetails};
+          order['payment_details'] = {'card_details': {...cardDetails, cardNumber: cardDetails.cardNumber.replace(/\s/g,'')}};
           order['wpuid'] = userData.user_id;
           dispatch(processOrder(order, club))
           .then((response) => {
-            if( response==='success' ){
-              alert('success');
-              // navigation.navigate("PaymentSuccess", { order });
+            if( response?.status==='success' ){
+              const dateTime = new Date(response?.data?.order_id);
+              const formattedDateTime = dateTime.toISOString().replace("T", " ").replace(/\.\d+Z$/, "");
+              order = {...order, status: 'success', orderId: response?.data?.order_id, created_at: formattedDateTime};
+              console.log(JSON.stringify(order));
+              dispatch(addToOrderList(order))
+              .then(() => {
+                  dispatch(resetCart());
+                  navigation.navigate("PaymentSuccess", { order });
+              })
+              .catch((error) => {
+                  console.error("Error processing Order:", error);
+              });
             }else{
               alert(response);
             }
@@ -260,17 +271,36 @@ const CheckoutScreen = ({ navigation }) => {
         order['payment_method'] = 'cash';
         order['payment_details']= {'tendered_amount':tenderedAmount};
         order['club_name']= club?.post_title;
-        dispatch(processCashOrder(order))
+        dispatch(processOrder(order, club))
         .then((response) => {
-          if( response==='success' ){
-            navigation.navigate("CashReceipt", { order });
+          if( response?.status==='success' ){
+            const dateTime = new Date(response?.data?.order_id);
+            const formattedDateTime = dateTime.toISOString().replace("T", " ").replace(/\.\d+Z$/, "");
+            order = {...order, status: 'success', orderId: response?.data?.order_id, created_at: formattedDateTime};
+            console.log(JSON.stringify(order));
+            dispatch(addToOrderList(order))
+            .then(() => {
+                dispatch(resetCart());
+                navigation.navigate("CashReceipt", { order });
+            })
+            .catch((error) => {
+                console.error("Error processing Order:", error);
+            });
           }else{
             alert(response);
           }
         })
-        .catch((error) => {
-          alert('dsdsdsds'+error.toString());
-        });
+        // dispatch(processCashOrder(order))
+        // .then((response) => {
+        //   if( response==='success' ){
+        //     navigation.navigate("CashReceipt", { order });
+        //   }else{
+        //     alert(response);
+        //   }
+        // })
+        // .catch((error) => {
+        //   alert('dsdsdsds'+error.toString());
+        // });
       }catch(error){
         alert(error.toString());
       }
