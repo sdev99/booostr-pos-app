@@ -358,7 +358,7 @@ const CheckoutScreen = ({ navigation }) => {
         </TouchableOpacity>
         </View>
       </View>
-      {/* <View style={styles.totalContainerMain}>
+      <View style={styles.totalContainerMain}>
         <View style={styles.totalContainerNew}>
           <Text style={styles.totalTextNew}>
           Total Items: {cart.reduce((total, item) => total + item.cart_quantity, 0)}
@@ -367,7 +367,7 @@ const CheckoutScreen = ({ navigation }) => {
             ${getTotalPrice().totalDue.toFixed(2)}
           </Text>
         </View>
-      </View> */}
+      </View>
       <View style={styles.allItems}>
         {/* Display the selected payment type */}
         <View style={styles.paymentTabs}>
@@ -388,7 +388,7 @@ const CheckoutScreen = ({ navigation }) => {
         </View>
         
         {/* Card type selection row within the card tab */}
-        {/* {paymentType === "card" && (
+        {paymentType === "card" && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardTypeScrollContainer}>
             <TouchableOpacity
               style={[styles.cardType, selectedCardType === "mastercard" && styles.activeCardType]} onPress={() => setSelectedCardType("mastercard")}>
@@ -413,7 +413,7 @@ const CheckoutScreen = ({ navigation }) => {
               <Image source={require("../assets/discover-card.png")} style={styles.cardTypeImage} />
             </TouchableOpacity>
           </ScrollView>
-        )} */}
+        )}
         <ScrollView style={{ ...styles.scView, height: height * 0.62 }}>
           <View style={styles.scViewWrap}>
         {/* Display form based on the selected payment type */}

@@ -39,7 +39,8 @@
     "react-native-screens": "~3.22.0",
     "react-redux": "^9.1.0",
     "redux": "^5.0.1",
-    "reselect": "^5.1.0"
+    "reselect": "^5.1.0",
+    "expo-updates": "~0.18.19"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

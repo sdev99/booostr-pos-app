@@ -20,7 +20,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "Booster.chat.app",
+      "package": "com.booostr.pos",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -29,6 +29,17 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "94a284bf-8427-4f3c-bcf7-5046fe896eca"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/94a284bf-8427-4f3c-bcf7-5046fe896eca"
     }
   }
 }
