@@ -195,10 +195,9 @@ const CheckoutScreen = ({ navigation }) => {
           dispatch(processOrder(order, club))
           .then((response) => {
             if( response?.status==='success' ){
-              const dateTime = new Date(response?.data?.order_id);
+              const dateTime = new Date(response?.data?.order_date);
               const formattedDateTime = dateTime.toISOString().replace("T", " ").replace(/\.\d+Z$/, "");
               order = {...order, status: 'success', orderId: response?.data?.order_id, created_at: formattedDateTime};
-              console.log(JSON.stringify(order));
               dispatch(addToOrderList(order))
               .then(() => {
                   dispatch(resetCart());
@@ -224,11 +223,10 @@ const CheckoutScreen = ({ navigation }) => {
 
     } else if (paymentType === "cash") {
 
-
       navigation.navigate("CashScreen", { totalAmount }); // Pass totalAmount to CashScreen
 
-
     }
+
   };
 
   const validateCardDetails = () => {
@@ -360,11 +358,8 @@ const CheckoutScreen = ({ navigation }) => {
         </TouchableOpacity>
         </View>
       </View>
-      <View style={styles.totalContainerMain}>
+      {/* <View style={styles.totalContainerMain}>
         <View style={styles.totalContainerNew}>
-          {/* <Text style={styles.totalTextNew}>
-            Order: #ORD123
-          </Text> */}
           <Text style={styles.totalTextNew}>
           Total Items: {cart.reduce((total, item) => total + item.cart_quantity, 0)}
           </Text>
@@ -372,7 +367,7 @@ const CheckoutScreen = ({ navigation }) => {
             ${getTotalPrice().totalDue.toFixed(2)}
           </Text>
         </View>
-      </View>
+      </View> */}
       <View style={styles.allItems}>
         {/* Display the selected payment type */}
         <View style={styles.paymentTabs}>
@@ -393,7 +388,7 @@ const CheckoutScreen = ({ navigation }) => {
         </View>
         
         {/* Card type selection row within the card tab */}
-        {paymentType === "card" && (
+        {/* {paymentType === "card" && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardTypeScrollContainer}>
             <TouchableOpacity
               style={[styles.cardType, selectedCardType === "mastercard" && styles.activeCardType]} onPress={() => setSelectedCardType("mastercard")}>
@@ -418,7 +413,7 @@ const CheckoutScreen = ({ navigation }) => {
               <Image source={require("../assets/discover-card.png")} style={styles.cardTypeImage} />
             </TouchableOpacity>
           </ScrollView>
-        )}
+        )} */}
         <ScrollView style={{ ...styles.scView, height: height * 0.62 }}>
           <View style={styles.scViewWrap}>
         {/* Display form based on the selected payment type */}
