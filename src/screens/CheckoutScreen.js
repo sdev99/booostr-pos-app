@@ -269,17 +269,17 @@ const CheckoutScreen = ({ navigation }) => {
         order['payment_method'] = 'cash';
         order['payment_details']= {'tendered_amount':tenderedAmount};
         order['club_name']= club?.post_title;
+        order['wpuid'] = userData.user_id;
         dispatch(processOrder(order, club))
         .then((response) => {
           if( response?.status==='success' ){
             const dateTime = new Date(response?.data?.order_id);
             const formattedDateTime = dateTime.toISOString().replace("T", " ").replace(/\.\d+Z$/, "");
             order = {...order, status: 'success', orderId: response?.data?.order_id, created_at: formattedDateTime};
-            console.log(JSON.stringify(order));
             dispatch(addToOrderList(order))
             .then(() => {
                 dispatch(resetCart());
-                navigation.navigate("CashReceipt", { order });
+                navigation.navigate("PaymentSuccess", { order });
             })
             .catch((error) => {
                 console.error("Error processing Order:", error);
