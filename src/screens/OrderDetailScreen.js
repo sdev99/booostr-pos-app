@@ -45,7 +45,7 @@ const OrderDetailScreen = ({ route, navigation }) => {
 
   const handleCompleteButtonPress = () => {
     // Handle the logic when the Complete button is pressed
-    console.log('Complete button pressed');
+    navigation.navigate("Checkout", { orderIndex: orderIndex });
   };
 
   const handleLogout = () => {

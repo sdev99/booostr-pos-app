@@ -60,7 +60,7 @@ const LoginScreen = ({ navigation }) => {
           
           <View style={styles.logoBox}>
             {/*<Image source={require("../assets/logo.png")} style={styles.logo} />*/}
-            <Text style={styles.title}>Hello Tester Club</Text>
+            <Text style={styles.title}>Booostr POS</Text>
           </View>
           <View style={styles.card}>
             <Text style={[styles.smallText, styles.forText]}>

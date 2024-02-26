@@ -15,7 +15,7 @@ import { addProductToCart, resetCart } from "../store/reducers/cartSlice";
 import productPlaceholder from "../assets/product-placeholder.png";
 import Header from './Header';
 
-const OrdersScreen = ({ navigation }) => {
+const OrdersScreen = ({ navigation, route }) => {
     const dispatch = useDispatch();
     const [club, setClub] = useState([]);
     const [isClubLoading, setIsClubLoading] = useState(true);
@@ -35,12 +35,12 @@ const OrdersScreen = ({ navigation }) => {
     const scrollViewRef = useRef(null);
     const [previousLastItemPosition, setPreviousLastItemPosition] = useState(0);
 
-    useFocusEffect(
-        React.useCallback(() => {
-            // Empty cart
-            dispatch(resetCart());
-        }, [])
-    );
+    // useFocusEffect(
+    //     React.useCallback(() => {
+    //         // Empty cart
+    //         dispatch(resetCart());
+    //     }, [])
+    // );
 
     // Fetch Product List for ALL
     useEffect(() => {

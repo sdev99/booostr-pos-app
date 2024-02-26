@@ -5,24 +5,25 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { CheckBox, Button } from 'react-native-elements';
 import Header from './Header';
-import { memoizedCart, memoizedStoreData, memoizedUserData } from "../store/selectors";
+import { memoizedCart, memoizedStoreData, memoizedUserData, memoizedOrderList } from "../store/selectors";
 import { resetCart } from "../store/reducers/cartSlice";
 // import { processCashOrder } from "../actions/order";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { processOrder } from "../actions/order";
-import { addToOrderList } from "../store/reducers/orderListSlice";
+import { addToOrderList, removeOrderFromOrderList } from "../store/reducers/orderListSlice";
 //import { FontAwesome } from "@expo/vector-icons";
 
 const { height } = Dimensions.get("window");
 
-const CheckoutScreen = ({ navigation }) => {
+const CheckoutScreen = ({ navigation, route }) => {
   const dispatch = useDispatch();
-  const cart = useSelector(memoizedCart);
+  const orderList = useSelector(memoizedOrderList);
+  const cart = typeof route?.params?.orderIndex == 'number' ? orderList[route.params.orderIndex]?.items : useSelector(memoizedCart);
   const userData = useSelector(memoizedUserData);
   const storeData = useSelector(memoizedStoreData);
   const processingOrder = useSelector((state) => state.productList.loading);
   //const { totalAmount } = route?.params || {};
-  
+
   const [paymentType, setPaymentType] = useState("card");
   const [selectedCardType, setSelectedCardType] = useState("mastercard");
   const [cardDetails, setCardDetails] = useState({
@@ -192,15 +193,20 @@ const CheckoutScreen = ({ navigation }) => {
           order['payment_method'] = 'card';
           order['payment_details'] = {'card_details': {...cardDetails, cardNumber: cardDetails.cardNumber.replace(/\s/g,'')}};
           order['wpuid'] = userData.user_id;
+          if( typeof route?.params?.orderIndex == 'number' ) dispatch(removeOrderFromOrderList(route.params.orderIndex));
+          if( typeof route?.params?.orderIndex != 'number' ) dispatch(resetCart());
+          navigation.navigate("Orders");
+          return;
           dispatch(processOrder(order, club))
           .then((response) => {
             if( response?.status==='success' ){
               const dateTime = new Date(response?.data?.order_date);
               const formattedDateTime = dateTime.toISOString().replace("T", " ").replace(/\.\d+Z$/, "");
               order = {...order, status: 'success', orderId: response?.data?.order_id, created_at: formattedDateTime};
+              if( typeof route?.params?.orderIndex == 'number' ) dispatch(removeOrderFromOrderList(route.params.orderIndex));
               dispatch(addToOrderList(order))
               .then(() => {
-                  dispatch(resetCart());
+                  if( typeof route?.params?.orderIndex != 'number' ) dispatch(resetCart());
                   navigation.navigate("PaymentSuccess", { order });
               })
               .catch((error) => {
@@ -341,6 +347,26 @@ const CheckoutScreen = ({ navigation }) => {
       <Text style={styles.keypadButtonText}>{value}</Text>
     </TouchableOpacity>
   );
+
+  const holdOrder = async () => {
+    try {
+        let order = {};
+        const d = new Date();
+        order['created_at'] = `${d.getFullYear()}-${(d.getMonth()+1+'').padStart(2, '0')}-${(d.getDate()+'').padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
+        order['items'] = cart;
+        order['status'] = 'on-hold';
+        dispatch(addToOrderList(order))
+        .then(() => {
+            dispatch(resetCart());
+            navigation.navigate("OnlineOrder");
+        })
+        .catch((error) => {
+            console.error("Error putting order on hold:", error);
+        });
+    } catch (error) {
+        console.error("Error putting order on hold:", error);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -547,14 +573,23 @@ const CheckoutScreen = ({ navigation }) => {
         </ScrollView>
       </View>
       {paymentType === "card" && (
-      <TouchableOpacity
-        style={[styles.payButton, !validateCardDetails() && styles.disabledButton]}
-        onPress={handlePay}
-        disabled={!validateCardDetails()}
-      >
-        <Text style={styles.payButtonText}>Pay</Text>
-        <Icon style={styles.rightIcon} name="chevron-right" size={24} color="#FFF" />
-      </TouchableOpacity>
+        
+      <View style={styles.checkoutContainer}>
+        <TouchableOpacity style={styles.holdButton} onPress={holdOrder}>
+          <View style={styles.checkoutContent}>
+            <Icon style={styles.leftIcon} name="pause" size={24} color="#FFF" />
+            <Text style={styles.holdText}>Hold Order</Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.payButton, !validateCardDetails() && styles.disabledButton]}
+          onPress={handlePay}
+          disabled={!validateCardDetails()}
+        >
+          <Text style={styles.payButtonText}>Pay</Text>
+          <Icon style={styles.rightIcon} name="chevron-right" size={24} color="#FFF" />
+        </TouchableOpacity>
+      </View>
     )}
     {paymentType === "cash" && (
         <TouchableOpacity
@@ -859,10 +894,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     padding: 15,
-    position: "absolute",
-    bottom: 20,
-    left: 16,
-    right: 16,
+    width:"58%",
+    // position: "absolute",
+    // bottom: 20,
+    // left: 16,
+    // right: 16,
     borderRadius: 6,
     shadowColor: "#000",
     shadowOffset: {
@@ -1115,7 +1151,49 @@ const styles = StyleSheet.create({
   },
   keypadButtonText: {
     fontSize: 18,
-  }
+  },
+  checkoutContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  checkoutContainer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      padding:20,
+      backgroundColor:"#fff",
+      borderTopWidth: 1,
+      borderTopColor: "#ddd",
+  },
+  holdButton: {
+      backgroundColor: "#ff9800", // You can change the color as needed
+      borderRadius: 6,
+      padding: 15,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:'center',
+      shadowColor: "#000",
+      width:"38%",
+      shadowOffset: {
+          width: 0,
+          height: 4,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 20,
+      elevation: 3, // For Android shadow
+  },
+  leftIcon: {
+      marginRight: 10,
+  },
+  holdText: {
+      color: "#FFF",
+      fontSize: 14,
+      fontWeight: "bold",
+  },
 });
 
 export default CheckoutScreen;

@@ -6,6 +6,7 @@ import productPlaceholder from "../assets/product-placeholder.png";
 import Header from './Header';
 import { memoizedCart, memoizedStoreData } from "../store/selectors";
 import { addProductToCart, decreaseProductFromCart, removeProductFromCart, resetCart } from "../store/reducers/cartSlice";
+import { addToOrderList } from "../store/reducers/orderListSlice";
 
 const screenHeight = Dimensions.get('window').height;
 
@@ -82,6 +83,26 @@ const CartScreen = ({ navigation }) => {
     }
   };
 
+  const holdOrder = async () => {
+    try {
+        let order = {};
+        const d = new Date();
+        order['created_at'] = `${d.getFullYear()}-${(d.getMonth()+1+'').padStart(2, '0')}-${(d.getDate()+'').padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
+        order['items'] = cart;
+        order['status'] = 'on-hold';
+        dispatch(addToOrderList(order))
+        .then(() => {
+            dispatch(resetCart());
+            navigation.navigate("OnlineOrder");
+        })
+        .catch((error) => {
+            console.error("Error putting order on hold:", error);
+        });
+    } catch (error) {
+        console.error("Error putting order on hold:", error);
+    }
+  };
+
   const renderCartItem = ({ item, index }) => (
     <View style={styles.cartItem}>
       <Image source={item?.media?.value ? {uri: item?.media?.value} : productPlaceholder} style={styles.cartItemImage} />
@@ -146,15 +167,31 @@ const CartScreen = ({ navigation }) => {
           />
         </View>
       </View>
-      <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
-        <Text style={styles.totalPrice}>
-          Total: ${getTotalPrice().totalDue.toFixed(2)}
-        </Text>
-        <View style={styles.checkoutContent}>
-          <Text style={styles.checkoutText}>Checkout</Text>
-          <Icon style={styles.rightIcon} name="chevron-right" size={24} color="#FFF" />
-        </View>
-      </TouchableOpacity>
+      <View style={styles.checkoutContainer}>
+        <TouchableOpacity style={styles.holdButton} onPress={holdOrder}>
+          <View style={styles.checkoutContent}>
+            <Icon style={styles.leftIcon} name="pause" size={24} color="#FFF" />
+            <Text style={styles.holdText}>Hold Order</Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.checkoutButton}
+          onPress={handleCheckout}
+        >
+          <Text style={styles.totalPrice}>
+            Total: ${getTotalPrice().totalDue.toFixed(2)}
+          </Text>
+          <View style={styles.checkoutContent}>
+            <Text style={styles.checkoutText}>Checkout</Text>
+            <Icon
+              style={styles.rightIcon}
+              name="chevron-right"
+              size={24}
+              color="#FFF"
+            />
+          </View>
+        </TouchableOpacity>
+      </View>
       {/* Cancel Order Modal */}
       <Modal
         animationType="slide"
@@ -165,13 +202,22 @@ const CartScreen = ({ navigation }) => {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalText}>
-              You have chosen to CANCEL an order in progress. If you wish to CANCEL this current order, please click CONFIRM CANCELLATION below. If you chose this by error, please click CANCEL CANCELLATION.
+              You have chosen to CANCEL an order in progress. If you wish to
+              CANCEL this current order, please click CONFIRM CANCELLATION
+              below. If you chose this by error, please click CANCEL
+              CANCELLATION.
             </Text>
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.confirmButton} onPress={handleCancelOrder}>
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={handleCancelOrder}
+              >
                 <Text style={styles.modalButtonText}>CONFIRM CANCELLATION</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalButton} onPress={() => setCancelModalVisible(false)}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => setCancelModalVisible(false)}
+              >
                 <Text style={styles.modalButtonText}>CANCEL CANCELLATION</Text>
               </TouchableOpacity>
             </View>
@@ -239,15 +285,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     padding: 15,
-    position: "absolute",
-    bottom: 20,
-    left: 16,
-    right: 16,
+    width:"58%",
     borderRadius: 6,
     shadowColor: "#000",
     shadowOffset: {
-      width: 0,
-      height: 4,
+        width: 0,
+        height: 4,
     },
     shadowOpacity: 0.05,
     shadowRadius: 20,
@@ -380,6 +423,45 @@ const styles = StyleSheet.create({
   modalButtonText: {
     color: "#FFF",
     fontWeight: "bold",
+  },
+  checkoutContainer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      padding:20,
+      backgroundColor:"#fff",
+      borderTopWidth: 1,
+      borderTopColor: "#ddd",
+  
+  },
+  holdButton: {
+      backgroundColor: "#ff9800", // You can change the color as needed
+      borderRadius: 6,
+      padding: 15,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:'center',
+      shadowColor: "#000",
+      width:"38%",
+      shadowOffset: {
+          width: 0,
+          height: 4,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 20,
+      elevation: 3, // For Android shadow
+  },
+  leftIcon: {
+      marginRight: 10,
+  },
+  holdText: {
+      color: "#FFF",
+      fontSize: 14,
+      fontWeight: "bold",
   },
 });
 

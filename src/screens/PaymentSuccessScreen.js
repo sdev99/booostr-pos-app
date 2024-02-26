@@ -263,7 +263,7 @@ const handleSendReceipt = () => {
         </View>
       )}
       <TouchableOpacity style={styles.orderCompleteButton} onPress={handleOrderComplete}>
-        <Text style={styles.orderCompleteButtonText}>ORDER COMPLETE</Text>
+        <Text style={styles.orderCompleteButtonText}>ORDER COMPLETE, GO TO DASHBOARD</Text>
       </TouchableOpacity>
       {/* Modal for entering contact details */}
       <Modal
