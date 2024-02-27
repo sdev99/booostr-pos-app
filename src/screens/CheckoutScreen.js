@@ -193,10 +193,6 @@ const CheckoutScreen = ({ navigation, route }) => {
           order['payment_method'] = 'card';
           order['payment_details'] = {'card_details': {...cardDetails, cardNumber: cardDetails.cardNumber.replace(/\s/g,'')}};
           order['wpuid'] = userData.user_id;
-          if( typeof route?.params?.orderIndex == 'number' ) dispatch(removeOrderFromOrderList(route.params.orderIndex));
-          if( typeof route?.params?.orderIndex != 'number' ) dispatch(resetCart());
-          navigation.navigate("Orders");
-          return;
           dispatch(processOrder(order, club))
           .then((response) => {
             if( response?.status==='success' ){
@@ -282,9 +278,10 @@ const CheckoutScreen = ({ navigation, route }) => {
             const dateTime = new Date(response?.data?.order_id);
             const formattedDateTime = dateTime.toISOString().replace("T", " ").replace(/\.\d+Z$/, "");
             order = {...order, status: 'success', orderId: response?.data?.order_id, created_at: formattedDateTime};
+            if( typeof route?.params?.orderIndex == 'number' ) dispatch(removeOrderFromOrderList(route.params.orderIndex));
             dispatch(addToOrderList(order))
             .then(() => {
-                dispatch(resetCart());
+                if( typeof route?.params?.orderIndex != 'number' ) dispatch(resetCart());
                 navigation.navigate("PaymentSuccess", { order });
             })
             .catch((error) => {
@@ -387,7 +384,7 @@ const CheckoutScreen = ({ navigation, route }) => {
       <View style={styles.totalContainerMain}>
         <View style={styles.totalContainerNew}>
           <Text style={styles.totalTextNew}>
-          Total Items: {cart.reduce((total, item) => total + item.cart_quantity, 0)}
+          Total Items: {cart?.reduce((total, item) => total + item.cart_quantity, 0)}
           </Text>
           <Text style={[styles.totalTextNew, styles.totalAmountNew]}>
             ${getTotalPrice().totalDue.toFixed(2)}
