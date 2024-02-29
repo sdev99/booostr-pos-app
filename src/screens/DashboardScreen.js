@@ -19,15 +19,16 @@ import productPlaceholder from "../assets/product-placeholder.png";
 import { memoizedStoreData } from "../store/selectors";
 
 const LatestOrdersScreen = ({ orderedItems }) => {
+  const storeData = useSelector(memoizedStoreData);
   const renderOrderedItem = ({ item }) => (
     <View style={styles.orderedItem}>
       <View style={styles.imageAndNameContainer}>
-        <Image source={item.image} style={styles.orderedItemImage} />
-        <Text style={styles.orderedItemText}>{item.name}</Text>
+        <Image source={item?.orderitems[0]?.term?.media ? {uri: item?.orderitems[0].term.media} : productPlaceholder} style={[styles.orderedItemImage, {width: 70, aspectRatio: 1 }]} />
+        <Text style={styles.orderedItemText}>{item?.orderitems[0]?.term?.title}</Text>
       </View>
-      <Text style={styles.orderedItemText}>#{item.orderId}</Text>
-      <Text style={styles.orderedItemStatus}>{item.date}</Text>
-      <Text style={styles.orderedItemText}>${item.totalPrice.toFixed(2)}</Text>
+      <Text style={styles.orderedItemText}>#{item?.invoice_no}</Text>
+      <Text style={styles.orderedItemStatus}>{item?.created_at?.substring(0,10)}</Text>
+      <Text style={styles.orderedItemText}>{storeData?.currency_info?.currency_icon}{item?.total?.toFixed(2)}</Text>
     </View>
   );
 
@@ -70,6 +71,7 @@ const DashboardScreen = ({ navigation }) => {
   const [club, setClub] = useState([]);
   const [isClubLoading, setIsClubLoading] = useState(true);
   const [topSellingItems, setTopSellingItems] = useState([]);
+  const [latestOrders, setLatestOrders] = useState([]);
   const storeData = useSelector(memoizedStoreData);
 
   useEffect(() => {
@@ -141,6 +143,38 @@ const DashboardScreen = ({ navigation }) => {
             });
             if(response?.data?.heighest_sell_terms?.data){
               setTopSellingItems(response.data.heighest_sell_terms.data);
+            }else if( response?.data?.error && response?.data?.message){
+              alert( response.data.message );
+            }else{
+              alert("kindly try after some time.");
+            }
+          };
+        } catch (error) {
+          // console.error("Error fetching data:", error);
+        }
+      };
+      
+      fetchData();
+    }, [])
+  );
+
+  // Get Latest Orders
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchData = async () => {
+        try {
+          const club = await AsyncStorage.getItem("club");
+          if( JSON.parse(club)?.post_slug ) {
+            const response = await axios.post(`${POS_STORE_API_URL}/pos-order-list`,
+            {"key":"latest"},
+            {
+              headers: {
+                'Apitoken': POS_API_TOKEN,
+                'X-Tenant': JSON.parse(club).post_slug
+              },
+            });
+            if(response?.data?.result?.data){
+              setLatestOrders(response.data.result.data);
             }else if( response?.data?.error && response?.data?.message){
               alert( response.data.message );
             }else{
@@ -237,7 +271,7 @@ const DashboardScreen = ({ navigation }) => {
             }}
           >
           <Tab.Screen name="Latest Orders">
-            {() => <LatestOrdersScreen orderedItems={orderedItems} />}
+            {() => <LatestOrdersScreen orderedItems={latestOrders} />}
           </Tab.Screen>
           <Tab.Screen name="Top Selling">
             {() => <TopSellingScreen orderedItems={topSellingItems} />}
