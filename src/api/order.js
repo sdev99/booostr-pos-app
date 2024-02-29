@@ -4,13 +4,12 @@ import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";
 const processOrder = async (order, club) => {
   try {
     const response = await axios.post(`${POS_STORE_API_URL}/pos-make-order`,order,{
-    // const response = await axios.post(`http://192.168.1.37/projects/booostr-ecomm/api/pos-make-order`,order,{
+    // const response = await axios.post(`http://192.168.1.50/projects/booostr-ecomm/api/pos-make-order`,order,{
       headers: {
         'Apitoken': POS_API_TOKEN,
         'X-Tenant': club.post_slug
       },
     });
-    console.log(response?.data);
     if(response?.data?.status){
       return {
         ...response?.data,

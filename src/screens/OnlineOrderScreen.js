@@ -1,12 +1,16 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ScrollView, Modal } from "react-native";
+import { useFocusEffect } from '@react-navigation/native';
+import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ScrollView, Modal, ActivityIndicator } from "react-native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Header from './Header';
 import BottomBar from './BottomBar';
-import { memoizedOrderList } from "../store/selectors";
+import { memoizedOrderList, memoizedStoreData } from "../store/selectors";
 import { removeOrderFromOrderList } from "../store/reducers/orderListSlice";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";
 
 const OnlineOrderScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -29,6 +33,42 @@ const OnlineOrderScreen = ({ navigation }) => {
     // { id: 14, name: "Loose Fit Printed T-shirt", orderId: "ORD002", status: "completed", price: "$15.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Saim",date:"01/25/2024", },
     // Add more items as needed
   ]);
+  const [isLoadingCompletedOrders, setIsLoadingCompletedOrders] = useState(true);
+  const [completedOrders, setCompletedOrders] = useState([]);
+  const storeData = useSelector(memoizedStoreData);
+
+  // Get completed orders
+  useFocusEffect(
+      React.useCallback(() => {
+        const fetchData = async () => {
+          setIsLoadingCompletedOrders(true);
+          try {
+            const club = await AsyncStorage.getItem("club");
+            if( JSON.parse(club)?.post_slug ) {
+              const response = await axios.post(`${POS_STORE_API_URL}/pos-order-list`,{},{
+                headers: {
+                  'Apitoken': POS_API_TOKEN,
+                  'X-Tenant': JSON.parse(club).post_slug
+                },
+              });
+              if(response?.data?.result?.data){
+                setCompletedOrders(response.data.result.data);
+              }else if( response?.data?.error && response?.data?.message){
+                alert( response.data.message );
+              }else{
+                alert("kindly try after some time.");
+              }
+            };
+          } catch (error) {
+            // console.error("Error fetching data:", error);
+            alert("kindly try after some time.");
+          }
+          setIsLoadingCompletedOrders(false);
+        };
+        
+        fetchData();
+      }, [])
+  );
 
   const handleLogout = () => {
     navigation.navigate("Login");
@@ -92,6 +132,44 @@ const OnlineOrderScreen = ({ navigation }) => {
         </View>
       </TouchableOpacity>
     );
+  };
+
+  const getCompletedOrderTotalItems = (items) => {
+    return items.reduce((total, item) => total + item.qty, 0);
+  }
+
+  const renderCompletedOrderedItem = (order) => {
+    return (
+      <TouchableOpacity onPress={() => handleCompletedOrderPress(order)}>
+        <View style={styles.orderedItemContainer}>
+          <View style={styles.orderedItem}>
+            <Text style={[styles.orderedItemText, styles.pdBottom]}>#{order.invoice_no}</Text>
+            <Text style={[styles.orderedItemStatus, styles.pdBottom, { color: "green" }]}>
+              Completed
+            </Text>
+            <Text style={[styles.orderedItemText, styles.pdBottom]}>{storeData?.currency_info?.currency_icon}{order.total}</Text>
+            <View style={[styles.tmRow,styles.tmRowTop]}>
+              <Text style={[styles.orderedItemText, styles.quantText]}>Number of items: {getCompletedOrderTotalItems(order.orderitems)}</Text>
+              <Text style={styles.orderedItemText}>{order?.created_at?.substring(11,19)}</Text>
+              <Text style={styles.orderedItemText}>{order?.created_at?.substring(0,10)}</Text>
+            </View>
+            <View style={[styles.tmRow, order.status === "on-hold" && styles.flexEnd]}>
+               {/* <Text style={[styles.CustomerText,styles.pdBottom]}>Customer: {item.Customer}</Text> */}
+               {order.status === "on-hold" && (
+                <TouchableOpacity onPress={() => {setSelectedOrder(orderList.indexOf(order));setCancelModalVisible(true)}} style={styles.cancelButton}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const handleCompletedOrderPress = (order) => {
+    // Navigate to OrderDetailScreen and pass item details
+    navigation.navigate("CompletedOrderDetail", { order: order });
   };
 
   const handleItemPress = (orderIndex) => {
@@ -161,13 +239,17 @@ const OnlineOrderScreen = ({ navigation }) => {
   );
   
   const CompletedOrdersScreen = () => (
-    <View style={styles.cmMain}>
-      <FlatList
-        data={orderedItems.filter((item) => item.status === "completed")}
-        renderItem={renderOrderedItem}
-        keyExtractor={(item) => item.id.toString()}
-      />
-    </View>
+    isLoadingCompletedOrders
+    ? <View style={styles.containerLoaderTop}>
+        <ActivityIndicator size="medium" color="#00c0ff" />
+      </View>
+    : <View style={styles.cmMain}>
+        <FlatList
+          data={completedOrders}
+          renderItem={({item}) => renderCompletedOrderedItem(item)}
+          keyExtractor={(item) => item.id.toString()}
+        />
+      </View>
   );
 
   return (
@@ -412,6 +494,12 @@ const styles = StyleSheet.create({
   modalButtonText: {
     color: "#FFF",
     fontWeight: "bold",
+  },
+  containerLoaderTop: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "flex-start",
+    paddingTop: 40
   },
 });
 

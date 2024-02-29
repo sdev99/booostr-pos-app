@@ -1,6 +1,7 @@
 // DashboardScreen.js
 import React, { useState } from "react";
-import { useDispatch } from "react-redux";
+import { useFocusEffect } from '@react-navigation/native';
+import { useDispatch, useSelector } from "react-redux";
 import { View, Text, FlatList, Image, StyleSheet, Dimensions } from "react-native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -12,6 +13,10 @@ import { useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ActivityIndicator } from "react-native-paper";
 import { fetchStoreData } from "../store/reducers/storeDetailSlice";
+import axios from "axios";
+import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";
+import productPlaceholder from "../assets/product-placeholder.png";
+import { memoizedStoreData } from "../store/selectors";
 
 const LatestOrdersScreen = ({ orderedItems }) => {
   const renderOrderedItem = ({ item }) => (
@@ -38,22 +43,21 @@ const LatestOrdersScreen = ({ orderedItems }) => {
 };
 
 const TopSellingScreen = ({ orderedItems }) => {
+  const storeData = useSelector(memoizedStoreData);
   const renderOrderedItem = ({ item }) => (
     <View style={styles.orderedItem}>
       <View style={styles.imageAndNameContainer}>
-        <Image source={item.image} style={styles.orderedItemImage} />
-        <Text style={styles.orderedItemText}>{item.name}</Text>
+        <Image source={item?.media?.value ? {uri: item?.media?.value} : productPlaceholder} style={[styles.cartItemImage, {width: 70, aspectRatio: 1 }]} />
+        <Text style={styles.orderedItemText}>{item.title}</Text>
       </View>
-      <Text style={styles.orderedItemText}>#{item.orderId}</Text>
-      <Text style={styles.orderedItemStatus}>{item.date}</Text>
-      <Text style={styles.orderedItemText}>${item.totalPrice.toFixed(2)}</Text>
+      <Text style={styles.orderedItemText}>{storeData?.currency_info?.currency_icon}{item?.firstprice?.price.toFixed(2)}</Text>
     </View>
   );
 
   return (
     <View style={styles.tabContent}>
       <FlatList
-        data={orderedItems.filter((item) => item.status === "Top")}
+        data={orderedItems}
         renderItem={renderOrderedItem}
         keyExtractor={(item) => item.id.toString()}
       />
@@ -65,6 +69,8 @@ const DashboardScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const [club, setClub] = useState([]);
   const [isClubLoading, setIsClubLoading] = useState(true);
+  const [topSellingItems, setTopSellingItems] = useState([]);
+  const storeData = useSelector(memoizedStoreData);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -84,11 +90,77 @@ const DashboardScreen = ({ navigation }) => {
     fetchData();
   }, []);
 
+  // Get Store Anylytics
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchData = async () => {
+        try {
+          const club = await AsyncStorage.getItem("club");
+          if( JSON.parse(club)?.post_slug ) {
+            const response = await axios.post(`${POS_STORE_API_URL}/pos-order-info`,{},{
+              headers: {
+                'Apitoken': POS_API_TOKEN,
+                'X-Tenant': JSON.parse(club).post_slug
+              },
+            });
+            if(response?.data?.result){
+              setMetrics([
+                { id: 1, name: "Revenue", icon: "cash", totalRev: response?.data?.result?.pos_order_revenue.toFixed(2) },
+                { id: 2, name: "Orders", icon: "clipboard-list", totalRev: response?.data?.result?.total_order_count },
+                { id: 3, name: "Walk-ins", icon: "walk", totalRev: response?.data?.result?.pos_order_count },
+                { id: 4, name: "Online Order", icon: "web", totalRev: response?.data?.result?.website_order_count }
+              ]);
+            }else if( response?.data?.error && response?.data?.message){
+              alert( response.data.message );
+            }else{
+              alert("kindly try after some time.");
+            }
+          };
+        } catch (error) {
+          console.error("Error fetching data:", error);
+          // alert("kindly try after some time.");
+        }
+      };
+      
+      fetchData();
+    }, [])
+  );
+
+  // Get Higest Selling Items
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchData = async () => {
+        try {
+          const club = await AsyncStorage.getItem("club");
+          if( JSON.parse(club)?.post_slug ) {
+            const response = await axios.post(`${POS_STORE_API_URL}/pos-order-list`,{},{
+              headers: {
+                'Apitoken': POS_API_TOKEN,
+                'X-Tenant': JSON.parse(club).post_slug
+              },
+            });
+            if(response?.data?.heighest_sell_terms?.data){
+              setTopSellingItems(response.data.heighest_sell_terms.data);
+            }else if( response?.data?.error && response?.data?.message){
+              alert( response.data.message );
+            }else{
+              alert("kindly try after some time.");
+            }
+          };
+        } catch (error) {
+          // console.error("Error fetching data:", error);
+        }
+      };
+      
+      fetchData();
+    }, [])
+  );
+
   const [metrics, setMetrics] = useState([
-    { id: 1, name: "Revenue", icon: "cash", totalRev: "123 456.00" },
-    { id: 2, name: "Orders", icon: "clipboard-list", totalRev: "1 039" },
-    { id: 3, name: "Walk-ins", icon: "walk", totalRev: "840" },
-    { id: 4, name: "Online Order", icon: "web", totalRev: "199" },
+    { id: 1, name: "Revenue", icon: "cash", totalRev: "" },
+    { id: 2, name: "Orders", icon: "clipboard-list", totalRev: "" },
+    { id: 3, name: "Walk-ins", icon: "walk", totalRev: "" },
+    { id: 4, name: "Online Order", icon: "web", totalRev: "" },
   ]);
 
   const [orderedItems, setOrderedItems] = useState([
@@ -168,7 +240,7 @@ const DashboardScreen = ({ navigation }) => {
             {() => <LatestOrdersScreen orderedItems={orderedItems} />}
           </Tab.Screen>
           <Tab.Screen name="Top Selling">
-            {() => <TopSellingScreen orderedItems={orderedItems} />}
+            {() => <TopSellingScreen orderedItems={topSellingItems} />}
           </Tab.Screen>
         </Tab.Navigator>
         <View style={styles.bottomBar}>

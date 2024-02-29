@@ -14,6 +14,7 @@ import { addToOrderList, removeOrderFromOrderList } from "../store/reducers/orde
 //import { FontAwesome } from "@expo/vector-icons";
 
 const { height } = Dimensions.get("window");
+const screenWidth = Dimensions.get('window').width;
 
 const CheckoutScreen = ({ navigation, route }) => {
   const dispatch = useDispatch();
@@ -381,223 +382,206 @@ const CheckoutScreen = ({ navigation, route }) => {
         </TouchableOpacity>
         </View>
       </View>
-      <View style={styles.totalContainerMain}>
-        <View style={styles.totalContainerNew}>
-          <Text style={styles.totalTextNew}>
-          Total Items: {cart?.reduce((total, item) => total + item.cart_quantity, 0)}
-          </Text>
-          <Text style={[styles.totalTextNew, styles.totalAmountNew]}>
-            ${getTotalPrice().totalDue.toFixed(2)}
-          </Text>
-        </View>
-      </View>
-      <View style={styles.allItems}>
-        {/* Display the selected payment type */}
-        <View style={styles.paymentTabs}>
-          <TouchableOpacity
-            style={[styles.paymentTab, paymentType === "card" && styles.activeTab]}
-            onPress={() => setPaymentType("card")}
-          >
-            <Image source={require("../assets/card-image.png")} style={[styles.paymentTabImage, paymentType === "card" && styles.activeTabImg]} />
-            <Text style={[styles.paymentTabText, paymentType === "card" && styles.activeTabText]}>Card</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.paymentTab, paymentType === "cash" && styles.activeTab]}
-            onPress={() => setPaymentType("cash")}
-          >
-            <Image source={require("../assets/cash-image.png")} style={[styles.paymentTabImage, paymentType === "cash" && styles.activeTabImg]} />
-            <Text style={[styles.paymentTabText, paymentType === "cash" && styles.activeTabText]}>Cash</Text>
-          </TouchableOpacity>
-        </View>
-        
-        {/* Card type selection row within the card tab */}
-        {paymentType === "card" && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardTypeScrollContainer}>
-            <TouchableOpacity
-              style={[styles.cardType, selectedCardType === "mastercard" && styles.activeCardType]} onPress={() => setSelectedCardType("mastercard")}>
-              <Image source={require("../assets/master-card.png")} style={styles.cardTypeImage} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.cardType, selectedCardType === "visa" && styles.activeCardType]}
-              onPress={() => setSelectedCardType("visa")}
-            >
-              <Image source={require("../assets/visa-card.png")} style={styles.cardTypeImage} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.cardType, selectedCardType === "american" && styles.activeCardType]}
-              onPress={() => setSelectedCardType("american")}
-            >
-              <Image source={require("../assets/american-card.png")} style={styles.cardTypeImage} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.cardType, selectedCardType === "discover" && styles.activeCardType]}
-              onPress={() => setSelectedCardType("discover")}
-            >
-              <Image source={require("../assets/discover-card.png")} style={styles.cardTypeImage} />
-            </TouchableOpacity>
-          </ScrollView>
-        )}
-        <ScrollView style={{ ...styles.scView, height: height * 0.62 }}>
-          <View style={styles.scViewWrap}>
-        {/* Display form based on the selected payment type */}
-        {paymentType === "card" ? (
-          <View style={styles.cardForm}>
-            <TextInput
-              style={styles.input}
-              placeholder="Cardholder Name"
-              onChangeText={(text) => {
-                setCardDetails({ ...cardDetails, cardholderName: text });
-                setValidationStatus({ ...validationStatus, cardholderName: text.length > 0 });
-              }}
-              value={cardDetails.cardholderName}
-            />
-            <View style={styles.row}>
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder="Card Number"
-                // onChangeText={(text) => setCardDetails({ ...cardDetails, cardNumber: text })}
-                onChangeText={handleCardNumberChange}
-                value={cardDetails.cardNumber}
-                maxLength={19}
-              />
-            </View>
-            <View style={styles.row}>
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  placeholder="Expiration Date (MM/YY)"
-                  // onChangeText={(text) => setCardDetails({ ...cardDetails, expirationDate: text })}
-                  onChangeText={handleExpirationDateChange}
-                  value={cardDetails.expirationDate}
-                  keyboardType="numeric"                  
-                />
-                <TextInput
-                  style={[styles.input, { flex: 1, marginLeft:5 }]}
-                  placeholder="CVV"
-                  onChangeText={(text) => {
-                    const cleanedText = text.replace(/\D/g, ''); // Remove non-digit characters
-                    setCardDetails({ ...cardDetails, cvc: cleanedText });
-                    setValidationStatus({ ...validationStatus, cvc: cleanedText.length === 3 }); // Set cvc validation status based on the length of cleanedText
-                  }}
-                  value={cardDetails.cvc}
-                  keyboardType="numeric"
-                  maxLength={3}
-                />
-            </View>
-            {/* <View style={styles.checkboxContainer}>
-              <CheckBox
-                title="Save Credit Card Information"
-                checked={saveCardInfo}
-                onPress={() => setSaveCardInfo(!saveCardInfo)}
-                containerStyle={styles.checkbox}
-              />
-            </View> */}
+      <ScrollView>
+        <View style={styles.totalContainerMain}>
+          <View style={styles.totalContainerNew}>
+            <Text style={styles.totalTextNew}>
+            Total Items: {cart?.reduce((total, item) => total + item.cart_quantity, 0)}
+            </Text>
+            <Text style={[styles.totalTextNew, styles.totalAmountNew]}>
+              ${getTotalPrice().totalDue.toFixed(2)}
+            </Text>
           </View>
-        ) : (
-          <View style={styles.cashInstructionsContainer}>
-            {/*<View style={styles.radioContainer}>
-                <CheckBox
-                  title="Cash on Delivery (COD)"
-                  checked={radioSelected}
-                  onPress={() => setRadioSelected(!radioSelected)}
-                  containerStyle={styles.checkbox}
-                  textStyle={styles.radioText}
-                />
-              </View>*/}
-              <View style={styles.cashInstructionsWrapr}>
-              {/* <View style={styles.iconContainer}>
-              <FontAwesome name="money" size={30} color="#fff" />
-              </View>
-              <Text style={styles.cashInstructions}>Cash on Delivery: Prepare cash for payment upon delivery.</Text> */}
-            
-            <View style={styles.mainWrap}>
-                <View style={styles.dueContainer}>
-                  <Text style={styles.dueText}> Amount due</Text>
-                  <Text style={styles.dueAmount}>${getTotalPrice().totalDue.toFixed(2)}</Text>
-                </View>
-                <View style={styles.mainWrapDiv}>
-                  
-                  <KeyboardAwareScrollView>
-                  
-                    <View style={styles.headerContainer}>
-                      <View style={styles.heading}>
-                        <Text style={styles.headerText}>Amount Tendered</Text>
-                      </View>
-                      <View style={styles.amountField}>
-                      <TextInput
-                        style={styles.amountInput}
-                        placeholder="Amount Tendered"
-                        keyboardType="numeric"
-                        value={amountTendered === "0" ? `$${totalAmount}` : amountTendered === '' ? `$0` : `$${parseFloat(amountTendered)}`}
-                        onChangeText={(text) => setAmountTendered(text.replace(/[^0-9.]/g, ""))}
-                      />
-                      </View>
-                    </View>
-
-                    <View style={styles.amountContainer}>
-                      <View style={styles.selectionRow}>
-                        {renderSelectionButton("Exact", "Exact")}
-                        {renderSelectionButton("$10.00", "10.00")}
-                        {renderSelectionButton("$20.00", "20.00")}
-                      </View>
-                    </View>
-
-                    <View style={styles.keypadContainer}>
-                      <View style={styles.keypadRow}>
-                        {[1, 2, 3].map(renderNumericButton)}
-                      </View>
-                      <View style={styles.keypadRow}>
-                        {[4, 5, 6].map(renderNumericButton)}
-                      </View>
-                      <View style={styles.keypadRow}>
-                        {[7, 8, 9].map(renderNumericButton)}
-                      </View>
-                      <View style={styles.keypadRow}>
-                        {[0, "00"].map(renderNumericButton)}
-                        {renderClearButton()}
-                      </View>
-                    </View>
-
-                  </KeyboardAwareScrollView>
-                </View>
-              </View>
-
-
-            </View>
+        </View>
+        <View style={styles.allItems}>
+          {/* Display the selected payment type */}
+          <View style={styles.paymentTabs}>
+            <TouchableOpacity
+              style={[styles.paymentTab, paymentType === "card" && styles.activeTab]}
+              onPress={() => setPaymentType("card")}
+            >
+              <Image source={require("../assets/card-image.png")} style={[styles.paymentTabImage, paymentType === "card" && styles.activeTabImg]} />
+              <Text style={[styles.paymentTabText, paymentType === "card" && styles.activeTabText]}>Card</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.paymentTab, paymentType === "cash" && styles.activeTab]}
+              onPress={() => setPaymentType("cash")}
+            >
+              <Image source={require("../assets/cash-image.png")} style={[styles.paymentTabImage, paymentType === "cash" && styles.activeTabImg]} />
+              <Text style={[styles.paymentTabText, paymentType === "cash" && styles.activeTabText]}>Cash</Text>
+            </TouchableOpacity>
           </View>
           
-        )}
+          {/* Card type selection row within the card tab */}
+          {paymentType === "card" && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardTypeScrollContainer}>
+              <TouchableOpacity
+                style={[styles.cardType, selectedCardType === "mastercard" && styles.activeCardType]} onPress={() => setSelectedCardType("mastercard")}>
+                <Image source={require("../assets/master-card.png")} style={styles.cardTypeImage} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.cardType, selectedCardType === "visa" && styles.activeCardType]}
+                onPress={() => setSelectedCardType("visa")}
+              >
+                <Image source={require("../assets/visa-card.png")} style={styles.cardTypeImage} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.cardType, selectedCardType === "american" && styles.activeCardType]}
+                onPress={() => setSelectedCardType("american")}
+              >
+                <Image source={require("../assets/american-card.png")} style={styles.cardTypeImage} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.cardType, selectedCardType === "discover" && styles.activeCardType]}
+                onPress={() => setSelectedCardType("discover")}
+              >
+                <Image source={require("../assets/discover-card.png")} style={styles.cardTypeImage} />
+              </TouchableOpacity>
+            </ScrollView>
+          )}
+          
+          {/* Display form based on the selected payment type */}
+          {paymentType === "card" ? (
+            <View style={styles.cardForm}>
+              <TextInput
+                style={styles.input}
+                placeholder="Cardholder Name"
+                onChangeText={(text) => {
+                  setCardDetails({ ...cardDetails, cardholderName: text });
+                  setValidationStatus({ ...validationStatus, cardholderName: text.length > 0 });
+                }}
+                value={cardDetails.cardholderName}
+              />
+              <View style={styles.row}>
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="Card Number"
+                  // onChangeText={(text) => setCardDetails({ ...cardDetails, cardNumber: text })}
+                  onChangeText={handleCardNumberChange}
+                  value={cardDetails.cardNumber}
+                  maxLength={19}
+                />
+              </View>
+              <View style={styles.row}>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    placeholder="Expiration Date (MM/YY)"
+                    // onChangeText={(text) => setCardDetails({ ...cardDetails, expirationDate: text })}
+                    onChangeText={handleExpirationDateChange}
+                    value={cardDetails.expirationDate}
+                    keyboardType="numeric"                  
+                  />
+                  <TextInput
+                    style={[styles.input, { flex: 1, marginLeft:5 }]}
+                    placeholder="CVV"
+                    onChangeText={(text) => {
+                      const cleanedText = text.replace(/\D/g, ''); // Remove non-digit characters
+                      setCardDetails({ ...cardDetails, cvc: cleanedText });
+                      setValidationStatus({ ...validationStatus, cvc: cleanedText.length === 3 }); // Set cvc validation status based on the length of cleanedText
+                    }}
+                    value={cardDetails.cvc}
+                    keyboardType="numeric"
+                    maxLength={3}
+                  />
+              </View>
+            </View>
+          ) : (
+            <ScrollView style={{ ...styles.scView, height: height * 0.72 }}>
+              <View style={styles.scViewWrap}>
+                <View style={styles.cashInstructionsContainer}>
+                    <View style={styles.cashInstructionsWrapr}>
+                  
+                  <View style={styles.mainWrap}>
+                      <View style={styles.dueContainer}>
+                        <Text style={styles.dueText}> Amount due</Text>
+                        <Text style={styles.dueAmount}>${getTotalPrice().totalDue.toFixed(2)}</Text>
+                      </View>
+                      <View style={styles.mainWrapDiv}>
+                        
+                        <KeyboardAwareScrollView>
+                        
+                          <View style={styles.headerContainer}>
+                            <View style={styles.heading}>
+                              <Text style={styles.headerText}>Amount Tendered</Text>
+                            </View>
+                            <View style={styles.amountField}>
+                            <TextInput
+                              style={styles.amountInput}
+                              placeholder="Amount Tendered"
+                              keyboardType="numeric"
+                              value={amountTendered === "0" ? `$${totalAmount}` : amountTendered === '' ? `$0` : `$${parseFloat(amountTendered)}`}
+                              onChangeText={(text) => setAmountTendered(text.replace(/[^0-9.]/g, ""))}
+                            />
+                            </View>
+                          </View>
+
+                          <View style={styles.amountContainer}>
+                            <View style={styles.selectionRow}>
+                              {renderSelectionButton("Exact", "Exact")}
+                              {renderSelectionButton("$10.00", "10.00")}
+                              {renderSelectionButton("$20.00", "20.00")}
+                            </View>
+                          </View>
+
+                          <View style={styles.keypadContainer}>
+                            <View style={styles.keypadRow}>
+                              {[1, 2, 3].map(renderNumericButton)}
+                            </View>
+                            <View style={styles.keypadRow}>
+                              {[4, 5, 6].map(renderNumericButton)}
+                            </View>
+                            <View style={styles.keypadRow}>
+                              {[7, 8, 9].map(renderNumericButton)}
+                            </View>
+                            <View style={styles.keypadRow}>
+                              {[0, "00"].map(renderNumericButton)}
+                              {renderClearButton()}
+                            </View>
+                          </View>
+
+                        </KeyboardAwareScrollView>
+                      </View>
+                    </View>
+
+
+                  </View>
+                </View>
+              </View>
+            </ScrollView>
+            
+          )}
+          
         </View>
-        </ScrollView>
-      </View>
+        {paymentType === "cash" && (
+          <TouchableOpacity
+          style={[
+            styles.processButton,
+            { backgroundColor: amountTendered < totalAmount ? "#ddd" : "#00c0ff" }, // Gray if less, blue otherwise
+          ]}
+          onPress={handleProcessCash}
+        >
+          <Text style={styles.processButtonText}>{ processingOrder ? 'PROCESSING' : 'PROCESS'}</Text>
+        </TouchableOpacity>
+        )}
+      </ScrollView>
       {paymentType === "card" && (
         
-      <View style={styles.checkoutContainer}>
-        <TouchableOpacity style={styles.holdButton} onPress={holdOrder}>
-          <View style={styles.checkoutContent}>
-            <Icon style={styles.leftIcon} name="pause" size={24} color="#FFF" />
-            <Text style={styles.holdText}>Hold Order</Text>
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.payButton, !validateCardDetails() && styles.disabledButton]}
-          onPress={handlePay}
-          disabled={!validateCardDetails()}
-        >
-          <Text style={styles.payButtonText}>Pay</Text>
-          <Icon style={styles.rightIcon} name="chevron-right" size={24} color="#FFF" />
-        </TouchableOpacity>
-      </View>
-    )}
-    {paymentType === "cash" && (
-        <TouchableOpacity
-        style={[
-          styles.processButton,
-          { backgroundColor: amountTendered < totalAmount ? "#ddd" : "#00c0ff" }, // Gray if less, blue otherwise
-        ]}
-        onPress={handleProcessCash}
-      >
-        <Text style={styles.processButtonText}>{ processingOrder ? 'PROCESSING' : 'PROCESS'}</Text>
-      </TouchableOpacity>
+        <View style={styles.checkoutContainer}>
+          <TouchableOpacity style={styles.holdButton} onPress={holdOrder}>
+            <View style={styles.checkoutContent}>
+              <Icon style={styles.leftIcon} name="pause" size={24} color="#FFF" />
+              <Text style={styles.holdText}>Hold Order</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.payButton, !validateCardDetails() && styles.disabledButton]}
+            onPress={handlePay}
+            disabled={!validateCardDetails()}
+          >
+            <Text style={styles.payButtonText}>Pay</Text>
+            <Icon style={styles.rightIcon} name="chevron-right" size={24} color="#FFF" />
+          </TouchableOpacity>
+        </View>
       )}
       {/* Cancel Order Modal */}
       <Modal
@@ -1078,7 +1062,7 @@ const styles = StyleSheet.create({
   },
   SelectText:{
     color:'#1a8bb0',
-    fontSize:16
+    fontSize: screenWidth < 500 ? 14 : 16
   },
   dueContainer:{
     padding:15,
@@ -1095,7 +1079,7 @@ const styles = StyleSheet.create({
   },
   exactButtonText:{
     color:'#1a8bb0',
-    fontSize:16
+    fontSize: screenWidth < 500 ? 14 : 16
   },
   amountInput: {
     borderWidth: 2,

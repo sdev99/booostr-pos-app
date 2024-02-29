@@ -9,12 +9,15 @@ import {
   FlatList,
   Modal,
   ScrollView,
-  TextInput
+  TextInput,
+  Dimensions
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Header from './Header';
 import { sendReceipt } from "../actions/email";
 import { memoizedOrderList } from "../store/selectors";
+
+const screenWidth = Dimensions.get('window').width;
 
 const PaymentSuccessScreen = ({ orderTotal, amountTendered, changeDue, navigation, route }) => {
   // const order = route.params.order;
@@ -139,123 +142,126 @@ const handleSendReceipt = () => {
         </View>
       </View> */}
 
-      <View style={styles.containerWrap}>
-        <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Icon name="check" size={50} color="#fff" />
+      
+      <ScrollView style={styles.scrollMain}>
+        <View style={styles.containerWrap}>
+          <View style={styles.header}>
+            <View style={styles.iconContainer}>
+              <Icon name="check" size={50} color="#fff" />
+            </View>
+            <Text style={styles.title}>Payment Successful</Text>
           </View>
-          <Text style={styles.title}>Payment Successful</Text>
-        </View>
 
-        {order.payment_method === 'cash' && <View style={[styles.row, styles.dueWrap]}>
-            <View style={styles.dueContainer}>
-              <Text style={styles.dueText}>Order Total</Text>
-              <Text style={styles.dueAmount}>${order.order_total.toFixed(2)}</Text>
-            </View>
-            <View style={[styles.dueContainer, styles.amontContainer]}>
-              <Text style={styles.dueText}>Amount Tendered</Text>
-              <Text style={styles.dueAmount}>${order.payment_details.tendered_amount.toFixed(2)}</Text>
-            </View>
-            <View style={styles.dueContainer}>
-              <Text style={styles.dueText}>Change Due</Text>
-              <Text style={[styles.dueAmount, styles.dueChange]}>${(order.payment_details.tendered_amount - order.order_total).toFixed(2)}</Text>
-            </View>
-          </View>
-        }
-     
-        <ScrollView style={styles.scrollMain}>
-          <View style={styles.emailReceiptMain}>
-        <View style={styles.receiptMain}>
-              <View style={styles.receiptContainer}>
-                {/* Receipt headings */}
-                <View style={styles.receiptHeading}>
-                  <Text style={[styles.headingText, styles.headingFirst]}>Product</Text>
-                  <Text style={styles.headingText}>Price</Text>
-                  <Text style={styles.headingText}>Qty</Text>
-                  <Text style={[styles.headingText, styles.headingLast]}>Total</Text>
-                </View>
-
-                {/* Receipt items */}
-                {order.items.map((item, index) => (
-                  <View key={index} style={styles.receiptItem}>
-                    <Text style={[styles.testHd, styles.headingFirst]}>{item.title}</Text>
-                    <Text style={styles.testHd}>{`$${item.max_price}`}</Text>
-                    <Text style={styles.testHd}>{item.cart_quantity}</Text>
-                    <Text style={[ styles.testHd, styles.price]}>${(item.cart_quantity*item.max_price).toFixed(2)}</Text>
-                  </View>
-                ))}
-
-                {/* Subtotal, GST, and Total */}
-                <View style={styles.totalContainer}>
-                  <Text style={styles.totalText}>Sub total:  ${order.order_subtotal.toFixed(2)}</Text>
-                  <Text style={styles.totalText}>Tax (10%):  ${order.order_tax.toFixed(2)}</Text>
-                  <Text style={[styles.totalText, styles.totalAmount]}>Total: ${order.order_total.toFixed(2)}</Text>
-                </View>
+          {order.payment_method === 'cash' && <View style={[styles.row, styles.dueWrap]}>
+              <View style={styles.dueContainer}>
+                <Text style={styles.dueText}>Order Total</Text>
+                <Text style={styles.dueAmount}>${order.order_total.toFixed(2)}</Text>
+              </View>
+              <View style={[styles.dueContainer, styles.amontContainer]}>
+                <Text style={styles.dueText}>Amount Tendered</Text>
+                <Text style={styles.dueAmount}>${order.payment_details.tendered_amount.toFixed(2)}</Text>
+              </View>
+              <View style={styles.dueContainer}>
+                <Text style={styles.dueText}>Change Due</Text>
+                <Text style={[styles.dueAmount, styles.dueChange]}>${(order.payment_details.tendered_amount - order.order_total).toFixed(2)}</Text>
               </View>
             </View>
-            </View>
-        </ScrollView >
-        {/* Buttons for printing, emailing, or skipping the receipt */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={handlePrintReceipt}>
-          <Text style={styles.buttonText}>Print Receipt</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={handleEmailReceipt}>
-          <Text style={styles.buttonText}>Email Receipt</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>No Receipt</Text>
-        </TouchableOpacity>
-      </View>
+          }
       
+          {/* <ScrollView style={styles.scrollMain}> */}
+            <View style={styles.emailReceiptMain}>
+          <View style={styles.receiptMain}>
+                <View style={styles.receiptContainer}>
+                  {/* Receipt headings */}
+                  <View style={styles.receiptHeading}>
+                    <Text style={[styles.headingText, styles.headingFirst]}>Product</Text>
+                    <Text style={styles.headingText}>Price</Text>
+                    <Text style={[styles.headingText, {width: "10%"}]}>Qty</Text>
+                    <Text style={[styles.headingText, styles.headingLast]}>Total</Text>
+                  </View>
 
-        {/*<View style={styles.mainWrapDiv}>
-          <View style={styles.row}>
-            <Text style={styles.labText}>Receipt Language:</Text>
-            <View style={styles.Pos}>
-              <TouchableOpacity
-                style={styles.dropdownContainer}
-                onPress={() => setShowDropdown(!showDropdown)}
-              >
-                <Text style={styles.dropdownText}>{selectedLanguage || defaultLanguage}</Text>
-                <Icon name="chevron-down" size={20} color="#000" style={styles.icon} />
-              </TouchableOpacity>
-              {showDropdown && (
-                <FlatList
-                  data={languages}
-                  renderItem={renderDropdownItem}
-                  keyExtractor={(item) => item.value}
-                  style={styles.dropdownList}
-                />
-              )}
-            </View>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.labText}>Email Receipt:</Text>
-            <Switch value={emailReceipt} onValueChange={toggleEmailReceipt} />
-          </View>
-          {emailReceipt && (
+                  {/* Receipt items */}
+                  {order.items.map((item, index) => (
+                    <View key={index} style={styles.receiptItem}>
+                      <Text style={[styles.testHd, styles.headingFirst]}>{item.title}</Text>
+                      <Text style={styles.testHd}>{`$${item.max_price}`}</Text>
+                      <Text style={[styles.testHd, {width: "10%"}]}>{item.cart_quantity}</Text>
+                      <Text style={[ styles.testHd, styles.price, {textAlign: "right"}]}>${(item.cart_quantity*item.max_price).toFixed(2)}</Text>
+                    </View>
+                  ))}
+
+                  {/* Subtotal, GST, and Total */}
+                  <View style={styles.totalContainer}>
+                    <Text style={styles.totalText}>Sub total:  ${order.order_subtotal.toFixed(2)}</Text>
+                    <Text style={styles.totalText}>Tax (10%):  ${order.order_tax.toFixed(2)}</Text>
+                    <Text style={[styles.totalText, styles.totalAmount]}>Total: ${order.order_total.toFixed(2)}</Text>
+                  </View>
+                </View>
+              </View>
+              </View>
+          {/* </ScrollView > */}
+          {/* Buttons for printing, emailing, or skipping the receipt */}
+        
+
+          {/*<View style={styles.mainWrapDiv}>
             <View style={styles.row}>
-              <Text style={styles.labText}>Email Address:</Text>
-              <Text style={styles.addedEmain}>user@domain.com</Text>
+              <Text style={styles.labText}>Receipt Language:</Text>
+              <View style={styles.Pos}>
+                <TouchableOpacity
+                  style={styles.dropdownContainer}
+                  onPress={() => setShowDropdown(!showDropdown)}
+                >
+                  <Text style={styles.dropdownText}>{selectedLanguage || defaultLanguage}</Text>
+                  <Icon name="chevron-down" size={20} color="#000" style={styles.icon} />
+                </TouchableOpacity>
+                {showDropdown && (
+                  <FlatList
+                    data={languages}
+                    renderItem={renderDropdownItem}
+                    keyExtractor={(item) => item.value}
+                    style={styles.dropdownList}
+                  />
+                )}
+              </View>
             </View>
-          )}
-          <View style={styles.row}>
-            <Text style={styles.labText}>Print Receipt:</Text>
-            <Switch value={printReceipt} onValueChange={togglePrintReceipt} />
-          </View>
-        </View>/*}
+            <View style={styles.row}>
+              <Text style={styles.labText}>Email Receipt:</Text>
+              <Switch value={emailReceipt} onValueChange={toggleEmailReceipt} />
+            </View>
+            {emailReceipt && (
+              <View style={styles.row}>
+                <Text style={styles.labText}>Email Address:</Text>
+                <Text style={styles.addedEmain}>user@domain.com</Text>
+              </View>
+            )}
+            <View style={styles.row}>
+              <Text style={styles.labText}>Print Receipt:</Text>
+              <Switch value={printReceipt} onValueChange={togglePrintReceipt} />
+            </View>
+          </View>/*}
 
 
-        <View style={styles.doneButtonContainer}>
-          <TouchableOpacity style={styles.orderCompleteButton} onPress={handleOrderComplete}>
-            <Text style={styles.orderCompleteButtonText}>ORDER COMPLETE</Text>
+          <View style={styles.doneButtonContainer}>
+            <TouchableOpacity style={styles.orderCompleteButton} onPress={handleOrderComplete}>
+              <Text style={styles.orderCompleteButtonText}>ORDER COMPLETE</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.doneButton} onPress={handleDonePress}>
+              <Text style={styles.doneButtonText}>Done</Text>
+            </TouchableOpacity>
+            </View>*/}
+        </View>
+      </ScrollView>
+      <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.button} onPress={handlePrintReceipt}>
+            <Text style={styles.buttonText}>Print Receipt</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.doneButton} onPress={handleDonePress}>
-            <Text style={styles.doneButtonText}>Done</Text>
+          <TouchableOpacity style={styles.button} onPress={handleEmailReceipt}>
+            <Text style={styles.buttonText}>Email Receipt</Text>
           </TouchableOpacity>
-          </View>*/}
-      </View>
+          <TouchableOpacity style={styles.button}>
+            <Text style={styles.buttonText}>No Receipt</Text>
+          </TouchableOpacity>
+        </View>
       {/* Success Message */}
       {successMessageVisible && (
         <View style={styles.successMessageContainer}>
@@ -315,7 +321,8 @@ const styles = StyleSheet.create({
     
   },
   dueWrap:{
-    marginBottom:30
+    marginBottom:30,
+    alignItems: "stretch"
   },
   icon: {
     position: 'absolute',
@@ -325,7 +332,10 @@ const styles = StyleSheet.create({
   },
   dueContainer: {
     width:"33.33%",
-    paddingHorizontal:10
+    paddingHorizontal:10,
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between"
   },
 
   amontContainer:{
@@ -526,7 +536,7 @@ const styles = StyleSheet.create({
   orderCompleteButtonText: {
     color: "#fff",
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: screenWidth < 500 ? 13.5 : 16,
   },
 
   receiptMain: {
@@ -564,10 +574,15 @@ const styles = StyleSheet.create({
     textAlign:'center'
   },
   headingFirst:{
-    textAlign:'left'
+    textAlign:'left',
+    maxWidth: "40%",
   },
   headingLast:{
     textAlign:'right'
+  },
+  testHd: {
+    textAlign: "center",
+    width: "25%"
   },
   receiptItem: {
     flexDirection: "row",

@@ -18,6 +18,7 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import OnlineOrderScreen from './src/screens/OnlineOrderScreen';
 import ClubList from './src/screens/ClubList';
 import OrderDetailScreen from './src/screens/OrderDetailScreen';
+import CompletedOrderDetailScreen from './src/screens/CompletedOrderDetailScreen';
 import PaymentSuccessScreen from './src/screens/PaymentSuccessScreen';
 import AgreementScreen from './src/screens/Agreement';
 import CashScreen from './src/screens/CashScreen';
@@ -94,6 +95,7 @@ const App = () => {
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="OnlineOrder" component={OnlineOrderScreen} />
             <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
+            <Stack.Screen name="CompletedOrderDetail" component={CompletedOrderDetailScreen} />
             <Stack.Screen name="BottomBar" component={BottomBar} />
           </Stack.Navigator>
         </NavigationContainer>

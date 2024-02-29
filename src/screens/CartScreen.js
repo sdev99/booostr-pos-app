@@ -9,6 +9,7 @@ import { addProductToCart, decreaseProductFromCart, removeProductFromCart, reset
 import { addToOrderList } from "../store/reducers/orderListSlice";
 
 const screenHeight = Dimensions.get('window').height;
+const screenWidth = Dimensions.get('window').width;
 
 const CartScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -146,19 +147,49 @@ const CartScreen = ({ navigation }) => {
         </View>
       </View>
       <View style={styles.itemWrpa}>
-        <View style={styles.totalContainerMain}>
-          <View style={styles.totalContainer}>
-            <Text style={styles.totalText}>
-              Subtotal: ${getTotalPrice().subtotal.toFixed(2)}
-            </Text>
-            <Text style={styles.totalText}>
-              Tax ({storeData?.tax}%): ${getTotalPrice().tax.toFixed(2)}
-            </Text>
-            <Text style={[styles.totalText, styles.totalAmount]}>
-              Total Due: ${getTotalPrice().totalDue.toFixed(2)}
-            </Text>
+        {screenWidth < 500
+        ? <View style={styles.totalContainerMain}>
+            <View style={styles.totalContainer}>
+              <View style={styles.totalFlexDirCol}>
+                <Text style={[styles.totalText, styles.totalTextTop]}>
+                  Subtotal:
+                </Text>
+                <Text style={[styles.totalText, styles.totalTextbottom]}>
+                  ${getTotalPrice().subtotal.toFixed(2)}
+                </Text>
+              </View>
+              <View style={styles.totalFlexDirCol}>
+                <Text style={[styles.totalText, styles.totalTextTop]}>
+                  Tax ({storeData?.tax}%):
+                </Text>
+                <Text style={[styles.totalText, styles.totalTextbottom]}>
+                  ${getTotalPrice().tax.toFixed(2)}
+                </Text>
+              </View>
+              <View style={styles.totalFlexDirCol}>
+                <Text style={[styles.totalText, styles.totalAmount, styles.totalTextTop]}>
+                  Total Due:
+                </Text>
+                <Text style={[styles.totalText, styles.totalAmount, styles.totalTextbottom]}>
+                  ${getTotalPrice().totalDue.toFixed(2)}
+                </Text>
+              </View>
+            </View>
           </View>
-        </View>
+        : <View style={styles.totalContainerMain}>
+            <View style={styles.totalContainer}>
+              <Text style={styles.totalText}>
+                Subtotal: ${getTotalPrice().subtotal.toFixed(2)}
+              </Text>
+              <Text style={styles.totalText}>
+                Tax ({storeData?.tax}%): ${getTotalPrice().tax.toFixed(2)}
+              </Text>
+              <Text style={[styles.totalText, styles.totalAmount]}>
+                Total Due: ${getTotalPrice().totalDue.toFixed(2)}
+              </Text>
+            </View>
+          </View>
+        }
         <View style={styles.allItems}>
           <FlatList
             data={cart}
@@ -346,7 +377,15 @@ const styles = StyleSheet.create({
   },
   totalText:{
     paddingHorizontal:10,
-    paddingVertical:25
+    paddingVertical: 25
+  },
+  totalTextTop:{
+    paddingTop: 25,
+    paddingBottom: 5
+  },
+  totalTextbottom:{
+    paddingTop: 5,
+    paddingBottom: 25
   },
   totalAmount:{
     fontWeight: "700",
@@ -463,6 +502,9 @@ const styles = StyleSheet.create({
       fontSize: 14,
       fontWeight: "bold",
   },
+  totalFlexDirCol: {
+    flexDirection: "column"
+  }
 });
 
 export default CartScreen;
