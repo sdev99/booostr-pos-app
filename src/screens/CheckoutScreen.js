@@ -553,15 +553,21 @@ const CheckoutScreen = ({ navigation, route }) => {
           
         </View>
         {paymentType === "cash" && (
-          <TouchableOpacity
-          style={[
-            styles.processButton,
-            { backgroundColor: amountTendered < totalAmount ? "#ddd" : "#00c0ff" }, // Gray if less, blue otherwise
-          ]}
-          onPress={handleProcessCash}
-        >
-          <Text style={styles.processButtonText}>{ processingOrder ? 'PROCESSING' : 'PROCESS'}</Text>
-        </TouchableOpacity>
+          <View style={styles.checkoutContainer}>
+            <TouchableOpacity style={styles.holdButton} onPress={holdOrder}>
+              <View style={styles.checkoutContent}>
+                <Icon style={styles.leftIcon} name="pause" size={24} color="#FFF" />
+                <Text style={styles.holdText}>Hold Order</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.payButton, { backgroundColor: amountTendered < totalAmount ? "#ddd" : "#00c0ff" }]}
+              onPress={handleProcessCash}
+            >
+              <Text style={styles.payButtonText}>Pay for Order</Text>
+              <Icon style={styles.rightIcon} name="chevron-right" size={24} color="#FFF" />
+            </TouchableOpacity>
+          </View>
         )}
       </ScrollView>
       {paymentType === "card" && (

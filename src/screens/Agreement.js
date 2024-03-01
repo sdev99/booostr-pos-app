@@ -130,7 +130,7 @@ const AgreementScreen = ({ route, navigation }) => {
           }
           <View style={styles.logoBox}>
             <Image source={require("../assets/logo.png")} style={styles.logo} />
-            <Text style={styles.title}>User License Agreement</Text>
+            <Text style={styles.title}>End User License Agreement</Text>
           </View>
           <ScrollView style={styles.scrollViewContainer}>
           <View style={styles.card}>

@@ -64,7 +64,7 @@ const LoginScreen = ({ navigation }) => {
           </View>
           <View style={styles.card}>
             <Text style={[styles.smallText, styles.forText]}>
-              Login to POS application
+              Login to Booostr POS application
             </Text>
             <TextInput
               style={styles.input}
@@ -95,7 +95,7 @@ const LoginScreen = ({ navigation }) => {
           </View>
           <View style={styles.BottomText}>
             <Text style={[styles.smallText, styles.ForWidth]}>
-            To access the Team Chat feature for your organization using the POS system, you must possess a user account on the POS system. If you don't already have an account but require connectivity with a club or nonprofit using the POS system's Team Chat, you can create a new user account on the POS system platform.
+              To access Booostr POS App, you need to have enabled the Store Tool on Booostr for your organization’s Booostr Profile. In order to enable the Store Tool feature in Booostr, you must have a Booostr user account that is a profile manager of an organization with an approved, live profile on Booostr.
              {/*} <Text
                 style={styles.BlueText}
                 onPress={() => Linking.openURL("https://example.com")}
@@ -161,7 +161,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 10,
     textAlign: "center",
-    textTransform: "capitalize",
     color: "#fff",
   },
   input: {

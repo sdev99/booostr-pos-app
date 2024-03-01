@@ -18,12 +18,14 @@ import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";
 import productPlaceholder from "../assets/product-placeholder.png";
 import { memoizedStoreData } from "../store/selectors";
 
+const screenWidth = Dimensions.get('window').width;
+
 const LatestOrdersScreen = ({ orderedItems }) => {
   const storeData = useSelector(memoizedStoreData);
   const renderOrderedItem = ({ item }) => (
     <View style={styles.orderedItem}>
       <View style={styles.imageAndNameContainer}>
-        <Image source={item?.orderitems[0]?.term?.media ? {uri: item?.orderitems[0].term.media} : productPlaceholder} style={[styles.orderedItemImage, {width: 70, aspectRatio: 1 }]} />
+        <Image source={item?.orderitems[0]?.term?.media?.value ? {uri: item?.orderitems[0].term.media.value} : productPlaceholder} style={[styles.orderedItemImage, {width: 70, aspectRatio: 1 }]} />
         <Text style={styles.orderedItemText}>{item?.orderitems[0]?.term?.title}</Text>
       </View>
       <Text style={styles.orderedItemText}>#{item?.invoice_no}</Text>
@@ -197,18 +199,6 @@ const DashboardScreen = ({ navigation }) => {
     { id: 4, name: "Online Order", icon: "web", totalRev: "" },
   ]);
 
-  const [orderedItems, setOrderedItems] = useState([
-    { id: 1, name: "Roadster", orderId: "ORD123", status: "Pending", totalPrice: 10, image: require("../assets/burger_img.png"), date: "23/01/2024" },
-    { id: 3, name: "New Item 1", orderId: "ORD125", status: "Pending", totalPrice: 15.99, image: require("../assets/burger_img.png"), date: "23/01/2024" },
-    { id: 4, name: "New Item 2", orderId: "ORD126", status: "Top", totalPrice: 20.99, image: require("../assets/burger_img.png"), date: "22/01/2024" },
-    { id: 5, name: "New Item 3", orderId: "ORD127", status: "Pending", totalPrice: 25.99, image: require("../assets/burger_img.png"), date: "23/01/2024" },
-    { id: 6, name: "New Item 4", orderId: "ORD128", status: "Top", totalPrice: 30.99, image: require("../assets/burger_img.png"), date: "21/01/2024" },
-    { id: 7, name: "New Item 5", orderId: "ORD129", status: "Pending", totalPrice: 35.99, image: require("../assets/burger_img.png"), date: "23/01/2024" },
-    { id: 8, name: "New Item 6", orderId: "ORD130", status: "Top", totalPrice: 40.99, image: require("../assets/burger_img.png"), date: "20/01/2024" },
-    { id: 9, name: "New Item 7", orderId: "ORD131", status: "Pending", totalPrice: 45.99, image: require("../assets/burger_img.png"), date: "23/01/2024" },
-    { id: 10, name: "New Item 8", orderId: "ORD132", status: "Top", totalPrice: 50.99, image: require("../assets/burger_img.png"), date: "19/01/2024" },
-  ]);
-
   const calculateMetricItemWidth = (percentage) => {
     const screenWidth = Dimensions.get("window").width;
     const numberOfItems = metrics.length;
@@ -253,15 +243,54 @@ const DashboardScreen = ({ navigation }) => {
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Dashboard</Text>
         </View>
-        <View style={styles.MetRow}>
-          <FlatList
-            data={metrics}
-            renderItem={renderMetricItem}
-            keyExtractor={(metric) => metric.id.toString()}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-          />
-        </View>
+        { screenWidth < 500
+          ? <View style={{marginTop: 15, marginBottom: 25}}>
+              <View style={styles.MetRow}>
+                <View style={styles.metricItem}>
+                  <View style={[styles.metricTitle]}>
+                    <Icon name={metrics[0].icon} size={24} color={"#000"} />
+                    <Text style={styles.metricName}>{metrics[0].name}</Text>
+                  </View>
+                  <Text style={styles.metricRev}>{storeData?.currency_info?.currency_icon}{metrics[0].totalRev}</Text>
+                </View>
+
+                <View style={styles.metricItem}>
+                  <View style={[styles.metricTitle]}>
+                    <Icon name={metrics[1].icon} size={24} color={"#000"} />
+                    <Text style={styles.metricName}>{metrics[1].name}</Text>
+                  </View>
+                  <Text style={styles.metricRev}>{metrics[1].totalRev}</Text>
+                </View>
+              </View>
+
+              <View style={styles.MetRow}>
+                <View style={styles.metricItem}>
+                  <View style={[styles.metricTitle]}>
+                    <Icon name={metrics[2].icon} size={24} color={"#000"} />
+                    <Text style={styles.metricName}>{metrics[2].name}</Text>
+                  </View>
+                  <Text style={styles.metricRev}>{metrics[2].totalRev}</Text>
+                </View>
+
+                <View style={styles.metricItem}>
+                  <View style={[styles.metricTitle]}>
+                    <Icon name={metrics[3].icon} size={24} color={"#000"} />
+                    <Text style={styles.metricName}>{metrics[3].name}</Text>
+                  </View>
+                  <Text style={styles.metricRev}>{metrics[3].totalRev}</Text>
+                </View>
+              </View>
+            </View>
+          : <View style={styles.MetRow}>
+              <FlatList
+                data={metrics}
+                renderItem={renderMetricItem}
+                keyExtractor={(metric) => metric.id.toString()}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+              />
+            </View>
+        }
         <Tab.Navigator
             screenOptions={{
               tabBarActiveTintColor: '#000',
@@ -307,28 +336,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
   },
   metricItem: {
-    width: "100%",
+    width: screenWidth < 500 ? "48%" :  "100%",
     padding: 15,
-    marginBottom: 15,
+    marginBottom: screenWidth < 500 ? 0 : 15,
     borderRadius: 6,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#FFF",
    
   },
+  metricTitle: {
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "center",
+    paddingHorizontal: 2
+  },
   metricName: {
-    fontSize: 12,
-    marginTop: 5,
-    color: "#515151",
+    fontSize: screenWidth < 500 ? 13 : 12,
+    fontWeight: screenWidth < 500 ? "bold" : "normal",
+    marginTop: screenWidth < 500 ? 0 : 5,
+    alignSelf: screenWidth < 500 ? "center" : "auto",
+    color: screenWidth < 500 ? "#000" : "#515151",
   },
   metricRev: {
     fontSize: 14,
     fontWeight: "bold",
     marginTop: 5,
+    color: "#000"
   },
 
   MetRow: {
-    padding: 15,
+    padding: screenWidth < 500 ? "2%" : 15,
+    paddingHorizontal: screenWidth < 500 ? 15 : 0,
     justifyContent: "space-between",
     flexDirection: "row",
   },

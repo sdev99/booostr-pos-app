@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   },
   checkoutButton: {
     backgroundColor: "#00c0ff",
-    flexDirection: "row",
+    flexDirection: screenWidth < 500 ? "column" : "row",
     justifyContent: "space-between",
     alignItems: "center",
     padding: 15,
@@ -377,7 +377,8 @@ const styles = StyleSheet.create({
   },
   totalText:{
     paddingHorizontal:10,
-    paddingVertical: 25
+    paddingVertical: 25,
+    textAlign: "center"
   },
   totalTextTop:{
     paddingTop: 25,
@@ -493,6 +494,7 @@ const styles = StyleSheet.create({
       shadowOpacity: 0.1,
       shadowRadius: 20,
       elevation: 3, // For Android shadow
+      height: screenWidth < 500 ? "100%" : "auto"
   },
   leftIcon: {
       marginRight: 10,
@@ -503,7 +505,8 @@ const styles = StyleSheet.create({
       fontWeight: "bold",
   },
   totalFlexDirCol: {
-    flexDirection: "column"
+    flexDirection: "column",
+    width: "33%"
   }
 });
 
