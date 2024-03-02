@@ -108,7 +108,7 @@ const CheckoutScreen = ({ navigation, route }) => {
   };
   
   const totalAmount = getTotalPrice().totalDue;
-  const [amountTendered, setAmountTendered] = useState(totalAmount ? totalAmount.toString() : "0");
+  const [amountTendered, setAmountTendered] = useState("0.00");
   
   const [club, setClub] = useState(null);
 
@@ -130,11 +130,11 @@ const CheckoutScreen = ({ navigation, route }) => {
 
   const handleKeypadPress = (value) => {
     if (value === "C") {
-      setAmountTendered("0");
+      setAmountTendered("0.00");
     } else if (value === "Exact") {
-      setAmountTendered(totalAmount ? totalAmount.toString() : "0");
+      setAmountTendered(totalAmount ? totalAmount.toString() : "0.00");
     } else if (!isNaN(value)) {
-      setAmountTendered(value); // Set the value directly
+      setAmountTendered(value.toString()); // Set the value directly
     } else {
       if (!isNaN(value)) {
         setAmountTendered((prevAmount) => prevAmount + value); // Concatenate the values
@@ -146,10 +146,11 @@ const CheckoutScreen = ({ navigation, route }) => {
     }
   };
   const handleNumericButtonPress = (value) => {
-    setAmountTendered((prevAmount) => prevAmount === "0" ? value.toString() : prevAmount + value.toString());
+    setAmountTendered((prevAmount) => prevAmount === "0.00" || prevAmount == "" ? "0.0"+value.toString() : prevAmount.includes('.') ?  value==="00" ? (parseFloat(prevAmount) * 100).toString()+'.'+value.toString() : (parseFloat(prevAmount) * 10).toFixed(1).toString()+value.toString() :  prevAmount + value.toString());
   };
   const handleClearPress = () => {
-    setAmountTendered("0");
+    let pattern = /\.[0-9]$/;
+    setAmountTendered((prevAmount) => pattern.test(prevAmount) ? prevAmount.substring(0, prevAmount.length-2) : prevAmount.substring(0, prevAmount.length-1));
   };
   // const [saveCardInfo, setSaveCardInfo] = useState(false);
   const [isCancelModalVisible, setCancelModalVisible] = useState(false);
@@ -322,7 +323,7 @@ const CheckoutScreen = ({ navigation, route }) => {
     <TouchableOpacity
       key={label}
       style={[styles.selectionButton, label === "Exact" && styles.exactButton]}
-      onPress={() => handleKeypadPress(value)}
+      onPress={() => handleKeypadPress(value.toString())}
     >
       <Text style={label === "Exact" ? styles.exactButtonText : styles.SelectText}>{label}</Text>
     </TouchableOpacity>
@@ -486,7 +487,8 @@ const CheckoutScreen = ({ navigation, route }) => {
               </View>
             </View>
           ) : (
-            <ScrollView style={{ ...styles.scView, height: height * 0.72 }}>
+            <>
+            {/* <ScrollView style={{ ...styles.scView, height: height * 0.72 }}> */}
               <View style={styles.scViewWrap}>
                 <View style={styles.cashInstructionsContainer}>
                     <View style={styles.cashInstructionsWrapr}>
@@ -498,7 +500,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                       </View>
                       <View style={styles.mainWrapDiv}>
                         
-                        <KeyboardAwareScrollView>
+                        {/* <KeyboardAwareScrollView> */}
                         
                           <View style={styles.headerContainer}>
                             <View style={styles.heading}>
@@ -509,7 +511,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                               style={styles.amountInput}
                               placeholder="Amount Tendered"
                               keyboardType="numeric"
-                              value={amountTendered === "0" ? `$${totalAmount}` : amountTendered === '' ? `$0` : `$${parseFloat(amountTendered)}`}
+                              value={amountTendered === "0.00" || amountTendered === '' ? `${storeData?.currency_info?.currency_icon}0.00` : `$${amountTendered}`}
                               onChangeText={(text) => setAmountTendered(text.replace(/[^0-9.]/g, ""))}
                             />
                             </View>
@@ -539,7 +541,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                             </View>
                           </View>
 
-                        </KeyboardAwareScrollView>
+                        {/* </KeyboardAwareScrollView> */}
                       </View>
                     </View>
 
@@ -547,8 +549,8 @@ const CheckoutScreen = ({ navigation, route }) => {
                   </View>
                 </View>
               </View>
-            </ScrollView>
-            
+            {/* </ScrollView> */}
+            </>
           )}
           
         </View>
