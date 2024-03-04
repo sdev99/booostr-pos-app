@@ -152,16 +152,16 @@ const handleSendReceipt = () => {
             <Text style={styles.title}>Payment Successful</Text>
           </View>
 
-          {order.payment_method === 'cash' && <View style={[styles.row, styles.dueWrap]}>
-              <View style={styles.dueContainer}>
+          {order.payment_method === 'cash' && <View style={screenWidth < 500 ? {marginBottom: 20} : [styles.row, styles.dueWrap]}>
+              <View style={[styles.dueContainer, screenWidth < 500 && styles.row]}>
                 <Text style={styles.dueText}>Order Total</Text>
                 <Text style={styles.dueAmount}>${order.order_total.toFixed(2)}</Text>
               </View>
-              <View style={[styles.dueContainer, styles.amontContainer]}>
+              <View style={[styles.dueContainer, screenWidth < 500 && styles.row]}>
                 <Text style={styles.dueText}>Amount Tendered</Text>
                 <Text style={styles.dueAmount}>${order.payment_details.tendered_amount.toFixed(2)}</Text>
               </View>
-              <View style={styles.dueContainer}>
+              <View style={[styles.dueContainer, screenWidth < 500 && styles.row]}>
                 <Text style={styles.dueText}>Change Due</Text>
                 <Text style={[styles.dueAmount, styles.dueChange]}>${(order.payment_details.tendered_amount - order.order_total).toFixed(2)}</Text>
               </View>
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     transform: [{ translateY: 1 }], // Center the icon vertically
   },
   dueContainer: {
-    width:"33.33%",
+    width: screenWidth < 500 ? "100%" : "33.33%",
     paddingHorizontal:10,
     display: "flex",
     flexDirection: "column",
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     textAlign:'center'
   },
   dueAmount: {
-    fontSize: 22,
+    fontSize: screenWidth < 500 ? 16 : 22,
     fontWeight: 'bold',
     textAlign:'center'
   },

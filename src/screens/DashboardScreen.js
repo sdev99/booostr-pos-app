@@ -217,8 +217,10 @@ const DashboardScreen = ({ navigation }) => {
   const itemWidth = calculateMetricItemWidth(24);
 
   // Customize background color for "Online Order" metric
-  const backgroundColor = item.name === "Online Order" ? "#CCCCCC" : "#FFF";
-  const textColor = item.name === "Online Order" ? "#515151" : "#000";
+  // const backgroundColor = item.name === "Online Order" ? "#CCCCCC" : "#FFF";
+  const backgroundColor = item.name === "Online Order" ? "#FFF" : "#FFF";
+  // const textColor = item.name === "Online Order" ? "#515151" : "#000";
+  const textColor = item.name === "Online Order" ? "#000" : "#000";
 
   return (
     <View style={[styles.metricItem, { width: itemWidth, marginRight: 2, marginLeft: 3, backgroundColor }]}>

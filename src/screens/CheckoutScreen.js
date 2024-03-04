@@ -21,8 +21,9 @@ const CheckoutScreen = ({ navigation, route }) => {
   const orderList = useSelector(memoizedOrderList);
   const cart = typeof route?.params?.orderIndex == 'number' ? orderList[route.params.orderIndex]?.items : useSelector(memoizedCart);
   const userData = useSelector(memoizedUserData);
+  
   const storeData = useSelector(memoizedStoreData);
-  const processingOrder = useSelector((state) => state.productList.loading);
+  const [processingOrder, setProcessingOrder] = useState(false);
   //const { totalAmount } = route?.params || {};
 
   const [paymentType, setPaymentType] = useState("card");
@@ -178,9 +179,9 @@ const CheckoutScreen = ({ navigation, route }) => {
 };
 
 
-  const handlePay = async () => {
-    if (paymentType === "card") {
-
+  const handleCardPay = async () => {
+    if( processingOrder ) return;
+    setProcessingOrder(true);
 
       if (validateCardDetails()) {
         try{
@@ -216,20 +217,18 @@ const CheckoutScreen = ({ navigation, route }) => {
           })
           .catch((error) => {
             alert(error.toString());
+          })
+          .finally(()=>{
+            setProcessingOrder(false);
           });
         }catch(error){
           alert(error.toString());
+          setProcessingOrder(false);
         }
       } else {
         alert("Invalid Card Details\nPlease check your card information and try again.");
+        setProcessingOrder(false);
       }
-
-
-    } else if (paymentType === "cash") {
-
-      navigation.navigate("CashScreen", { totalAmount }); // Pass totalAmount to CashScreen
-
-    }
 
   };
 
@@ -246,6 +245,7 @@ const CheckoutScreen = ({ navigation, route }) => {
   };*/}
   const handleProcessCash = async () => {
     if( processingOrder ) return;
+    setProcessingOrder(true);
 
     const tenderedAmount = parseFloat(amountTendered);
     if (tenderedAmount < totalAmount) {
@@ -260,6 +260,7 @@ const CheckoutScreen = ({ navigation, route }) => {
         ],
         { cancelable: false }
       );
+      setProcessingOrder(false);
     } else {
       try{
         let order = {};
@@ -277,7 +278,7 @@ const CheckoutScreen = ({ navigation, route }) => {
         dispatch(processOrder(order, club))
         .then((response) => {
           if( response?.status==='success' ){
-            const dateTime = new Date(response?.data?.order_id);
+            const dateTime = new Date(response?.data?.order_date);
             const formattedDateTime = dateTime.toISOString().replace("T", " ").replace(/\.\d+Z$/, "");
             order = {...order, status: 'success', orderId: response?.data?.order_id, created_at: formattedDateTime};
             if( typeof route?.params?.orderIndex == 'number' ) dispatch(removeOrderFromOrderList(route.params.orderIndex));
@@ -293,19 +294,15 @@ const CheckoutScreen = ({ navigation, route }) => {
             alert(response);
           }
         })
-        // dispatch(processCashOrder(order))
-        // .then((response) => {
-        //   if( response==='success' ){
-        //     navigation.navigate("CashReceipt", { order });
-        //   }else{
-        //     alert(response);
-        //   }
-        // })
-        // .catch((error) => {
-        //   alert('dsdsdsds'+error.toString());
-        // });
+        .catch((error)=>{
+          alert(error.toString());
+        })
+        .finally(()=>{
+          setProcessingOrder(false);
+        });
       }catch(error){
         alert(error.toString());
+        setProcessingOrder(false);
       }
     }
   };
@@ -500,7 +497,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                       </View>
                       <View style={styles.mainWrapDiv}>
                         
-                        {/* <KeyboardAwareScrollView> */}
+                        <KeyboardAwareScrollView>
                         
                           <View style={styles.headerContainer}>
                             <View style={styles.heading}>
@@ -541,7 +538,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                             </View>
                           </View>
 
-                        {/* </KeyboardAwareScrollView> */}
+                        </KeyboardAwareScrollView>
                       </View>
                     </View>
 
@@ -554,24 +551,24 @@ const CheckoutScreen = ({ navigation, route }) => {
           )}
           
         </View>
-        {paymentType === "cash" && (
-          <View style={styles.checkoutContainer}>
-            <TouchableOpacity style={styles.holdButton} onPress={holdOrder}>
-              <View style={styles.checkoutContent}>
-                <Icon style={styles.leftIcon} name="pause" size={24} color="#FFF" />
-                <Text style={styles.holdText}>Hold Order</Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.payButton, { backgroundColor: amountTendered < totalAmount ? "#ddd" : "#00c0ff" }]}
-              onPress={handleProcessCash}
-            >
-              <Text style={styles.payButtonText}>Pay for Order</Text>
-              <Icon style={styles.rightIcon} name="chevron-right" size={24} color="#FFF" />
-            </TouchableOpacity>
-          </View>
-        )}
       </ScrollView>
+      {paymentType === "cash" && (
+        <View style={styles.checkoutContainer}>
+          <TouchableOpacity style={styles.holdButton} onPress={holdOrder}>
+            <View style={styles.checkoutContent}>
+              <Icon style={styles.leftIcon} name="pause" size={24} color="#FFF" />
+              <Text style={styles.holdText}>Hold Order</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.payButton, { backgroundColor: amountTendered < totalAmount || processingOrder ? "#ddd" : "#00c0ff" }]}
+            onPress={handleProcessCash}
+          >
+            <Text style={styles.payButtonText}>Pay for Order {processingOrder? 'true' : 'false'}</Text>
+            <Icon style={styles.rightIcon} name="chevron-right" size={24} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+      )}
       {paymentType === "card" && (
         
         <View style={styles.checkoutContainer}>
@@ -582,11 +579,11 @@ const CheckoutScreen = ({ navigation, route }) => {
             </View>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.payButton, !validateCardDetails() && styles.disabledButton]}
-            onPress={handlePay}
+            style={[styles.payButton, (!validateCardDetails() || processingOrder) && styles.disabledButton]}
+            onPress={handleCardPay}
             disabled={!validateCardDetails()}
           >
-            <Text style={styles.payButtonText}>Pay</Text>
+            <Text style={styles.payButtonText}>Pay for Order</Text>
             <Icon style={styles.rightIcon} name="chevron-right" size={24} color="#FFF" />
           </TouchableOpacity>
         </View>
@@ -844,7 +841,7 @@ const styles = StyleSheet.create({
     alignItems:'center',
   },
   cashInstructionsContainer:{
-    paddingBottom:80
+    // paddingBottom:80
   },
   radioContainer: {
     textAlign:'left',
