@@ -1,16 +1,18 @@
 // Header.js
 import React, { useState, useEffect } from "react";
-import { useDispatch } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { resetOrderList } from "../store/reducers/orderListSlice";
 import { resetCart } from "../store/reducers/cartSlice";
+import { memoizedCart } from "../store/selectors";
 
 const Header = ({ title, clubName }) => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const [club, setClub] = useState(null);
+  const cart = useSelector(memoizedCart);
 
   // Fetch Club Data
   useEffect(() => {
@@ -57,7 +59,7 @@ const Header = ({ title, clubName }) => {
         </Text>
       </View>
       <TouchableOpacity style={styles.rightContainer} onPress={handleNewOrder}>
-        <Text style={styles.newOrderButton}>New Order</Text>
+        <Text style={styles.newOrderButton}>{cart?.length ? 'Continue Order' : 'New Order'}</Text>
       </TouchableOpacity>
     </View>
   );

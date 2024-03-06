@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useFocusEffect } from '@react-navigation/native';
 import { useSelector, useDispatch } from "react-redux";
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, Modal, ScrollView } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, Modal, ScrollView, Dimensions } from "react-native";
 import { Button as PaperButton } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -14,6 +13,8 @@ import { addToOrderList } from "../store/reducers/orderListSlice";
 import { addProductToCart, resetCart } from "../store/reducers/cartSlice";
 import productPlaceholder from "../assets/product-placeholder.png";
 import Header from './Header';
+
+const screenWidth = Dimensions.get('window').width;
 
 const OrdersScreen = ({ navigation, route }) => {
     const dispatch = useDispatch();
@@ -441,7 +442,7 @@ const styles = StyleSheet.create({
     },
     checkoutButton: {
         backgroundColor: "#00c0ff",
-        flexDirection: "row",
+        flexDirection: screenWidth < 500 ? "column" : "row",
         justifyContent: "space-between",
         alignItems: "center",
         padding: 15,
@@ -505,6 +506,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 20,
         elevation: 3, // For Android shadow
+        height: screenWidth < 500 ? "100%" : "auto"
     },
     
     leftIcon: {

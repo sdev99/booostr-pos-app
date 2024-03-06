@@ -156,7 +156,7 @@ const OrderDetailScreen = ({ route, navigation }) => {
               onPress={handleCompleteButtonPress}
               disabled={false} // You can adjust the disabled state based on your logic
             >
-              <Text style={[styles.bottomButtonText, styles.completeButtonText]}>Complete</Text>
+              <Text style={[styles.bottomButtonText, styles.completeButtonText]}>Complete Order</Text>
               <Icon name="chevron-right" size={20} color="#fff" style={styles.completeButtonIcon} />
             </TouchableOpacity>
           </View>

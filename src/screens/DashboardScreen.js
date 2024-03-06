@@ -24,10 +24,10 @@ const LatestOrdersScreen = ({ orderedItems }) => {
   const storeData = useSelector(memoizedStoreData);
   const renderOrderedItem = ({ item }) => (
     <View style={styles.orderedItem}>
-      <View style={styles.imageAndNameContainer}>
+      {/* <View style={styles.imageAndNameContainer}>
         <Image source={item?.orderitems[0]?.term?.media?.value ? {uri: item?.orderitems[0].term.media.value} : productPlaceholder} style={[styles.orderedItemImage, {width: 70, aspectRatio: 1 }]} />
         <Text style={styles.orderedItemText}>{item?.orderitems[0]?.term?.title}</Text>
-      </View>
+      </View> */}
       <Text style={styles.orderedItemText}>#{item?.invoice_no}</Text>
       <Text style={styles.orderedItemStatus}>{item?.created_at?.substring(0,10)}</Text>
       <Text style={styles.orderedItemText}>{storeData?.currency_info?.currency_icon}{item?.total?.toFixed(2)}</Text>

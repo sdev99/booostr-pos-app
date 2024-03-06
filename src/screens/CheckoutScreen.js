@@ -564,7 +564,7 @@ const CheckoutScreen = ({ navigation, route }) => {
             style={[styles.payButton, { backgroundColor: amountTendered < totalAmount || processingOrder ? "#ddd" : "#00c0ff" }]}
             onPress={handleProcessCash}
           >
-            <Text style={styles.payButtonText}>Pay for Order {processingOrder? 'true' : 'false'}</Text>
+            <Text style={styles.payButtonText}>Pay for Order</Text>
             <Icon style={styles.rightIcon} name="chevron-right" size={24} color="#FFF" />
           </TouchableOpacity>
         </View>
