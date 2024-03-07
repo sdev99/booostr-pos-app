@@ -41,6 +41,8 @@ const CheckoutScreen = ({ navigation, route }) => {
     cvc: false,
   });
 
+  const [quickAmtBtn, setQuickAmtBtn] = useState(0);
+
   const formatCardNumber = (inputCardNumber) => {
     const cleanedInput = inputCardNumber.replace(/\D/g, '');
     let formattedCardNumber = '';
@@ -147,7 +149,18 @@ const CheckoutScreen = ({ navigation, route }) => {
     }
   };
   const handleNumericButtonPress = (value) => {
-    setAmountTendered((prevAmount) => prevAmount === "0.00" || prevAmount == "" ? "0.0"+value.toString() : prevAmount.includes('.') ?  value==="00" ? (parseFloat(prevAmount) * 100).toString()+'.'+value.toString() : (parseFloat(prevAmount) * 10).toFixed(1).toString()+value.toString() :  prevAmount + value.toString());
+    if( quickAmtBtn > 0 ) setQuickAmtBtn( quickAmtBtn - 1 );
+    setAmountTendered(
+      (prevAmount) => prevAmount === "0.00" || prevAmount == ""
+        ? "0.0"+value.toString()
+        : quickAmtBtn > 0 && prevAmount.lastIndexOf("0") !== -1
+        ? prevAmount.substring(0, prevAmount.lastIndexOf("0")) + value + prevAmount.substring(prevAmount.lastIndexOf("0") + 1)
+        : prevAmount.includes('.')
+          ?  value==="00"
+            ? (parseFloat(prevAmount) * 100).toString()+'.'+value.toString()
+            : (parseFloat(prevAmount) * 10).toFixed(1).toString()+value.toString()
+          : prevAmount + value.toString()
+    );
   };
   const handleClearPress = () => {
     let pattern = /\.[0-9]$/;
@@ -320,7 +333,7 @@ const CheckoutScreen = ({ navigation, route }) => {
     <TouchableOpacity
       key={label}
       style={[styles.selectionButton, label === "Exact" && styles.exactButton]}
-      onPress={() => handleKeypadPress(value.toString())}
+      onPress={() => { if( value == '10.00' || value == '20.00' ){ setQuickAmtBtn(3) }; handleKeypadPress(value.toString())}}
     >
       <Text style={label === "Exact" ? styles.exactButtonText : styles.SelectText}>{label}</Text>
     </TouchableOpacity>
@@ -507,7 +520,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                             <TextInput
                               style={styles.amountInput}
                               placeholder="Amount Tendered"
-                              keyboardType="numeric"
+                              showSoftInputOnFocus={false}
                               value={amountTendered === "0.00" || amountTendered === '' ? `${storeData?.currency_info?.currency_icon}0.00` : `$${amountTendered}`}
                               onChangeText={(text) => setAmountTendered(text.replace(/[^0-9.]/g, ""))}
                             />
@@ -516,7 +529,7 @@ const CheckoutScreen = ({ navigation, route }) => {
 
                           <View style={styles.amountContainer}>
                             <View style={styles.selectionRow}>
-                              {renderSelectionButton("Exact", "Exact")}
+                              {renderSelectionButton("Exact", totalAmount.toFixed(2))}
                               {renderSelectionButton("$10.00", "10.00")}
                               {renderSelectionButton("$20.00", "20.00")}
                             </View>

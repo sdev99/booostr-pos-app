@@ -1,5 +1,4 @@
 import { createSlice } from "@reduxjs/toolkit";
-import axios from "axios";
 import { resetAllStates } from "./resetSlice";
 
 const initialState = {
@@ -12,6 +11,19 @@ const orderListSlice = createSlice({
   name: "orderList",
   initialState,
   reducers: {
+    setupOrderListStart: (state) => {
+      state.loading = true;
+      state.error = false;
+    },
+    setupOrderListSuccess: (state, action) => {
+      state.orderList = action.payload;
+      state.loading = false;
+      state.error = false;
+    },
+    setupOrderListError: (state) => {
+      state.loading = false;
+      state.error = true;
+    },
     addToOrderListStart: (state) => {
       state.loading = true;
       state.error = false;
@@ -91,6 +103,9 @@ const orderListSlice = createSlice({
 });
 
 export const {
+  setupOrderListStart,
+  setupOrderListSuccess,
+  setupOrderListError,
   addToOrderListStart,
   addToOrderListSuccess,
   addToOrderListError,
@@ -108,6 +123,18 @@ export const {
   removeItemFromOrderError,
   resetOrderList
 } = orderListSlice.actions;
+
+export const setupOrderList = (orders) => async (dispatch, getState) => {
+  try {
+    if( JSON.parse(getState().orderList.orderList) == '' ){
+      dispatch(setupOrderListStart());
+      dispatch(setupOrderListSuccess(JSON.stringify(orders)));
+    }
+  } catch (error) {
+    dispatch(addToOrderListError());
+    console.log(error);
+  }
+};
 
 export const addToOrderList = (order) => async (dispatch, getState) => {
   try {

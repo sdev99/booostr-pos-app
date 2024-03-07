@@ -13,6 +13,7 @@ import { addToOrderList } from "../store/reducers/orderListSlice";
 import { addProductToCart, resetCart } from "../store/reducers/cartSlice";
 import productPlaceholder from "../assets/product-placeholder.png";
 import Header from './Header';
+import { openDatabase } from "expo-sqlite";
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -35,6 +36,7 @@ const OrdersScreen = ({ navigation, route }) => {
     const flatListRef = useRef(null);
     const scrollViewRef = useRef(null);
     const [previousLastItemPosition, setPreviousLastItemPosition] = useState(0);
+    const db = openDatabase('pos.db');
 
     // useFocusEffect(
     //     React.useCallback(() => {
@@ -98,8 +100,23 @@ const OrdersScreen = ({ navigation, route }) => {
             order['status'] = 'on-hold';
             dispatch(addToOrderList(order))
             .then(() => {
-                dispatch(resetCart());
-                navigation.navigate("OnlineOrder");
+                console.log('inserting order into db');
+                db.transaction((tx) => {
+                    tx.executeSql(
+                    'INSERT INTO onHoldOrders (data, createdAt) VALUES (?, ?)',
+                    [JSON.stringify(order),order['created_at']],
+                    (_, { insertId }) => {
+                        console.log(`Order inserted with ID: ${insertId}`);
+                        dispatch(resetCart());
+                        navigation.navigate("OnlineOrder");
+                    },
+                    (_, error) => {
+                        console.error('Error inserting order:', error);
+                        dispatch(resetCart());
+                        navigation.navigate("OnlineOrder");
+                    }
+                    );
+                });
             })
             .catch((error) => {
                 console.error("Error putting order on hold:", error);

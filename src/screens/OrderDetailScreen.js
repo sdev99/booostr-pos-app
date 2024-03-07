@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from "react-redux";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Modal} from 'react-native';
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -7,6 +7,7 @@ import BottomBar from './BottomBar';
 import { memoizedOrderList } from "../store/selectors";
 import productPlaceholder from "../assets/product-placeholder.png";
 import { removeOrderFromOrderList, increaseItemInOrder, decreaseItemInOrder, removeItemFromOrder } from "../store/reducers/orderListSlice";
+import { openDatabase } from "expo-sqlite";
 
 
 const OrderDetailScreen = ({ route, navigation }) => {
@@ -14,6 +15,64 @@ const OrderDetailScreen = ({ route, navigation }) => {
   const orderList = useSelector(memoizedOrderList);
   const [isCancelModalVisible, setCancelModalVisible] = useState(false);
   const orderIndex = route.params?.orderIndex;
+  const db = openDatabase('pos.db');
+
+  const orderDate = orderList[orderIndex].created_at;
+  const futureDate = new Date(orderDate);
+  futureDate.setHours(futureDate.getHours() + 72); // Add 72 hours
+
+  const [timeLeft, setTimeLeft] = useState(futureDate);
+
+  useEffect(() => {
+    const interval = setInterval( async () => {
+      const timeRemaining = calculateTimeLeft();
+      
+      setTimeLeft(timeRemaining);
+
+      if (timeRemaining.total <= 0) {
+        clearInterval(interval);
+        try {
+          dispatch(removeOrderFromOrderList(orderIndex))
+          .then(() => {
+            navigation.navigate('OnlineOrder');
+          })
+          .catch((error) => {
+              console.error("Error removing order from orderList:", error);
+          });
+        } catch (error) {
+          console.error("Error removing item from order:", error);
+        }
+        db.transaction((tx) => {
+          tx.executeSql(
+            'DELETE FROM onHoldOrders WHERE createdAt = ?;',
+            [orderDate],
+            () => {
+              console.log('Row deleted successfully');
+            },
+            (_, error) => {
+              console.error('Error deleting row:', error);
+            }
+          );
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  function calculateTimeLeft() {
+    const difference = new Date(futureDate) - new Date();
+    let total = difference;
+    const days = Math.floor(total / (1000 * 60 * 60 * 24));
+    total -= days * (1000 * 60 * 60 * 24);
+    const hours = Math.floor(total / (1000 * 60 * 60));
+    total -= hours * (1000 * 60 * 60);
+    const minutes = Math.floor(total / (1000 * 60));
+    total -= minutes * (1000 * 60);
+    const seconds = Math.floor(total / 1000);
+
+    return { days, hours, minutes, seconds, total };
+  }
 
   const sampleOrderDetails = [
     // { itemId: 1, itemName: 'Loose Fit Polo shirt', quantity: 2, image: require('../assets/burger_img.png') },
@@ -111,6 +170,12 @@ const OrderDetailScreen = ({ route, navigation }) => {
           <Text style={styles.titleCancel}>Cancel Order</Text>
         </TouchableOpacity>
         </View>
+      </View>
+      <View style={styles.titleContainer}>
+        { timeLeft.days
+          ? <Text>Expiry: {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s</Text>
+          : null
+        }
       </View>
       <View style={styles.itemsMain}>
         <View style={styles.itemsMainWrap}>

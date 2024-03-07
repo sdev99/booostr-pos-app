@@ -7,10 +7,11 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Header from './Header';
 import BottomBar from './BottomBar';
 import { memoizedOrderList, memoizedStoreData } from "../store/selectors";
-import { removeOrderFromOrderList } from "../store/reducers/orderListSlice";
+import { removeOrderFromOrderList, setupOrderList } from "../store/reducers/orderListSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";
+import { openDatabase } from "expo-sqlite";
 
 const OnlineOrderScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -34,8 +35,10 @@ const OnlineOrderScreen = ({ navigation }) => {
     // Add more items as needed
   ]);
   const [isLoadingCompletedOrders, setIsLoadingCompletedOrders] = useState(true);
+  const isLoadingOrderList = useSelector((state) => state.orderList.loading);
   const [completedOrders, setCompletedOrders] = useState([]);
   const storeData = useSelector(memoizedStoreData);
+  const db = openDatabase('pos.db');
 
   // Get completed orders
   useFocusEffect(
@@ -181,6 +184,18 @@ const OnlineOrderScreen = ({ navigation }) => {
     try {
       dispatch(removeOrderFromOrderList(selectedOrder))
       .then(() => {
+          db.transaction((tx) => {
+            tx.executeSql(
+              'DELETE FROM onHoldOrders WHERE createdAt = ?;',
+              [orderList[selectedOrder].created_at],
+              () => {
+                console.log('Row deleted successfully');
+              },
+              (_, error) => {
+                console.error('Error deleting row:', error);
+              }
+            );
+          });
           setSelectedOrder(null);
           setCancelModalVisible(false); // Close the modal after handling cancel
       })
@@ -229,7 +244,11 @@ const OnlineOrderScreen = ({ navigation }) => {
   };
 
   const PendingOrdersScreen = () => (
-    <View style={styles.pdMain}>
+    isLoadingOrderList
+    ? <View style={styles.containerLoaderTop}>
+        <ActivityIndicator size="medium" color="#00c0ff" />
+      </View>
+    : <View style={styles.pdMain}>
       <FlatList
         data={orderList.filter((item) => item.status === "on-hold")}
         renderItem={({item}) => renderOrderedItem(item)}
@@ -251,6 +270,37 @@ const OnlineOrderScreen = ({ navigation }) => {
         />
       </View>
   );
+
+  
+
+  // Remove Expired On-Hold Orders
+  useFocusEffect(
+    React.useCallback(() => {
+      // Function to check if the order's created_at date has passed 72 hours
+      const checkOrderCreatedDate = (order) => {
+        const createdAtDate = new Date(order.created_at);
+        const currentTime = new Date();
+
+        const diffInMs = currentTime - createdAtDate;
+        const diffInHours = diffInMs / (1000 * 60 * 60);
+
+        if (diffInHours >= 72) {
+          setSelectedOrder(orderList.indexOf(order));
+          handleCancelOrder();
+        }
+      };
+
+      const checkOrders = () => {
+        setInterval(() => {
+          orderList.forEach((order) => {
+            checkOrderCreatedDate(order);
+          });
+        }, 1000); // Run every second
+      };
+      
+      checkOrders();
+    }, [])
+);
 
   return (
     <View style={styles.container}>
@@ -522,6 +572,7 @@ const styles = StyleSheet.create({
     display: "flex",
     flexDirection: 'row',
     position: "relative",
+    paddingBottom : 150
   },
   tabClickNav: {
     padding:15,

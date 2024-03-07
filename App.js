@@ -23,6 +23,8 @@ import PaymentSuccessScreen from './src/screens/PaymentSuccessScreen';
 import AgreementScreen from './src/screens/Agreement';
 import CashScreen from './src/screens/CashScreen';
 import CashReceiptScreen from './src/screens/CashReceiptScreen';
+import { openDatabase } from "expo-sqlite";
+import { setupOrderList } from "./src/store/reducers/orderListSlice";
 
 const Stack = createNativeStackNavigator();
 
@@ -34,8 +36,36 @@ const App = () => {
   const isEulaLoading = useSelector((state) => state.eula.loading);
   const [club, setClub] = useState(null);
   const [isClubLoading, setIsClubLoading] = useState(true);
+  const db = openDatabase('pos.db');
   // AsyncStorage.clear();
   // AsyncStorage.removeItem('eula_consent');
+
+  // Setup Order Database
+  useEffect(() => {
+    const setupDb = async () => {
+        console.log('starting db setup');
+        db.transaction((tx) => {
+            tx.executeSql(
+                'CREATE TABLE IF NOT EXISTS onHoldOrders (id INTEGER PRIMARY KEY AUTOINCREMENT, data LONGTEXT, createdAt DATETIME);',
+                [],
+                () => {
+                  db.transaction((tx) => {
+                    tx.executeSql(
+                        `select * from onHoldOrders;`,
+                        [],
+                        (_, { rows: { _array } }) => dispatch(setupOrderList(_array.map(item => JSON.parse(item.data))))
+                    );
+                  });
+                },
+                (_, error) => {
+                  console.error('Error creating table:', error);
+                }
+            );
+        });
+    }
+    
+    setupDb();
+  }, []);
   
   useEffect(() => {
     const fetchData = async () => {
