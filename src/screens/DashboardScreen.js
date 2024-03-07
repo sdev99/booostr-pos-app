@@ -1,15 +1,13 @@
 // DashboardScreen.js
-import React, { useState } from "react";
-import { useFocusEffect } from '@react-navigation/native';
+import React, { useState, useEffect, useRef } from "react";
+import { useFocusEffect, NavigationContainer} from '@react-navigation/native';
 import { useDispatch, useSelector } from "react-redux";
-import { View, Text, FlatList, Image, StyleSheet, Dimensions } from "react-native";
+import { View, Text, FlatList, Image, StyleSheet, Dimensions, TouchableOpacity  } from "react-native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-//import { NavigationContainer } from "@react-navigation/native";
 
 import Header from "./Header";
 import BottomBar from "./BottomBar";
-import { useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ActivityIndicator } from "react-native-paper";
 import { fetchStoreData } from "../store/reducers/storeDetailSlice";
@@ -293,21 +291,30 @@ const DashboardScreen = ({ navigation }) => {
               />
             </View>
         }
-        <Tab.Navigator
-            screenOptions={{
-              tabBarActiveTintColor: '#000',
-              tabBarIndicatorStyle: {
-                backgroundColor: '#00c0ff',
-              },
-            }}
-          >
-          <Tab.Screen name="Latest Orders">
-            {() => <LatestOrdersScreen orderedItems={latestOrders} />}
-          </Tab.Screen>
-          <Tab.Screen name="Top Selling">
-            {() => <TopSellingScreen orderedItems={topSellingItems} />}
-          </Tab.Screen>
-        </Tab.Navigator>
+        <View style={styles.tabContainer}>
+          <View style={styles.tabClickNav}>
+            <TouchableOpacity  style={[styles.tabClickNavBtn]} onPress={() => navigation.navigate('Latest Orders')}></TouchableOpacity >
+            <TouchableOpacity  style={[styles.tabClickNavBtn]} onPress={() => navigation.navigate('Top Selling')}></TouchableOpacity >
+          </View>
+          <Tab.Navigator
+              screenOptions={{
+                tabBarActiveTintColor: '#000',
+                tabBarIndicatorStyle: {
+                  backgroundColor: '#00c0ff',
+                },
+                tabBarStyle : {
+                  height: 50
+                }
+              }}
+            >
+            <Tab.Screen name="Latest Orders">
+              {() => <LatestOrdersScreen orderedItems={latestOrders} />}
+            </Tab.Screen>
+            <Tab.Screen name="Top Selling">
+              {() => <TopSellingScreen orderedItems={topSellingItems} />}
+            </Tab.Screen>
+          </Tab.Navigator>
+        </View>
         <View style={styles.bottomBar}>
           <BottomBar />
         </View>
@@ -423,6 +430,24 @@ const styles = StyleSheet.create({
     paddingTop:80,
     paddingBottom:40,
   },
+  tabContainer: {
+    height: "100%",
+    position: "relative"
+  },
+  tabClickNav: {
+    position: "absolute",
+    top: 0,
+    width: "100%",
+    display: 'flex',
+    flexDirection: 'row'
+  },
+  tabClickNavBtn: {
+    height: 50,
+    width: "50%",
+    backgroundColor: 'transparent',
+    opacity: 0,
+    zIndex: 1
+  }
 });
 
 export default DashboardScreen;

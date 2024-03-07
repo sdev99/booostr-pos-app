@@ -262,10 +262,26 @@ const OnlineOrderScreen = ({ navigation }) => {
         <Text style={styles.title}>Order View</Text>
       </View>
       {/* <ScrollView><Text>{JSON.stringify(orderList)}</Text></ScrollView> */}
-      <Tab.Navigator tabBar={CustomTabBar}>
-        <Tab.Screen name="On Hold" component={PendingOrdersScreen} />
-        <Tab.Screen name="Completed" component={CompletedOrdersScreen} />
-      </Tab.Navigator>
+      <View style={styles.nestedTabContainer}>
+        <View style={styles.tabClickNav}>
+          <TouchableOpacity
+            style={[styles.tabButton, styles.tabClickNavBtn]}
+            onPress={() => navigation.navigate('On Hold')}
+            >
+            <Text style={styles.tabButtonText}>On Hold</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabButton, styles.tabClickNavBtn]}
+            onPress={() => navigation.navigate('Completed')}
+            >
+            <Text style={styles.tabButtonText}>Completed</Text>
+          </TouchableOpacity>
+        </View>
+        <Tab.Navigator tabBar={CustomTabBar}>
+          <Tab.Screen name="On Hold" component={PendingOrdersScreen} />
+          <Tab.Screen name="Completed" component={CompletedOrdersScreen} />
+        </Tab.Navigator>
+      </View>
       <View style={styles.bottomBar}>
         <BottomBar />
       </View>
@@ -501,6 +517,27 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     paddingTop: 40
   },
+  nestedTabContainer: {
+    height: "100%",
+    display: "flex",
+    flexDirection: 'row',
+    position: "relative",
+  },
+  tabClickNav: {
+    padding:15,
+    paddingHorizontal: 10,
+    position: "absolute",
+    top: 0,
+    width: "100%",
+    display: 'flex',
+    flexDirection: 'row'
+  },
+  tabClickNavBtn: {
+    width: "100%",
+    backgroundColor: 'transparent',
+    opacity: 0,
+    zIndex: 1
+  }
 });
 
 export default OnlineOrderScreen;
