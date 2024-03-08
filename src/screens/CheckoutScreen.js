@@ -148,18 +148,35 @@ const CheckoutScreen = ({ navigation, route }) => {
       }
     }
   };
+
+  // Function to handle adding the value to the amount
+  const handleAfterQuickClickAmt = (prevAmount, value) => {
+    let prevAmountArr = prevAmount.split('');
+    if( quickAmtBtn == 4 ){
+      return prevAmountArr[0]+prevAmountArr[1]+prevAmountArr[2]+prevAmountArr[3]+value;
+    }else if( quickAmtBtn == 3 ){
+      return prevAmountArr[0]+prevAmountArr[1]+prevAmountArr[2]+prevAmountArr[4]+value;
+    }else if( quickAmtBtn == 2 ){
+      return prevAmountArr[0]+prevAmountArr[3]+prevAmountArr[2]+prevAmountArr[4]+value;
+    }else if( quickAmtBtn == 1 ){
+      return prevAmountArr[1]+prevAmountArr[3]+prevAmountArr[2]+prevAmountArr[4]+value;
+    }
+
+    return prevAmount;
+  }
+
   const handleNumericButtonPress = (value) => {
     if( quickAmtBtn > 0 ) setQuickAmtBtn( quickAmtBtn - 1 );
     setAmountTendered(
       (prevAmount) => prevAmount === "0.00" || prevAmount == ""
         ? "0.0"+value.toString()
-        : quickAmtBtn > 0 && prevAmount.lastIndexOf("0") !== -1
-        ? prevAmount.substring(0, prevAmount.lastIndexOf("0")) + value + prevAmount.substring(prevAmount.lastIndexOf("0") + 1)
-        : prevAmount.includes('.')
-          ?  value==="00"
-            ? (parseFloat(prevAmount) * 100).toString()+'.'+value.toString()
-            : (parseFloat(prevAmount) * 10).toFixed(1).toString()+value.toString()
-          : prevAmount + value.toString()
+        : quickAmtBtn > 0
+          ? handleAfterQuickClickAmt(prevAmount, value)
+          : prevAmount.includes('.')
+            ?  value==="00"
+              ? (parseFloat(prevAmount) * 100).toString()+'.'+value.toString()
+              : (parseFloat(prevAmount) * 10).toFixed(1).toString()+value.toString()
+            : prevAmount + value.toString()
     );
   };
   const handleClearPress = () => {
@@ -209,6 +226,7 @@ const CheckoutScreen = ({ navigation, route }) => {
           order['payment_method'] = 'card';
           order['payment_details'] = {'card_details': {...cardDetails, cardNumber: cardDetails.cardNumber.replace(/\s/g,'')}};
           order['wpuid'] = userData.user_id;
+          order['timezone'] = storeData.club_info.timezone;
           dispatch(processOrder(order, club))
           .then((response) => {
             if( response?.status==='success' ){
@@ -288,6 +306,7 @@ const CheckoutScreen = ({ navigation, route }) => {
         order['payment_details']= {'tendered_amount':tenderedAmount};
         order['club_name']= club?.post_title;
         order['wpuid'] = userData.user_id;
+        order['timezone'] = storeData.club_info.timezone;
         dispatch(processOrder(order, club))
         .then((response) => {
           if( response?.status==='success' ){
@@ -333,7 +352,7 @@ const CheckoutScreen = ({ navigation, route }) => {
     <TouchableOpacity
       key={label}
       style={[styles.selectionButton, label === "Exact" && styles.exactButton]}
-      onPress={() => { if( value == '10.00' || value == '20.00' ){ setQuickAmtBtn(3) }; handleKeypadPress(value.toString())}}
+      onPress={() => { if( value == '10.00' || value == '20.00' ){ setQuickAmtBtn(4) }; handleKeypadPress(value.toString())}}
     >
       <Text style={label === "Exact" ? styles.exactButtonText : styles.SelectText}>{label}</Text>
     </TouchableOpacity>

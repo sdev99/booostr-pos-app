@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useFocusEffect, NavigationContainer} from '@react-navigation/native';
 import { useDispatch, useSelector } from "react-redux";
-import { View, Text, FlatList, Image, StyleSheet, Dimensions, TouchableOpacity  } from "react-native";
+import { View, Text, FlatList, ScrollView, Image, StyleSheet, Dimensions, TouchableOpacity  } from "react-native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -73,6 +73,13 @@ const DashboardScreen = ({ navigation }) => {
   const [topSellingItems, setTopSellingItems] = useState([]);
   const [latestOrders, setLatestOrders] = useState([]);
   const storeData = useSelector(memoizedStoreData);
+  const [selectedCol, setSelectedCol] = useState('latestOrders');
+  const flatListRef = useRef(null);
+  const scrollViewRef = useRef(null);
+  const [previousLastItemPosition, setPreviousLastItemPosition] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(2);
+  const [isMoreOrderLoading, setIsMoreOrderLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -174,6 +181,8 @@ const DashboardScreen = ({ navigation }) => {
               },
             });
             if(response?.data?.result?.data){
+              setCurrentPage(1);
+              setTotalPages(response.data.result.last_page);
               setLatestOrders(response.data.result.data);
             }else if( response?.data?.error && response?.data?.message){
               alert( response.data.message );
@@ -189,6 +198,32 @@ const DashboardScreen = ({ navigation }) => {
       fetchData();
     }, [])
   );
+
+  // Get More Latest Orders
+  const getMoreLatestOrders = async () => {
+    try {
+      const club = await AsyncStorage.getItem("club");
+      if( JSON.parse(club)?.post_slug ) {
+        const response = await axios.post(`${POS_STORE_API_URL}/pos-order-list`,
+        {"key":"latest"},
+        {
+          headers: {
+            'Apitoken': POS_API_TOKEN,
+            'X-Tenant': JSON.parse(club).post_slug
+          },
+        });
+        if(response?.data?.result?.data){
+          setLatestOrders(response.data.result.data);
+        }else if( response?.data?.error && response?.data?.message){
+          alert( response.data.message );
+        }else{
+          alert("kindly try after some time.");
+        }
+      };
+    } catch (error) {
+      // console.error("Error fetching data:", error);
+    }
+  }
 
   const [metrics, setMetrics] = useState([
     { id: 1, name: "Revenue", icon: "cash", totalRev: "" },
@@ -230,6 +265,51 @@ const DashboardScreen = ({ navigation }) => {
 };
 
   const Tab = createMaterialTopTabNavigator();
+
+  const renderOrderedItem = ( item, index ) => (
+    <View style={styles.orderedItem} key={index}>
+      {/* <View style={styles.imageAndNameContainer}>
+        <Image source={item?.orderitems[0]?.term?.media?.value ? {uri: item?.orderitems[0].term.media.value} : productPlaceholder} style={[styles.orderedItemImage, {width: 70, aspectRatio: 1 }]} />
+        <Text style={styles.orderedItemText}>{item?.orderitems[0]?.term?.title}</Text>
+      </View> */}
+      <Text style={styles.orderedItemText}>#{item?.invoice_no}</Text>
+      <Text style={styles.orderedItemStatus}>{item?.created_at?.substring(0,10)}</Text>
+      <Text style={styles.orderedItemText}>{storeData?.currency_info?.currency_icon}{item?.total?.toFixed(2)}</Text>
+    </View>
+  );
+
+  // Load more products
+  const loadMoreContent = async () => {
+    let updatedCurrentPage = currentPage;
+    updatedCurrentPage += 1;
+
+    const club = await AsyncStorage.getItem("club");
+    if( JSON.parse(club)?.post_slug ) {
+      const response = await axios.post(`${POS_STORE_API_URL}/pos-order-list?page=${updatedCurrentPage}`,
+      {"key":"latest"},
+      {
+        headers: {
+          'Apitoken': POS_API_TOKEN,
+          'X-Tenant': JSON.parse(club).post_slug
+        },
+      });
+      if(response?.data?.result?.data){
+        setCurrentPage(updatedCurrentPage);
+        setLatestOrders([...latestOrders, ...response.data.result.data]);
+      }else if( response?.data?.error && response?.data?.message){
+        alert( response.data.message );
+      }else{
+        alert("Unable to load more products.");
+      }
+    };
+
+    setTimeout(() => {
+        setIsMoreOrderLoading(false);
+        if (scrollViewRef.current && previousLastItemPosition !== 0) {
+            scrollViewRef.current.scrollTo({ y: previousLastItemPosition, animated: true });
+        }
+    }, 500);
+  }
 
   return (
     isClubLoading
@@ -293,10 +373,50 @@ const DashboardScreen = ({ navigation }) => {
         }
         <View style={styles.tabContainer}>
           <View style={styles.tabClickNav}>
-            <TouchableOpacity  style={[styles.tabClickNavBtn]} onPress={() => navigation.navigate('Latest Orders')}></TouchableOpacity >
-            <TouchableOpacity  style={[styles.tabClickNavBtn]} onPress={() => navigation.navigate('Top Selling')}></TouchableOpacity >
+            <TouchableOpacity style={[styles.tabClickNavBtn, {borderColor: selectedCol==='latestOrders' ? "#00c0ff" : "#fff"}]} onPress={() => setSelectedCol('latestOrders')}><Text style={styles.tabText}>Latest Orders</Text></TouchableOpacity >
+            <TouchableOpacity style={[styles.tabClickNavBtn, {borderColor: selectedCol==='topSelling' ? "#00c0ff" : "#fff"}]} onPress={() => setSelectedCol('topSelling')}><Text style={styles.tabText}>Top Selling</Text></TouchableOpacity >
           </View>
-          <Tab.Navigator
+          { selectedCol === 'latestOrders'
+            ? <View style={styles.tabContent}>
+                {/* <FlatList
+                  ref={flatListRef}
+                  data={latestOrders}
+                  renderItem={renderOrderedItem}
+                  keyExtractor={(item) => item.id.toString()}
+                  onScroll={({ nativeEvent }) => {
+                    const isCloseToBottom = nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >= nativeEvent.contentSize.height - 10;
+                    if (isCloseToBottom && !isMoreOrderLoading && currentPage < totalPages) {
+                        setPreviousLastItemPosition(nativeEvent.layoutMeasurement.height-50);
+                        setIsMoreOrderLoading(true);
+                        loadMoreContent();
+                    }
+                  }}
+                  scrollEventThrottle={16}
+                /> */}
+                <ScrollView
+                  ref={scrollViewRef}
+                  onScroll={({ nativeEvent }) => {
+                    const isCloseToBottom = nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >= nativeEvent.contentSize.height - 10;
+                    if (isCloseToBottom && !isMoreOrderLoading && currentPage < totalPages) {
+                        setPreviousLastItemPosition(nativeEvent.layoutMeasurement.height-50);
+                        setIsMoreOrderLoading(true);
+                        loadMoreContent();
+                    }
+                  }}
+                  scrollEventThrottle={16}
+                  >
+                    { latestOrders.map((item, index) => {return renderOrderedItem(item, index)}) }
+                    { (currentPage < totalPages) && <View style={styles.loadMoreContainer}>
+                          <View style={styles.loader}>
+                          <ActivityIndicator size="medium" color="#00c0ff" />
+                          </View>
+                      </View>
+                    }
+                  </ScrollView>
+              </View>
+            : <TopSellingScreen orderedItems={topSellingItems} />
+          }
+          {/* <Tab.Navigator
               screenOptions={{
                 tabBarActiveTintColor: '#000',
                 tabBarIndicatorStyle: {
@@ -313,7 +433,7 @@ const DashboardScreen = ({ navigation }) => {
             <Tab.Screen name="Top Selling">
               {() => <TopSellingScreen orderedItems={topSellingItems} />}
             </Tab.Screen>
-          </Tab.Navigator>
+          </Tab.Navigator> */}
         </View>
         <View style={styles.bottomBar}>
           <BottomBar />
@@ -432,11 +552,10 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     height: "100%",
-    position: "relative"
+    position: "relative",
+    paddingBottom: 410
   },
   tabClickNav: {
-    position: "absolute",
-    top: 0,
     width: "100%",
     display: 'flex',
     flexDirection: 'row'
@@ -444,9 +563,28 @@ const styles = StyleSheet.create({
   tabClickNavBtn: {
     height: 50,
     width: "50%",
-    backgroundColor: 'transparent',
-    opacity: 0,
-    zIndex: 1
+    flexDirection: "column",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+    marginBottom: 10,
+    borderBottomWidth: 2
+  },
+  tabText: {
+    textAlign: "center"
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent:'center',
+    alignItems:'center',
+    paddingTop:80,
+    paddingBottom:40,
+  },
+  loadMoreContainer: {
+    flex: 1,
+    justifyContent:'center',
+    alignItems:'center',
+    paddingTop:40,
+    paddingBottom:20,
   }
 });
 

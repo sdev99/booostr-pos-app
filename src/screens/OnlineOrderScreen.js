@@ -39,6 +39,7 @@ const OnlineOrderScreen = ({ navigation }) => {
   const [completedOrders, setCompletedOrders] = useState([]);
   const storeData = useSelector(memoizedStoreData);
   const db = openDatabase('pos.db');
+  const [selectedCol, setSelectedCol] = useState('onHold');
 
   // Get completed orders
   useFocusEffect(
@@ -48,7 +49,8 @@ const OnlineOrderScreen = ({ navigation }) => {
           try {
             const club = await AsyncStorage.getItem("club");
             if( JSON.parse(club)?.post_slug ) {
-              const response = await axios.post(`${POS_STORE_API_URL}/pos-order-list`,{},{
+              const response = await axios.post(`${POS_STORE_API_URL}/pos-order-list`,
+              {"key":"latest"},{
                 headers: {
                   'Apitoken': POS_API_TOKEN,
                   'X-Tenant': JSON.parse(club).post_slug
@@ -315,22 +317,26 @@ const OnlineOrderScreen = ({ navigation }) => {
       <View style={styles.nestedTabContainer}>
         <View style={styles.tabClickNav}>
           <TouchableOpacity
-            style={[styles.tabButton, styles.tabClickNavBtn]}
-            onPress={() => navigation.navigate('On Hold')}
+            style={[styles.tabButton, styles.tabClickNavBtn, {backgroundColor: selectedCol === 'onHold' ? "#00c0ff" : "#fff", color: selectedCol === 'onHold' ? "#fff" : "#000"}]}
+            onPress={() => setSelectedCol('onHold')}
             >
-            <Text style={styles.tabButtonText}>On Hold</Text>
+            <Text style={[styles.tabButtonText, {color: selectedCol === 'onHold' ? "#fff" : "#000"}]}>On Hold</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tabButton, styles.tabClickNavBtn]}
-            onPress={() => navigation.navigate('Completed')}
+            style={[styles.tabButton, styles.tabClickNavBtn, {backgroundColor: selectedCol === 'completed' ? "#00c0ff" : "#fff"}]}
+            onPress={() => setSelectedCol('completed')}
             >
-            <Text style={styles.tabButtonText}>Completed</Text>
+            <Text style={[styles.tabButtonText, {color: selectedCol === 'completed' ? "#fff" : "#000"}]}>Completed</Text>
           </TouchableOpacity>
         </View>
-        <Tab.Navigator tabBar={CustomTabBar}>
+        {/* <Tab.Navigator tabBar={CustomTabBar}>
           <Tab.Screen name="On Hold" component={PendingOrdersScreen} />
           <Tab.Screen name="Completed" component={CompletedOrdersScreen} />
-        </Tab.Navigator>
+        </Tab.Navigator> */}
+        { selectedCol === 'onHold'
+            ? <PendingOrdersScreen />
+            : <CompletedOrdersScreen />
+        }
       </View>
       <View style={styles.bottomBar}>
         <BottomBar />
@@ -390,6 +396,7 @@ const styles = StyleSheet.create({
     padding:15,
   },
   tabContainer: {
+    height: "100%",
     flexDirection: "row",
     borderRadius:6,
     
@@ -572,7 +579,13 @@ const styles = StyleSheet.create({
     display: "flex",
     flexDirection: 'row',
     position: "relative",
+    paddingTop: 55,
     paddingBottom : 150
+  },
+  tabClickNav: {
+    width: "100%",
+    display: 'flex',
+    flexDirection: 'row'
   },
   tabClickNav: {
     padding:15,
@@ -580,13 +593,13 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     width: "100%",
+    height: 80,
     display: 'flex',
     flexDirection: 'row'
   },
   tabClickNavBtn: {
     width: "100%",
-    backgroundColor: 'transparent',
-    opacity: 0,
+    backgroundColor: '#fff',
     zIndex: 1
   }
 });
