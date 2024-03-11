@@ -41,31 +41,27 @@ const App = () => {
   // AsyncStorage.removeItem('eula_consent');
 
   // Setup Order Database
-  useEffect(() => {
-    const setupDb = async () => {
-        console.log('starting db setup');
-        db.transaction((tx) => {
-            tx.executeSql(
-                'CREATE TABLE IF NOT EXISTS onHoldOrders (id INTEGER PRIMARY KEY AUTOINCREMENT, data LONGTEXT, createdAt DATETIME);',
-                [],
-                () => {
-                  db.transaction((tx) => {
-                    tx.executeSql(
-                        `select * from onHoldOrders;`,
-                        [],
-                        (_, { rows: { _array } }) => dispatch(setupOrderList(_array.map(item => JSON.parse(item.data))))
-                    );
-                  });
-                },
-                (_, error) => {
-                  console.error('Error creating table:', error);
-                }
-            );
-        });
-    }
+  // useEffect(() => {
+  //   const setupDb = async () => {
+  //       console.log('starting db setup');
+  //       if( club ){
+  //         db.transaction((tx) => {
+  //           tx.executeSql(
+  //             'DROP TABLE IF EXISTS onHoldOrders;',
+  //             [],
+  //             () => {
+  //               console.log('Table deleted successfully');
+  //             },
+  //             (_, error) => {
+  //               console.error('Error deleting table:', error);
+  //             }
+  //           );
+  //         });
+  //       }
+  //   }
     
-    setupDb();
-  }, []);
+  //   setupDb();
+  // }, [club]);
   
   useEffect(() => {
     const fetchData = async () => {

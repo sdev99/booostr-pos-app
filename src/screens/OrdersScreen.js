@@ -103,8 +103,8 @@ const OrdersScreen = ({ navigation, route }) => {
                 console.log('inserting order into db');
                 db.transaction((tx) => {
                     tx.executeSql(
-                    'INSERT INTO onHoldOrders (data, createdAt) VALUES (?, ?)',
-                    [JSON.stringify(order),order['created_at']],
+                    'INSERT INTO onHoldOrders (data, createdAt, club) VALUES (?, ?, ?)',
+                    [JSON.stringify(order),order['created_at'], club.post_slug],
                     (_, { insertId }) => {
                         console.log(`Order inserted with ID: ${insertId}`);
                         dispatch(resetCart());

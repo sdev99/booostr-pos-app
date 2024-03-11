@@ -12,6 +12,7 @@ import { openDatabase } from "expo-sqlite";
 
 const OrderDetailScreen = ({ route, navigation }) => {
   const dispatch = useDispatch();
+  const [club, setClub] = useState([]);
   const orderList = useSelector(memoizedOrderList);
   const [isCancelModalVisible, setCancelModalVisible] = useState(false);
   const orderIndex = route.params?.orderIndex;
@@ -22,6 +23,17 @@ const OrderDetailScreen = ({ route, navigation }) => {
   futureDate.setHours(futureDate.getHours() + 72); // Add 72 hours
 
   const [timeLeft, setTimeLeft] = useState(futureDate);
+
+  useEffect(() => {
+    const fetchClub = async () => {
+      const club = await AsyncStorage.getItem("club");
+      if( JSON.parse(club)?.post_slug ) {
+        setClub(JSON.parse(club));
+      }
+    }
+
+    fetchClub();
+  }, []);
 
   useEffect(() => {
     const interval = setInterval( async () => {
@@ -44,8 +56,8 @@ const OrderDetailScreen = ({ route, navigation }) => {
         }
         db.transaction((tx) => {
           tx.executeSql(
-            'DELETE FROM onHoldOrders WHERE createdAt = ?;',
-            [orderDate],
+            'DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;',
+            [orderDate, club.post_slug],
             () => {
               console.log('Row deleted successfully');
             },

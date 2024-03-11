@@ -15,6 +15,8 @@ import axios from "axios";
 import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";
 import productPlaceholder from "../assets/product-placeholder.png";
 import { memoizedStoreData } from "../store/selectors";
+import { openDatabase } from "expo-sqlite";
+import { setupOrderList } from "../store/reducers/orderListSlice";
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -80,6 +82,36 @@ const DashboardScreen = ({ navigation }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(2);
   const [isMoreOrderLoading, setIsMoreOrderLoading] = useState(false);
+  const db = openDatabase('pos.db');
+
+  // Setup Order Database
+  useEffect(() => {
+    const setupDb = async () => {
+        console.log('starting db setup');
+        if( club?.post_slug ){
+          db.transaction((tx) => {
+            tx.executeSql(
+                'CREATE TABLE IF NOT EXISTS onHoldOrders (id INTEGER PRIMARY KEY AUTOINCREMENT, data LONGTEXT, createdAt DATETIME, club TEXT);',
+                [],
+                () => {
+                  db.transaction((tx) => {
+                    tx.executeSql(
+                        `select * from onHoldOrders WHERE club = ?;`,
+                        [club.post_slug],
+                        (_, { rows: { _array } }) => dispatch(setupOrderList(_array.map(item => JSON.parse(item.data))))
+                    );
+                  });
+                },
+                (_, error) => {
+                  console.error('Error creating table:', error);
+                }
+            );
+          });
+        }
+    }
+    
+    setupDb();
+  }, [club]);
 
   useEffect(() => {
     const fetchData = async () => {

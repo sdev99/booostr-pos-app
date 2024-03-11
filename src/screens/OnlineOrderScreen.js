@@ -34,6 +34,7 @@ const OnlineOrderScreen = ({ navigation }) => {
     // { id: 14, name: "Loose Fit Printed T-shirt", orderId: "ORD002", status: "completed", price: "$15.00", numberOfItems: 2, timing: "12:30 PM",Customer: "Saim",date:"01/25/2024", },
     // Add more items as needed
   ]);
+  const [club, setClub] = useState([]);
   const [isLoadingCompletedOrders, setIsLoadingCompletedOrders] = useState(true);
   const isLoadingOrderList = useSelector((state) => state.orderList.loading);
   const [completedOrders, setCompletedOrders] = useState([]);
@@ -49,6 +50,7 @@ const OnlineOrderScreen = ({ navigation }) => {
           try {
             const club = await AsyncStorage.getItem("club");
             if( JSON.parse(club)?.post_slug ) {
+              setClub(JSON.parse(club));
               const response = await axios.post(`${POS_STORE_API_URL}/pos-order-list`,
               {"key":"latest"},{
                 headers: {
@@ -188,8 +190,8 @@ const OnlineOrderScreen = ({ navigation }) => {
       .then(() => {
           db.transaction((tx) => {
             tx.executeSql(
-              'DELETE FROM onHoldOrders WHERE createdAt = ?;',
-              [orderList[selectedOrder].created_at],
+              'DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;',
+              [orderList[selectedOrder].created_at, club.post_slug],
               () => {
                 console.log('Row deleted successfully');
               },

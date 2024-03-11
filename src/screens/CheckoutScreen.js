@@ -225,6 +225,7 @@ const CheckoutScreen = ({ navigation, route }) => {
           order['tax'] = `${storeData?.tax}%`;
           order['payment_method'] = 'card';
           order['payment_details'] = {'card_details': {...cardDetails, cardNumber: cardDetails.cardNumber.replace(/\s/g,'')}};
+          order['club_name']= club?.post_title;
           order['wpuid'] = userData.user_id;
           order['timezone'] = storeData.club_info.timezone;
           dispatch(processOrder(order, club))
