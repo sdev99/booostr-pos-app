@@ -24,7 +24,6 @@ import AgreementScreen from './src/screens/Agreement';
 import CashScreen from './src/screens/CashScreen';
 import CashReceiptScreen from './src/screens/CashReceiptScreen';
 import { openDatabase } from "expo-sqlite";
-import { setupOrderList } from "./src/store/reducers/orderListSlice";
 
 const Stack = createNativeStackNavigator();
 

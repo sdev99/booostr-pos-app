@@ -12,6 +12,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { processOrder } from "../actions/order";
 import { addToOrderList, removeOrderFromOrderList } from "../store/reducers/orderListSlice";
 //import { FontAwesome } from "@expo/vector-icons";
+import { openDatabase } from "expo-sqlite";
 
 const { height } = Dimensions.get("window");
 const screenWidth = Dimensions.get('window').width;
@@ -21,6 +22,7 @@ const CheckoutScreen = ({ navigation, route }) => {
   const orderList = useSelector(memoizedOrderList);
   const cart = typeof route?.params?.orderIndex == 'number' ? orderList[route.params.orderIndex]?.items : useSelector(memoizedCart);
   const userData = useSelector(memoizedUserData);
+  const db = openDatabase('pos.db');
   
   const storeData = useSelector(memoizedStoreData);
   const [processingOrder, setProcessingOrder] = useState(false);
@@ -208,7 +210,6 @@ const CheckoutScreen = ({ navigation, route }) => {
   return calculateSubtotal() + calculateGST(); // Total due is the sum of subtotal and GST
 };
 
-
   const handleCardPay = async () => {
     if( processingOrder ) return;
     setProcessingOrder(true);
@@ -234,7 +235,21 @@ const CheckoutScreen = ({ navigation, route }) => {
               const dateTime = new Date(response?.data?.order_date);
               const formattedDateTime = dateTime.toISOString().replace("T", " ").replace(/\.\d+Z$/, "");
               order = {...order, status: 'success', orderId: response?.data?.order_id, created_at: formattedDateTime};
-              if( typeof route?.params?.orderIndex == 'number' ) dispatch(removeOrderFromOrderList(route.params.orderIndex));
+              if( typeof route?.params?.orderIndex == 'number' ){
+                db.transaction((tx) => {
+                  tx.executeSql(
+                    'DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;',
+                    [orderList[route.params.orderIndex].created_at, club.post_slug],
+                    () => {
+                      console.log('Row deleted successfully');
+                      dispatch(removeOrderFromOrderList(route.params.orderIndex));
+                    },
+                    (_, error) => {
+                      console.error('Error deleting row:', error);
+                    }
+                  );
+                });
+              }
               dispatch(addToOrderList(order))
               .then(() => {
                   if( typeof route?.params?.orderIndex != 'number' ) dispatch(resetCart());
@@ -314,7 +329,22 @@ const CheckoutScreen = ({ navigation, route }) => {
             const dateTime = new Date(response?.data?.order_date);
             const formattedDateTime = dateTime.toISOString().replace("T", " ").replace(/\.\d+Z$/, "");
             order = {...order, status: 'success', orderId: response?.data?.order_id, created_at: formattedDateTime};
-            if( typeof route?.params?.orderIndex == 'number' ) dispatch(removeOrderFromOrderList(route.params.orderIndex));
+            if( typeof route?.params?.orderIndex == 'number' ){
+              db.transaction((tx) => {
+                tx.executeSql(
+                  'DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;',
+                  [orderList[route.params.orderIndex].created_at, club.post_slug],
+                  () => {
+                    console.log('Row deleted successfully');
+                    dispatch(removeOrderFromOrderList(route.params.orderIndex));
+
+                  },
+                  (_, error) => {
+                    console.error('Error deleting row:', error);
+                  }
+                );
+              });
+            }
             dispatch(addToOrderList(order))
             .then(() => {
                 if( typeof route?.params?.orderIndex != 'number' ) dispatch(resetCart());

@@ -8,6 +8,7 @@ import { memoizedOrderList } from "../store/selectors";
 import productPlaceholder from "../assets/product-placeholder.png";
 import { removeOrderFromOrderList, increaseItemInOrder, decreaseItemInOrder, removeItemFromOrder } from "../store/reducers/orderListSlice";
 import { openDatabase } from "expo-sqlite";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
 const OrderDetailScreen = ({ route, navigation }) => {
@@ -18,7 +19,7 @@ const OrderDetailScreen = ({ route, navigation }) => {
   const orderIndex = route.params?.orderIndex;
   const db = openDatabase('pos.db');
 
-  const orderDate = orderList[orderIndex].created_at;
+  const orderDate = orderList[orderIndex]?.created_at;
   const futureDate = new Date(orderDate);
   futureDate.setHours(futureDate.getHours() + 72); // Add 72 hours
 
@@ -36,36 +37,35 @@ const OrderDetailScreen = ({ route, navigation }) => {
   }, []);
 
   useEffect(() => {
-    const interval = setInterval( async () => {
-      const timeRemaining = calculateTimeLeft();
-      
-      setTimeLeft(timeRemaining);
+    const interval = setInterval(() => {
+      const updatedTimeLeft = calculateTimeLeft();
+      setTimeLeft(updatedTimeLeft);
 
-      if (timeRemaining.total <= 0) {
+      if (updatedTimeLeft?.days < 0) {
         clearInterval(interval);
         try {
-          dispatch(removeOrderFromOrderList(orderIndex))
-          .then(() => {
-            navigation.navigate('OnlineOrder');
-          })
-          .catch((error) => {
-              console.error("Error removing order from orderList:", error);
+          db.transaction((tx) => {
+            tx.executeSql(
+              'DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;',
+              [orderDate, club.post_slug],
+              () => {
+                console.log('Row deleted successfully');
+                dispatch(removeOrderFromOrderList(orderIndex))
+                  .then(() => {
+                    navigation.navigate('OnlineOrder');
+                  })
+                  .catch((error) => {
+                    console.error("Error removing order from orderList:", error);
+                  });
+              },
+              (_, error) => {
+                console.error('Error deleting row:', error);
+              }
+            );
           });
         } catch (error) {
           console.error("Error removing item from order:", error);
         }
-        db.transaction((tx) => {
-          tx.executeSql(
-            'DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;',
-            [orderDate, club.post_slug],
-            () => {
-              console.log('Row deleted successfully');
-            },
-            (_, error) => {
-              console.error('Error deleting row:', error);
-            }
-          );
-        });
       }
     }, 1000);
 
@@ -151,12 +151,25 @@ const OrderDetailScreen = ({ route, navigation }) => {
   };
   const handleCancelOrder = async () => {
     try {
-      dispatch(removeOrderFromOrderList(orderIndex))
-      .then(() => {
-        navigation.navigate('OnlineOrder');
-      })
-      .catch((error) => {
-          console.error("Error removing order from orderList:", error);
+      console.log(orderDate);
+      db.transaction((tx) => {
+        tx.executeSql(
+          'DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;',
+          [orderDate, club.post_slug],
+          () => {
+            console.log('Row deleted successfully');
+            dispatch(removeOrderFromOrderList(orderIndex))
+            .then(() => {
+              navigation.navigate('OnlineOrder');
+            })
+            .catch((error) => {
+                console.error("Error removing order from orderList:", error);
+            });
+          },
+          (_, error) => {
+            console.error('Error deleting row:', error);
+          }
+        );
       });
     } catch (error) {
       console.error("Error removing item from order:", error);
@@ -184,8 +197,8 @@ const OrderDetailScreen = ({ route, navigation }) => {
         </View>
       </View>
       <View style={styles.titleContainer}>
-        { timeLeft.days
-          ? <Text>Expiry: {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s</Text>
+        { ( timeLeft?.days || timeLeft?.hours || timeLeft?.minutes || timeLeft?.seconds ) && timeLeft?.days >= 0
+          ? <Text>Expiry: {timeLeft?.days}d {timeLeft?.hours}h {timeLeft?.minutes}m {timeLeft?.seconds}s</Text>
           : null
         }
       </View>
