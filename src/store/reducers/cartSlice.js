@@ -76,12 +76,19 @@ export const {
   resetCart
 } = cartSlice.actions;
 
+const ignoreCartQuantity = (a, b) => {
+  const { cart_quantity: _, ...restA } = a;
+  const { cart_quantity: __, ...restB } = b;
+  return JSON.stringify(restA) === JSON.stringify(restB);
+};
+
 export const addProductToCart = (product) => async (dispatch, getState) => {
   try {
     dispatch(addProductToCartStart());
 
     const cart = JSON.parse(getState().cart.cart);
-    const index = cart.findIndex(obj => JSON.stringify(obj) === JSON.stringify(product));
+    const index = cart.findIndex(obj => ignoreCartQuantity(obj, product));
+
     if( index !== -1 ){
       let updatedCart = [...cart];
       updatedCart[index].cart_quantity += 1;
