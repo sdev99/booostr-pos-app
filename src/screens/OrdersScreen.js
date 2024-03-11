@@ -249,8 +249,8 @@ const OrdersScreen = ({ navigation, route }) => {
         }
     };
       
-    const handleCancelOrder = () => {
-        setCart([]);
+    const handleCancelOrder = async () => {
+        dispatch(resetCart()); // Clear Cart
         setCancelModalVisible(false); // Close the modal after handling cancel
     };
 
