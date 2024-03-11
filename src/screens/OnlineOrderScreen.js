@@ -154,7 +154,7 @@ const OnlineOrderScreen = ({ navigation }) => {
             <Text style={[styles.orderedItemStatus, styles.pdBottom, { color: "green" }]}>
               Completed
             </Text>
-            <Text style={[styles.orderedItemText, styles.pdBottom]}>{storeData?.currency_info?.currency_icon}{order.total}</Text>
+            <Text style={[styles.orderedItemText, styles.pdBottom]}>{storeData?.currency_info?.currency_icon}{order.total.toFixed(2)}</Text>
             <View style={[styles.tmRow,styles.tmRowTop]}>
               <Text style={[styles.orderedItemText, styles.quantText]}>Number of items: {getCompletedOrderTotalItems(order.orderitems)}</Text>
               <Text style={styles.orderedItemText}>{order?.created_at?.substring(11,19)}</Text>
