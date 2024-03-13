@@ -168,6 +168,11 @@ const CheckoutScreen = ({ navigation, route }) => {
   }
 
   const handleNumericButtonPress = (value) => {
+    if( value === '00' ){
+      setQuickAmtBtn(0);
+      setAmountTendered( (prevAmount) => (parseFloat(prevAmount) * 100).toFixed(2) );
+      return;
+    }
     if( quickAmtBtn > 0 ) setQuickAmtBtn( quickAmtBtn - 1 );
     setAmountTendered(
       (prevAmount) => prevAmount === "0.00" || prevAmount == ""
@@ -176,12 +181,13 @@ const CheckoutScreen = ({ navigation, route }) => {
           ? handleAfterQuickClickAmt(prevAmount, value)
           : prevAmount.includes('.')
             ?  value==="00"
-              ? (parseFloat(prevAmount) * 100).toString()+'.'+value.toString()
-              : (parseFloat(prevAmount) * 10).toFixed(1).toString()+value.toString()
-            : prevAmount + value.toString()
+              ? (parseFloat(prevAmount) * 100).toFixed(2)+'.'+value.toString()
+              : (parseFloat(prevAmount) * 10).toFixed(1)+value.toString()
+            : prevAmount + value.toString() + '.00'
     );
   };
   const handleClearPress = () => {
+    setQuickAmtBtn(0);
     let pattern = /\.[0-9]$/;
     setAmountTendered((prevAmount) => pattern.test(prevAmount) ? prevAmount.substring(0, prevAmount.length-2) : prevAmount.substring(0, prevAmount.length-1));
   };
