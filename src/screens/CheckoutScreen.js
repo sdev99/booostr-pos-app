@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useFocusEffect} from '@react-navigation/native';
 import { useSelector, useDispatch } from "react-redux";
 import { View, Text, TouchableOpacity, Image, TextInput, Alert, ScrollView, StyleSheet, Modal, Dimensions  } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -20,7 +21,7 @@ const screenWidth = Dimensions.get('window').width;
 const CheckoutScreen = ({ navigation, route }) => {
   const dispatch = useDispatch();
   const orderList = useSelector(memoizedOrderList);
-  const cart = typeof route?.params?.orderIndex == 'number' ? orderList[route.params.orderIndex]?.items : useSelector(memoizedCart);
+  const [cart, setCart] = useState(useSelector(memoizedCart));
   const userData = useSelector(memoizedUserData);
   const db = openDatabase('pos.db');
   
@@ -44,6 +45,22 @@ const CheckoutScreen = ({ navigation, route }) => {
   });
 
   const [quickAmtBtn, setQuickAmtBtn] = useState(0);
+
+  // Setup Cart
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchData = async () => {
+        try {
+          setCart(typeof route?.params?.orderIndex == 'number' ? orderList[route.params.orderIndex]?.items : cart);
+        } catch (error) {
+          console.error("Error setting up cart:", error);
+          // alert("kindly try after some time.");
+        }
+      };
+      
+      fetchData();
+    }, [])
+  );
 
   const formatCardNumber = (inputCardNumber) => {
     const cleanedInput = inputCardNumber.replace(/\D/g, '');
