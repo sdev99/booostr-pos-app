@@ -585,7 +585,7 @@ const styles = StyleSheet.create({
   tabContainer: {
     height: "100%",
     position: "relative",
-    paddingBottom: 410
+    paddingBottom: screenWidth < 500 ? 410 : 220
   },
   tabClickNav: {
     width: "100%",
