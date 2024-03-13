@@ -431,6 +431,10 @@ const CheckoutScreen = ({ navigation, route }) => {
   );
 
   const holdOrder = async () => {
+    if( typeof route?.params?.orderIndex == 'number' ){
+      navigation.navigate("OnlineOrder");
+      return;
+    }
     try {
         let order = {};
         const d = new Date();
