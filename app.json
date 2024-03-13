@@ -3,7 +3,6 @@
     "name": "Booostr POS",
     "slug": "booostr-pos-app",
     "version": "1.0.0",
-    "orientation": "portrait,landscape",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
