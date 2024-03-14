@@ -328,19 +328,15 @@ const DashboardScreen = ({ navigation }) => {
       if(response?.data?.result?.data){
         setCurrentPage(updatedCurrentPage);
         setLatestOrders([...latestOrders, ...response.data.result.data]);
+        setIsMoreOrderLoading(false);
       }else if( response?.data?.error && response?.data?.message){
         alert( response.data.message );
+        setIsMoreOrderLoading(false);
       }else{
         alert("Unable to load more products.");
+        setIsMoreOrderLoading(false);
       }
     };
-
-    setTimeout(() => {
-        setIsMoreOrderLoading(false);
-        if (scrollViewRef.current && previousLastItemPosition !== 0) {
-            scrollViewRef.current.scrollTo({ y: previousLastItemPosition, animated: true });
-        }
-    }, 500);
   }
 
   return (
@@ -400,6 +396,7 @@ const DashboardScreen = ({ navigation }) => {
                 keyExtractor={(metric) => metric.id.toString()}
                 horizontal
                 showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.flatListMetricContent}
               />
             </View>
         }
@@ -489,12 +486,16 @@ const styles = StyleSheet.create({
   titleContainer: {
     paddingTop: 15,
   },
- 
   title: {
     fontSize: 18,
     fontWeight: "bold",
     color: "#000",
     paddingHorizontal: 15,
+  },
+  flatListMetricContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   metricItem: {
     width: screenWidth < 500 ? "48%" :  "100%",
@@ -585,7 +586,7 @@ const styles = StyleSheet.create({
   tabContainer: {
     height: "100%",
     position: "relative",
-    paddingBottom: screenWidth < 500 ? 410 : 220
+    paddingBottom: screenWidth < 500 ? 410 : 330
   },
   tabClickNav: {
     width: "100%",
@@ -615,7 +616,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent:'center',
     alignItems:'center',
-    paddingTop:40,
+    paddingTop:20,
     paddingBottom:20,
   }
 });

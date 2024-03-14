@@ -131,6 +131,7 @@ const styles = StyleSheet.create({
   },
   BottomText: {
     width: "80%",
+    maxWidth: 650,
     alignItems: "center",
   },
   BlueText: {
@@ -139,6 +140,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: "80%",
+    maxWidth: 650,
     paddingHorizontal: 20,
     paddingBottom: 40,
     alignItems: "center",
@@ -151,6 +153,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#00b0ef",
     width: "80%",
+    maxWidth: 650,
     padding: 20,
     textAlign: "center",
     borderTopRightRadius: 5,
