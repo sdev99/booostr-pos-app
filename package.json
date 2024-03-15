@@ -41,7 +41,8 @@
     "redux": "^5.0.1",
     "reselect": "^5.1.0",
     "expo-updates": "~0.18.19",
-    "expo-sqlite": "~11.3.3"
+    "expo-sqlite": "~11.3.3",
+    "expo-build-properties": "~0.8.3"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
