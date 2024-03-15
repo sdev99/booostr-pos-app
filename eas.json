@@ -31,6 +31,9 @@
       "channel": "production",
       "android": {
         "gradleCommand": ":app:assembleRelease"
+      },
+      "ios": {
+        "image": "macos-ventura-13.6-xcode-15.2"
       }
     }
   },
