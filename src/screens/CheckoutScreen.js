@@ -12,6 +12,9 @@ import { resetCart } from "../store/reducers/cartSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { processOrder } from "../actions/order";
 import { addToOrderList, removeOrderFromOrderList } from "../store/reducers/orderListSlice";
+import { useStripeTerminal } from '@stripe/stripe-terminal-react-native';
+import axios from "axios";
+import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";
 //import { FontAwesome } from "@expo/vector-icons";
 import { openDatabase } from "expo-sqlite";
 
@@ -27,7 +30,18 @@ const CheckoutScreen = ({ navigation, route }) => {
   
   const storeData = useSelector(memoizedStoreData);
   const [processingOrder, setProcessingOrder] = useState(false);
+  const [readerStatusText, setReaderStatusText] = useState("Setting Up...");
   //const { totalAmount } = route?.params || {};
+  const { connectedReader, retrievePaymentIntent, collectPaymentMethod, confirmPaymentIntent } =
+  useStripeTerminal({
+    onDidRequestReaderInput: (options) => {
+      // Placeholder for updating your app's checkout UI
+      Alert.alert(options.join('/'));
+    },
+    onDidRequestReaderDisplayMessage: (message) => {
+      Alert.alert(message);
+    },
+  });
 
   const [paymentType, setPaymentType] = useState("card");
   const [selectedCardType, setSelectedCardType] = useState("mastercard");
@@ -454,6 +468,132 @@ const CheckoutScreen = ({ navigation, route }) => {
     }
   };
 
+  const generateReaderPaymentIntent = async () => {
+    try {
+      const response = await axios.post(`${POS_STORE_API_URL}/pos-stripe-reader-client-secret`, {order_total: totalAmount}, {
+      // const response = await axios.post(`https://phplaravel-1180784-4531756.cloudwaysapps.com/api/stripe-reader-client-secret`, {order_total: totalAmount}, {
+        headers: {
+          'Apitoken': POS_API_TOKEN,
+          'X-Tenant': club.post_slug
+        },
+      });
+
+      if(response?.data?.status){
+        clientSecret = response.data.client_secret;
+
+        console.log(`clientSecret: ${clientSecret}`);
+        
+        const { paymentIntent, error } = await retrievePaymentIntent(clientSecret);
+
+        if (error) {
+          console.log(error);
+          alert( `Error: ${error.message}` );
+          setReaderStatusText(`Error: ${error.message}`);
+          return;
+        }
+
+        collectReaderPayment(paymentIntent);
+        
+      }else if(response?.data?.message){
+        alert(`Error: ${response.data.message}`);
+        setReaderStatusText(`Error: ${response.data.message}`);
+      }else{
+        alert(`Error: unable to process your request at the moment.`);
+        setReaderStatusText(`Error: unable to process your request at the moment.`);
+      }
+    } catch (error) {
+      if( error?.response?.data?.message ) alert(`Error: ${error.response.data.message}`);
+      alert( 'Error: '+error.toString() );
+      setReaderStatusText('Error: '+error.toString());
+    }
+    
+  }
+
+  const collectReaderPayment = async (intent) => {
+    try {
+      const { paymentIntent, error } = await collectPaymentMethod({ paymentIntent: intent });
+  
+      if (error) {
+        console.log(error);
+        alert( `Error: ${error.message}` );
+        setReaderStatusText(`Error: ${error.message}`);
+        return;
+      }
+      
+      setReaderStatusText("Collect Payment.");
+
+      console.log('Collected PaymentIntent: ');
+      console.log(paymentIntent);
+      confirmReaderPayment(paymentIntent);
+    } catch (error) {
+      alert( 'Error: '+error.toString() );
+      setReaderStatusText('Error: '+error.toString());
+    }
+  }
+
+  const confirmReaderPayment = async (intent) => {
+    try {
+      setReaderStatusText("Processing Payment.");
+
+      const { paymentIntent, error } = await confirmPaymentIntent(intent);
+
+      if (error) {
+        alert( `Error: ${error.message}` );
+        setReaderStatusText(`Error: ${error.message}`);
+        return;
+      }
+
+      console.log('confirmedPaymentIntent: ');
+      console.log(paymentIntent);
+      if( paymentIntent.status == 'succeeded' ) setReaderStatusText('Payment Success.');
+      handleReaderPay(paymentIntent);
+    } catch (error) {
+      alert( 'Error: '+error.toString() );
+      setReaderStatusText('Error: '+error.toString());
+    }
+  }
+
+  const handleReaderPay = async (payment) => {
+    try{
+      let order = {};
+
+      const d = new Date();
+      order['created_at'] = `${d.getFullYear()}-${(d.getMonth()+1+'').padStart(2, '0')}-${(d.getDate()+'').padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
+      order['items'] = cart;
+      order['order_total'] = totalAmount;
+      order['order_subtotal'] = getTotalPrice().subtotal;
+      order['order_tax'] = getTotalPrice().tax;
+      order['tax'] = `${storeData?.tax}%`;
+      order['payment_method'] = 'reader';
+      order['payment_details'] = payment;
+      order['wpuid'] = userData.user_id;
+      dispatch(processOrder(order, club))
+      .then((response) => {
+        if( response?.status==='success' ){
+          const dateTime = new Date(response?.data?.order_date);
+          const formattedDateTime = dateTime.toISOString().replace("T", " ").replace(/\.\d+Z$/, "");
+          order = {...order, status: 'success', orderId: response?.data?.order_id, created_at: formattedDateTime};
+          if( typeof route?.params?.orderIndex == 'number' ) dispatch(removeOrderFromOrderList(route.params.orderIndex));
+          dispatch(addToOrderList(order))
+          .then(() => {
+              if( typeof route?.params?.orderIndex != 'number' ) dispatch(resetCart());
+              navigation.navigate("PaymentSuccess", { order });
+          })
+          .catch((error) => {
+              console.error("Error processing Order:", error);
+          });
+        }else{
+          alert(response);
+        }
+      })
+      .catch((error) => {
+        alert(error.toString());
+      });
+    }catch(error){
+      alert(error.toString());
+    }
+  }
+
   return (
     <View style={styles.container}>
       <Header  clubName="Hello Tester Club" onLogout={handleLogout} />
@@ -497,6 +637,14 @@ const CheckoutScreen = ({ navigation, route }) => {
             >
               <Image source={require("../assets/cash-image.png")} style={[styles.paymentTabImage, paymentType === "cash" && styles.activeTabImg]} />
               <Text style={[styles.paymentTabText, paymentType === "cash" && styles.activeTabText]}>Cash</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.paymentTab, styles.lastPaymentTab, paymentType === "reader" && styles.activeTab]}
+              onPress={() => {setPaymentType("reader"), setReaderStatusText('Setting Up...'), generateReaderPaymentIntent()}}
+            >
+              <Image source={require("../assets/reader.png")} style={[styles.paymentTabImage, paymentType === "reader" && styles.activeTabImg]} />
+              <Text style={[styles.paymentTabText, paymentType === "reader" && styles.activeTabText]}>Reader</Text>
             </TouchableOpacity>
           </View>
           
@@ -573,7 +721,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                   />
               </View>
             </View>
-          ) : (
+          ) : paymentType === "cash" ? (
             <>
             {/* <ScrollView style={{ ...styles.scView, height: height * 0.72 }}> */}
               <View style={styles.scViewWrap}>
@@ -638,6 +786,13 @@ const CheckoutScreen = ({ navigation, route }) => {
               </View>
             {/* </ScrollView> */}
             </>
+          ) : (
+            <View style={styles.reader}>
+              { connectedReader
+                ? <Text style={styles.readerText}>{readerStatusText}</Text>
+                : <Text style={styles.readerText}>No Reader Found.</Text>
+              }
+            </View>
           )}
           
         </View>
@@ -823,6 +978,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 20,
     elevation: 0,
+  },
+  lastPaymentTab: {
+    marginRight: 0
   },
   paymentTabImage: {
     width: 40,
@@ -1270,6 +1428,16 @@ const styles = StyleSheet.create({
       fontSize: 14,
       fontWeight: "bold",
   },
+  reader: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20
+  },
+  readerText: {
+    fontSize: 16,
+    fontWeight: "bold"
+  }
 });
 
 export default CheckoutScreen;

@@ -24,6 +24,7 @@ import AgreementScreen from './src/screens/Agreement';
 import CashScreen from './src/screens/CashScreen';
 import CashReceiptScreen from './src/screens/CashReceiptScreen';
 import { openDatabase } from "expo-sqlite";
+import { useStripeTerminal } from '@stripe/stripe-terminal-react-native';
 
 const Stack = createNativeStackNavigator();
 
@@ -36,6 +37,7 @@ const App = () => {
   const [club, setClub] = useState(null);
   const [isClubLoading, setIsClubLoading] = useState(true);
   const db = openDatabase('pos.db');
+  const { initialize } = useStripeTerminal();
   // AsyncStorage.clear();
   // AsyncStorage.removeItem('eula_consent');
 
@@ -89,6 +91,12 @@ const App = () => {
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    initialize({
+      // logLevel: 'verbose',
+    });
+  }, [initialize]);
 
   if ( (loading && !isLoggedIn) || (isLoggedIn && isEulaLoading) || isClubLoading )
     return (
