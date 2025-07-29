@@ -3,9 +3,10 @@ import axios from "axios";
 import { resetAllStates } from "./resetSlice";
 import { POS_STORE_API_URL, POS_API_TOKEN } from "../../config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Alert } from "react-native";
 
 const initialState = {
-  storeData: '',
+  storeData: "",
   loading: false,
   error: false,
 };
@@ -28,10 +29,10 @@ const storeDataSlice = createSlice({
       state.error = true;
     },
     resetStoreData: (state) => {
-      state.storeData = '';
+      state.storeData = "";
       state.error = false;
       state.loading = false;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, (state) => {
@@ -44,33 +45,43 @@ export const {
   fetchStoreDataStart,
   fetchStoreDataSuccess,
   fetchStoreDataError,
-  resetStoreData
+  resetStoreData,
 } = storeDataSlice.actions;
 
 export const fetchStoreData = (club) => async (dispatch) => {
   try {
     club = club ? club : JSON.parse(AsyncStorage.getItem("club"));
-    if( club?.post_slug ){
+    if (club?.post_slug) {
       dispatch(fetchStoreDataStart());
       const response = await axios.post(
         `${POS_STORE_API_URL}/pos-get-store-details`,
         {},
         {
           headers: {
-            'Apitoken': POS_API_TOKEN,
-            'X-Tenant': club?.post_slug
+            Apitoken: POS_API_TOKEN,
+            "X-Tenant": club?.post_slug,
           },
         }
       );
-      if( response?.data?.result ){
+      if (response?.data?.result) {
         dispatch(fetchStoreDataSuccess(JSON.stringify(response.data.result)));
-      }else{
-        dispatch(fetchStoreDataError());
+      } else {
+        throw new Error({ message: response?.data?.message });
       }
     }
   } catch (error) {
     dispatch(fetchStoreDataError());
-    console.log(error);
+    Alert.alert(
+      "Alert!",
+      error.response?.data?.message ?? error.message,
+      [
+        {
+          text: "OK",
+          onPress: () => console.log("OK Pressed"),
+        },
+      ],
+      { cancelable: true }
+    );
   }
 };
 

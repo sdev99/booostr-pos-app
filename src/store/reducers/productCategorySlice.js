@@ -4,7 +4,7 @@ import { resetAllStates } from "./resetSlice";
 import { POS_STORE_API_URL, POS_API_TOKEN } from "../../config";
 
 const initialState = {
-  categoryList: '',
+  categoryList: "",
   loading: false,
   error: false,
 };
@@ -27,10 +27,10 @@ const productCategoryListSlice = createSlice({
       state.error = true;
     },
     resetProductCategoryList: (state) => {
-      state.categoryList = '';
+      state.categoryList = "";
       state.error = false;
       state.loading = false;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, (state) => {
@@ -43,25 +43,30 @@ export const {
   fetchProductCategoryListStart,
   fetchProductCategoryListSuccess,
   fetchProductCategoryListError,
-  resetProductCategoryList
+  resetProductCategoryList,
 } = productCategoryListSlice.actions;
 
 export const fetchProductCategoryList = (club) => async (dispatch) => {
   try {
     dispatch(fetchProductCategoryListStart());
+    console.log("club", club);
     const response = await axios.post(
       `${POS_STORE_API_URL}/get_pos_category_list`,
       {},
       {
         headers: {
-          'Apitoken': POS_API_TOKEN,
-          'X-Tenant': club
+          Apitoken: POS_API_TOKEN,
+          "X-Tenant": club,
         },
       }
     );
-    if( response?.data?.result?.categories ){
-      dispatch(fetchProductCategoryListSuccess(JSON.stringify(response.data.result.categories)));
-    }else{
+    if (response?.data?.result?.categories) {
+      dispatch(
+        fetchProductCategoryListSuccess(
+          JSON.stringify(response.data.result.categories)
+        )
+      );
+    } else {
       dispatch(fetchProductCategoryListError());
     }
   } catch (error) {

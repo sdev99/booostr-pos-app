@@ -15,7 +15,7 @@ import axios from "axios";
 import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";
 import productPlaceholder from "../assets/product-placeholder.png";
 import { memoizedStoreData } from "../store/selectors";
-import { openDatabase } from "expo-sqlite";
+import * as SQLite from 'expo-sqlite';
 import { setupOrderList } from "../store/reducers/orderListSlice";
 
 const screenWidth = Dimensions.get('window').width;
@@ -82,7 +82,7 @@ const DashboardScreen = ({ navigation }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(2);
   const [isMoreOrderLoading, setIsMoreOrderLoading] = useState(false);
-  const db = openDatabase('pos.db');
+  const db = SQLite.openDatabaseSync('pos.db');
 
   // Setup Order Database
   useEffect(() => {
@@ -183,7 +183,7 @@ const DashboardScreen = ({ navigation }) => {
             if(response?.data?.heighest_sell_terms?.data){
               setTopSellingItems(response.data.heighest_sell_terms.data);
             }else if( response?.data?.error && response?.data?.message){
-              alert( response.data.message );
+              // alert( response.data.message );
             }else{
               alert("kindly try after some time.");
             }

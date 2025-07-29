@@ -7,7 +7,7 @@ import BottomBar from './BottomBar';
 import { memoizedOrderList } from "../store/selectors";
 import productPlaceholder from "../assets/product-placeholder.png";
 import { removeOrderFromOrderList, increaseItemInOrder, decreaseItemInOrder, removeItemFromOrder } from "../store/reducers/orderListSlice";
-import { openDatabase } from "expo-sqlite";
+import * as SQLite from 'expo-sqlite';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
@@ -17,7 +17,7 @@ const OrderDetailScreen = ({ route, navigation }) => {
   const orderList = useSelector(memoizedOrderList);
   const [isCancelModalVisible, setCancelModalVisible] = useState(false);
   const orderIndex = route.params?.orderIndex;
-  const db = openDatabase('pos.db');
+  const db = SQLite.openDatabaseSync('pos.db');
 
   const orderDate = orderList[orderIndex]?.created_at;
   const futureDate = new Date(orderDate);

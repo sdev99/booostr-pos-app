@@ -23,7 +23,7 @@ import PaymentSuccessScreen from './src/screens/PaymentSuccessScreen';
 import AgreementScreen from './src/screens/Agreement';
 import CashScreen from './src/screens/CashScreen';
 import CashReceiptScreen from './src/screens/CashReceiptScreen';
-import { openDatabase } from "expo-sqlite";
+import * as SQLite from 'expo-sqlite';
 import { useStripeTerminal } from '@stripe/stripe-terminal-react-native';
 
 const Stack = createNativeStackNavigator();
@@ -36,7 +36,7 @@ const App = () => {
   const isEulaLoading = useSelector((state) => state.eula.loading);
   const [club, setClub] = useState(null);
   const [isClubLoading, setIsClubLoading] = useState(true);
-  const db = openDatabase('pos.db');
+  const db = SQLite.openDatabaseSync('pos.db');
   const { initialize } = useStripeTerminal();
   // AsyncStorage.clear();
   // AsyncStorage.removeItem('eula_consent');

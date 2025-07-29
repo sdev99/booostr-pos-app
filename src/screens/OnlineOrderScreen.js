@@ -11,7 +11,7 @@ import { removeOrderFromOrderList, setupOrderList } from "../store/reducers/orde
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";
-import { openDatabase } from "expo-sqlite";
+import * as SQLite from 'expo-sqlite';
 
 const OnlineOrderScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -39,7 +39,7 @@ const OnlineOrderScreen = ({ navigation }) => {
   const isLoadingOrderList = useSelector((state) => state.orderList.loading);
   const [completedOrders, setCompletedOrders] = useState([]);
   const storeData = useSelector(memoizedStoreData);
-  const db = openDatabase('pos.db');
+  const db = SQLite.openDatabaseSync('pos.db');
   const [selectedCol, setSelectedCol] = useState('onHold');
 
   // Get completed orders

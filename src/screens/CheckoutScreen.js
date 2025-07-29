@@ -16,7 +16,7 @@ import { useStripeTerminal } from '@stripe/stripe-terminal-react-native';
 import axios from "axios";
 import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";
 //import { FontAwesome } from "@expo/vector-icons";
-import { openDatabase } from "expo-sqlite";
+import * as SQLite from 'expo-sqlite';
 
 const { height } = Dimensions.get("window");
 const screenWidth = Dimensions.get('window').width;
@@ -26,7 +26,7 @@ const CheckoutScreen = ({ navigation, route }) => {
   const orderList = useSelector(memoizedOrderList);
   const [cart, setCart] = useState(useSelector(memoizedCart));
   const userData = useSelector(memoizedUserData);
-  const db = openDatabase('pos.db');
+  const db = SQLite.openDatabaseSync('pos.db');
   
   const storeData = useSelector(memoizedStoreData);
   const [processingOrder, setProcessingOrder] = useState(false);

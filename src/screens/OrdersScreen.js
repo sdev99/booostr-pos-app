@@ -13,7 +13,7 @@ import { addToOrderList } from "../store/reducers/orderListSlice";
 import { addProductToCart, resetCart } from "../store/reducers/cartSlice";
 import productPlaceholder from "../assets/product-placeholder.png";
 import Header from './Header';
-import { openDatabase } from "expo-sqlite";
+import * as SQLite from 'expo-sqlite';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -36,7 +36,7 @@ const OrdersScreen = ({ navigation, route }) => {
     const flatListRef = useRef(null);
     const scrollViewRef = useRef(null);
     const [previousLastItemPosition, setPreviousLastItemPosition] = useState(0);
-    const db = openDatabase('pos.db');
+    const db = SQLite.openDatabaseSync('pos.db');
 
     // useFocusEffect(
     //     React.useCallback(() => {

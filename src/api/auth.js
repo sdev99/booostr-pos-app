@@ -9,6 +9,7 @@ const logIn = async (user) => {
     });
     if (response && response?.data?.data) {
       const userdata = response.data.data;
+
       if (userdata && userdata !== null && userdata?.post_author) {
         await AsyncStorage.setItem(
           "user_id",

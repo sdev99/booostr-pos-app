@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 // import {AppRegistry} from 'react-native';
 import App from './App';
-import registerRootComponent from 'expo/build/launch/registerRootComponent';
+import { registerRootComponent } from 'expo';
 import {Provider} from 'react-redux';
 import store from './src/store/configureStore';
 import { StripeTerminalProvider } from '@stripe/stripe-terminal-react-native';

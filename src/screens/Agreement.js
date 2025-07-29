@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ImageBackground,
   ScrollView,
+  Platform
 } from "react-native";
 import { Button as PaperButton } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
