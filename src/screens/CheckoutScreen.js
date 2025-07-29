@@ -332,7 +332,7 @@ const CheckoutScreen = ({ navigation, route }) => {
     setProcessingOrder(true);
 
     const tenderedAmount = parseFloat(amountTendered);
-    if (tenderedAmount < totalAmount) {
+    if (tenderedAmount < totalAmount.toFixed(2)) {
       Alert.alert(
         "Insufficient Amount",
         "The amount being tendered is less than the order amount. Please update tendered amount to be equal or more than the order amount.",
@@ -806,7 +806,7 @@ const CheckoutScreen = ({ navigation, route }) => {
             </View>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.payButton, { backgroundColor: amountTendered < totalAmount || processingOrder ? "#ddd" : "#00c0ff" }]}
+            style={[styles.payButton, { backgroundColor: amountTendered < totalAmount.toFixed(2) || processingOrder ? "#ddd" : "#00c0ff" }]}
             onPress={handleProcessCash}
           >
             <Text style={styles.payButtonText}>Pay for Order</Text>
