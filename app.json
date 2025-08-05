@@ -10,9 +10,8 @@
       "resizeMode": "contain",
       "backgroundColor": "#03cb8a"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "owner": "booostr",
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "bundleIdentifier": "com.booostr.pos",
       "buildNumber": "5",
@@ -37,9 +36,7 @@
         "projectId": "94a284bf-8427-4f3c-bcf7-5046fe896eca"
       }
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/94a284bf-8427-4f3c-bcf7-5046fe896eca"
     },

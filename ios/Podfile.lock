@@ -1769,9 +1769,9 @@ PODS:
     - StripePayments (~> 23.28.0)
     - StripePaymentSheet (~> 23.28.0)
     - StripePaymentsUI (~> 23.28.0)
-  - stripe-terminal-react-native (0.0.1-beta.25):
+  - stripe-terminal-react-native (0.0.1-beta.26):
     - React-Core
-    - StripeTerminal (~> 4.3.0)
+    - StripeTerminal (~> 4.4.0)
   - StripeApplePay (23.28.3):
     - StripeCore (= 23.28.3)
   - StripeCore (23.28.3)
@@ -1792,7 +1792,7 @@ PODS:
     - StripeCore (= 23.28.3)
     - StripePayments (= 23.28.3)
     - StripeUICore (= 23.28.3)
-  - StripeTerminal (4.3.0)
+  - StripeTerminal (4.4.0)
   - StripeUICore (23.28.3):
     - StripeCore (= 23.28.3)
   - Yoga (0.0.0)
@@ -2184,14 +2184,14 @@ SPEC CHECKSUMS:
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Stripe: cdf416cf2efe286f532a6306de0fcaa0ecc8c71a
   stripe-react-native: 55fbdae947bc2698d55193947fd17872d0eab786
-  stripe-terminal-react-native: 8918892108749dde11af463da26ac314caebd0a3
+  stripe-terminal-react-native: e21289e1cf230e43f3144df58d4d04da46349f5d
   StripeApplePay: efb62ffc08e6cd4f161d77ddb45de2451075c54e
   StripeCore: 9731f05e327c3dcaf7d7abd116840ceaa9482bbe
   StripeFinancialConnections: 46c0049aaab3a179193502bce4a8096eb7b73f55
   StripePayments: dd1867a620b0b8b5e294e9ff2f1f7b7770765f47
   StripePaymentSheet: d155dfde74e90784d054deffb4f561a1f6dd638f
   StripePaymentsUI: c24f990b03a68a7f6fe704b15dd487e7bb6b603e
-  StripeTerminal: 056d0d3b5e2f2edbc5f8b6314ec5f2b037898c72
+  StripeTerminal: 7bcb4ed7561f862b8005256be18d2b5198a7f75e
   StripeUICore: f2d514e900c37436dc5427fdf2c29d68ab1c2935
   Yoga: 1fd059161b449018342943b095a6d4e69bcaa719
 
