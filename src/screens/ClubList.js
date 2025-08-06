@@ -58,7 +58,7 @@ const ClubList = ({ navigation }) => {
       <View style={styles.clubImageContainer}>
         {/* Add your image component here */}
         <Image
-          source={require("../assets/club_demo.png")}
+          source={item?.user_photo ? { uri: item?.user_photo } : require("../assets/club_demo.png")}
           style={styles.clubImage}
         />
       </View>

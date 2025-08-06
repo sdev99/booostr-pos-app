@@ -60,7 +60,7 @@ const SettingsScreen = ({ navigation }) => {
   };
 
   const handleHelpAndSupport = () => {
-    Linking.openURL("https://staging3.booostr.co")
+    Linking.openURL("https://support.booostr.co")
       .catch((error) => console.error("Error opening URL:", error));
   };
 
