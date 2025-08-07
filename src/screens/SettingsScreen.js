@@ -1,12 +1,21 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, Modal, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Linking,
+  Modal,
+  ActivityIndicator,
+} from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../actions/auth";
 import { memoizedUserData } from "../store/selectors";
-import Header from './Header';
-import BottomBar from './BottomBar';
-import { useStripeTerminal } from '@stripe/stripe-terminal-react-native';
+import Header from "./Header";
+import BottomBar from "./BottomBar";
+import { useStripeTerminal } from "@stripe/stripe-terminal-react-native";
 
 const CustomModal = ({ isVisible, onClose, title, content }) => {
   return (
@@ -37,16 +46,22 @@ const SettingsScreen = ({ navigation }) => {
   const [isReadersModalVisible, setReadersModalVisible] = useState(false);
   const loading = useSelector((state) => state.auth.loading);
   const userData = useSelector(memoizedUserData);
-  const { discoverReaders, connectBluetoothReader, discoveredReaders, connectedReader, cancelDiscovering, disconnectReader } =
-    useStripeTerminal({
-      didUpdateDiscoveredReaders: (readers) => {
-        // After the SDK discovers a reader, your app can connect to it.
-        // Here, we're automatically connecting to the first discovered reader.
-        // handleConnectBluetoothReader(readers[0].id);
-        console.log('Discovered readers: ');
-        // console.log(discoveredReaders);
-      },
-    });
+  const {
+    discoverReaders,
+    connectReader: connectBluetoothReader,
+    discoveredReaders,
+    connectedReader,
+    cancelDiscovering,
+    disconnectReader,
+  } = useStripeTerminal({
+    didUpdateDiscoveredReaders: (readers) => {
+      // After the SDK discovers a reader, your app can connect to it.
+      // Here, we're automatically connecting to the first discovered reader.
+      // handleConnectBluetoothReader(readers[0].id);
+      console.log("Discovered readers: ");
+      // console.log(discoveredReaders);
+    },
+  });
 
   const handleLogout = () => {
     dispatch(logout(userData.user_id)).then((response) => {
@@ -60,8 +75,9 @@ const SettingsScreen = ({ navigation }) => {
   };
 
   const handleHelpAndSupport = () => {
-    Linking.openURL("https://support.booostr.co")
-      .catch((error) => console.error("Error opening URL:", error));
+    Linking.openURL("https://support.booostr.co").catch((error) =>
+      console.error("Error opening URL:", error)
+    );
   };
 
   const toggleAccountModal = () => {
@@ -69,27 +85,25 @@ const SettingsScreen = ({ navigation }) => {
   };
 
   const toggleReadersModal = () => {
-    if( isReadersModalVisible ) cancelDiscoveringReader();
+    if (isReadersModalVisible) cancelDiscoveringReader();
     setReadersModalVisible(!isReadersModalVisible);
   };
 
   const handleAgreementSupport = () => {
-    navigation.navigate("Agrement", {onlyView:true});
+    navigation.navigate("Agrement", { onlyView: true });
   };
 
   const handleDiscoverReaders = async () => {
     // The list of discovered readers is reported in the `didUpdateDiscoveredReaders` method
     // within the `useStripeTerminal` hook.
     const { error } = await discoverReaders({
-      discoveryMethod: 'bluetoothScan',
+      discoveryMethod: "bluetoothScan",
       // simulated: true,
     });
 
     if (error) {
-      if( error.code != 'Canceled' ){
-        alert(
-          `Discover readers error: ${error.message}`
-        );
+      if (error.code != "Canceled") {
+        alert(`Discover readers error: ${error.message}`);
       }
     }
   };
@@ -98,54 +112,54 @@ const SettingsScreen = ({ navigation }) => {
     const { error } = await cancelDiscovering();
 
     if (error) {
-      console.log('connectBluetoothReader error', error);
+      console.log("connectBluetoothReader error", error);
       alert(`Error cancelling scan: ${error.message}`);
       return;
     }
-  }
+  };
 
   const handleConnectBluetoothReader = async (selectedReader) => {
-    console.log('Selected Reader');
+    console.log("Selected Reader");
     console.log(selectedReader);
-    try{
+    try {
       const { reader, error } = await connectBluetoothReader({
         reader: selectedReader,
         // Since the simulated reader is not associated with a real location, we recommend
         // specifying its existing mock location.
         locationId: selectedReader.locationId,
-      });
+      }, 'bluetoothScan');
 
-      
       if (error) {
-        console.log('connectBluetoothReader error', error);
-        alert('Unable to connect to reader.');
+        console.log("connectBluetoothReader error", error.message);
+        alert("Unable to connect to reader.");
         return;
-      }else{
+      } else {
         setReadersModalVisible(false);
-        alert('Reader connected successfully.');
+        alert("Reader connected successfully.");
       }
     } catch (error) {
-      console.error('Error while fetching connected reader:', error);
-      alert(`An error occurred while connecting to the reader: ${error.message}`);
+      console.error("Error while fetching connected reader:", error);
+      alert(
+        `An error occurred while connecting to the reader: ${error.message}`
+      );
     }
-
   };
 
   const connectReader = () => {
-    console.log('scanning for readers');
+    console.log("scanning for readers");
     toggleReadersModal();
     handleDiscoverReaders();
-  }
+  };
 
   const disconnectFromReader = async () => {
     const { reader, error } = await disconnectReader();
 
     if (error) {
-      console.log('connectBluetoothReader error', error);
-      alert('Unable to disconnect from the reader.');
+      console.log("connectBluetoothReader error", error);
+      alert("Unable to disconnect from the reader.");
       return;
     }
-  }
+  };
 
   return (
     <View style={styles.container}>
@@ -157,49 +171,104 @@ const SettingsScreen = ({ navigation }) => {
         <Text style={styles.title}>Settings</Text>
       </View>
 
-      {loading
-        ? <View style={styles.containerLoader}>
-            <ActivityIndicator size="medium" color="#00c0ff" />
-          </View>
-        : <ScrollView style={styles.scrollView}>
-            <View style={styles.settingsWrap}>
-              <View style={styles.allItems}>
-                <TouchableOpacity style={styles.settingItem} onPress={toggleAccountModal}>
-                  <Icon name="account" size={24} color="#000" style={styles.settingIcon} />
-                  <Text style={styles.settingTitle}>Account</Text>
+      {loading ? (
+        <View style={styles.containerLoader}>
+          <ActivityIndicator size="medium" color="#00c0ff" />
+        </View>
+      ) : (
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.settingsWrap}>
+            <View style={styles.allItems}>
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={toggleAccountModal}
+              >
+                <Icon
+                  name="account"
+                  size={24}
+                  color="#000"
+                  style={styles.settingIcon}
+                />
+                <Text style={styles.settingTitle}>Account</Text>
+              </TouchableOpacity>
+              {connectedReader ? (
+                <TouchableOpacity
+                  style={styles.settingItem}
+                  onPress={disconnectFromReader}
+                >
+                  <Icon
+                    name="contactless-payment-circle"
+                    size={24}
+                    color="#000"
+                    style={styles.settingIcon}
+                  />
+                  <Text style={styles.settingTitle}>
+                    {connectedReader.serialNumber}
+                  </Text>
+                  <View style={styles.disconnectReader}>
+                    <View style={styles.disconnectReaderTextWrap}>
+                      <Text style={styles.disconnectReaderText}>
+                        Disconnect
+                      </Text>
+                    </View>
+                  </View>
                 </TouchableOpacity>
-                {
-                  connectedReader
-                  ? <TouchableOpacity style={styles.settingItem} onPress={disconnectFromReader}>
-                      <Icon name="contactless-payment-circle" size={24} color="#000" style={styles.settingIcon} />
-                      <Text style={styles.settingTitle}>{connectedReader.serialNumber}</Text>
-                      <View style={styles.disconnectReader}>
-                        <View style={styles.disconnectReaderTextWrap}>
-                          <Text style={styles.disconnectReaderText}>Disconnect</Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  : <TouchableOpacity style={styles.settingItem} onPress={connectReader}>
-                      <Icon name="contactless-payment-circle" size={24} color="#000" style={styles.settingIcon} />
-                      <Text style={styles.settingTitle}>Connect Reader</Text>
-                    </TouchableOpacity>
-                }
-                <TouchableOpacity style={styles.settingItem} onPress={handleHelpAndSupport}>
-                  <Icon name="help-circle" size={24} color="#000" style={styles.settingIcon} />
-                  <Text style={styles.settingTitle}>Help and Support</Text>
+              ) : (
+                <TouchableOpacity
+                  style={styles.settingItem}
+                  onPress={connectReader}
+                >
+                  <Icon
+                    name="contactless-payment-circle"
+                    size={24}
+                    color="#000"
+                    style={styles.settingIcon}
+                  />
+                  <Text style={styles.settingTitle}>Connect Reader</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.settingItem} onPress={handleAgreementSupport}>
-                  <Icon name="help-circle" size={24} color="#000" style={styles.settingIcon} />
-                  <Text style={styles.settingTitle}>End-user License Agreement</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.settingItem} onPress={handleLogout}>
-                  <Icon name="logout" size={24} color="#000" style={styles.settingIcon} />
-                  <Text style={styles.settingTitle}>Logout</Text>
-                </TouchableOpacity>
-              </View>
+              )}
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={handleHelpAndSupport}
+              >
+                <Icon
+                  name="help-circle"
+                  size={24}
+                  color="#000"
+                  style={styles.settingIcon}
+                />
+                <Text style={styles.settingTitle}>Help and Support</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={handleAgreementSupport}
+              >
+                <Icon
+                  name="help-circle"
+                  size={24}
+                  color="#000"
+                  style={styles.settingIcon}
+                />
+                <Text style={styles.settingTitle}>
+                  End-user License Agreement
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={handleLogout}
+              >
+                <Icon
+                  name="logout"
+                  size={24}
+                  color="#000"
+                  style={styles.settingIcon}
+                />
+                <Text style={styles.settingTitle}>Logout</Text>
+              </TouchableOpacity>
             </View>
-          </ScrollView>
-      }
+          </View>
+        </ScrollView>
+      )}
 
       {/* Account Modal */}
       <CustomModal
@@ -220,19 +289,25 @@ const SettingsScreen = ({ navigation }) => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Found Stripe Reader</Text>
             <ScrollView style={styles.readerList}>
-              { discoveredReaders.map( (reader, index) => {
+              {discoveredReaders.map((reader, index) => {
                 return (
                   <View key={index} style={styles.reader}>
                     <Text style={styles.readerText}>{reader.serialNumber}</Text>
-                    <TouchableOpacity style={styles.readerConnect} onPress={()=>handleConnectBluetoothReader(reader)}>
+                    <TouchableOpacity
+                      style={styles.readerConnect}
+                      onPress={() => handleConnectBluetoothReader(reader)}
+                    >
                       <Text style={styles.readerConnectText}>Connect</Text>
                     </TouchableOpacity>
                   </View>
-                )
-              }) }
+                );
+              })}
               <Text style={styles.scanning}>Scanning...</Text>
             </ScrollView>
-            <TouchableOpacity style={styles.modalCloseButton} onPress={toggleReadersModal}>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={toggleReadersModal}
+            >
               <Text style={styles.modalCloseButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
@@ -249,11 +324,11 @@ const SettingsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    position: 'relative',
+    position: "relative",
     paddingBottom: 80,
   },
   bottomBar: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
@@ -271,7 +346,7 @@ const styles = StyleSheet.create({
   },
   allItems: {
     padding: 15,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 6,
   },
   settingsWrap: {
@@ -328,14 +403,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  readerList:{
-    marginVertical: 20
+  readerList: {
+    marginVertical: 20,
   },
   reader: {
     display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 10
+    marginBottom: 10,
   },
   readerText: {
     alignSelf: "center",
@@ -361,13 +436,13 @@ const styles = StyleSheet.create({
   },
   disconnectReaderTextWrap: {
     backgroundColor: "red",
-    borderRadius: 5
+    borderRadius: 5,
   },
   disconnectReaderText: {
     padding: 6,
     paddingHorizontal: 10,
-    color: "white"
-  }
+    color: "white",
+  },
 });
 
 export default SettingsScreen;

@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchClubList } from "../store/reducers/clubListSlice";
+import { logout } from "../actions/auth";
 import { memoizedClubList, memoizedUserData } from "../store/selectors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
@@ -48,6 +49,17 @@ const ClubList = ({ navigation }) => {
     } catch (error) {
       console.error("Unable to set selected Club:", error);
     }
+  };
+
+  const handleLogout = () => {
+    dispatch(logout(userData.user_id)).then((response) => {
+      if (response.status === "success") {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Login" }],
+        });
+      }
+    });
   };
 
   const renderItem = ({ item }) => (
@@ -98,7 +110,16 @@ const ClubList = ({ navigation }) => {
                   keyExtractor={(item) => item.post_id}
                 />
               ) : (
-                <Text style={styles.notFound}>No clubs found.</Text>
+                 <View style={styles.notFoundContainer}>
+                  <Text style={styles.notFound}>No clubs found.</Text>
+
+                  <TouchableOpacity
+                    style={styles.logoutButton}
+                    onPress={handleLogout}
+                  >
+                    <Text style={styles.logoutText}>Logout</Text>
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
           </>
@@ -222,6 +243,10 @@ const styles = StyleSheet.create({
     height: 40,
     paddingVertical: 0,
   },
+  notFoundContainer: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
   notFound: {
     textAlign: "center",
     fontSize: 20,
@@ -229,6 +254,17 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  logoutButton: {
+    marginTop: 30,
+    backgroundColor: '#FF3B30',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  logoutText: {
+    color: '#fff',
+    fontSize: 16,
   },
   containerLoader: {
     flex: 1,

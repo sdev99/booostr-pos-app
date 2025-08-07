@@ -1,15 +1,28 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, Modal, Dimensions } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  Image,
+  Modal,
+  Dimensions,
+} from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import productPlaceholder from "../assets/product-placeholder.png";
-import Header from './Header';
+import Header from "./Header";
 import { memoizedCart, memoizedStoreData } from "../store/selectors";
-import { addProductToCart, decreaseProductFromCart, removeProductFromCart, resetCart } from "../store/reducers/cartSlice";
+import {
+  addProductToCart,
+  decreaseProductFromCart,
+  removeProductFromCart,
+  resetCart,
+} from "../store/reducers/cartSlice";
 import { addToOrderList } from "../store/reducers/orderListSlice";
 
-const screenHeight = Dimensions.get('window').height;
-const screenWidth = Dimensions.get('window').width;
+const screenWidth = Dimensions.get("window").width;
 
 const CartScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -19,10 +32,13 @@ const CartScreen = ({ navigation }) => {
 
   const getTotalPrice = () => {
     // Calculate total of all items without tax
-    const subtotal = cart?.reduce((total, item) => total + item.max_price*item.cart_quantity, 0);
+    const subtotal = cart?.reduce(
+      (total, item) => total + item.max_price * item.cart_quantity,
+      0
+    );
 
     // Calculate total with 10% tax
-    const tax = subtotal * parseFloat(storeData?.tax) / 100;
+    const tax = (subtotal * parseFloat(storeData?.tax)) / 100;
     const totalDue = subtotal + tax;
 
     return { subtotal, tax, totalDue };
@@ -38,7 +54,7 @@ const CartScreen = ({ navigation }) => {
 
   const handleCancelOrder = async () => {
     try {
-      dispatch(resetCart())
+      dispatch(resetCart());
       navigation.navigate("Orders");
     } catch (error) {
       console.error("Error cancelling order:", error);
@@ -47,38 +63,37 @@ const CartScreen = ({ navigation }) => {
 
   const handleIncreaseQuantity = async (product) => {
     try {
-      dispatch(addProductToCart(product))
-      .catch((error) => {
-          console.error("Error adding product to cart:", error);
+      dispatch(addProductToCart(product)).catch((error) => {
+        console.error("Error adding product to cart:", error);
       });
     } catch (error) {
       console.error("Error adding product to cart:", error);
     }
-  }
+  };
 
   const handledecreaseQuantity = async (productIndex) => {
     try {
       dispatch(decreaseProductFromCart(productIndex))
-      .then((cartLength) => {
-        if( cartLength === 0 ) navigation.navigate("Orders");
-      })
-      .catch((error) => {
+        .then((cartLength) => {
+          if (cartLength === 0) navigation.navigate("Orders");
+        })
+        .catch((error) => {
           console.error("Error decreasing product from cart:", error);
-      });
+        });
     } catch (error) {
       console.error("Error decreasing product from cart:", error);
     }
-  }
+  };
 
   const handleRemoveFromCart = (productIndex) => {
     try {
       dispatch(removeProductFromCart(productIndex))
-      .then(() => {
-        if( cart.length === 1 ) navigation.navigate("Orders");
-      })
-      .catch((error) => {
+        .then(() => {
+          if (cart.length === 1) navigation.navigate("Orders");
+        })
+        .catch((error) => {
           console.error("Error removing product from cart:", error);
-      });
+        });
     } catch (error) {
       console.error("Error removing product from cart:", error);
     }
@@ -86,42 +101,79 @@ const CartScreen = ({ navigation }) => {
 
   const holdOrder = async () => {
     try {
-        let order = {};
-        const d = new Date();
-        order['created_at'] = `${d.getFullYear()}-${(d.getMonth()+1+'').padStart(2, '0')}-${(d.getDate()+'').padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
-        order['items'] = cart;
-        order['status'] = 'on-hold';
-        dispatch(addToOrderList(order))
+      let order = {};
+      const d = new Date();
+      order["created_at"] = `${d.getFullYear()}-${(
+        d.getMonth() +
+        1 +
+        ""
+      ).padStart(2, "0")}-${(d.getDate() + "").padStart(2, "0")} ${d
+        .getHours()
+        .toString()
+        .padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}:${d
+        .getSeconds()
+        .toString()
+        .padStart(2, "0")}`;
+      order["items"] = cart;
+      order["status"] = "on-hold";
+      dispatch(addToOrderList(order))
         .then(() => {
-            dispatch(resetCart());
-            navigation.navigate("OnlineOrder");
+          dispatch(resetCart());
+          navigation.navigate("OnlineOrder");
         })
         .catch((error) => {
-            console.error("Error putting order on hold:", error);
+          console.error("Error putting order on hold:", error);
         });
     } catch (error) {
-        console.error("Error putting order on hold:", error);
+      console.error("Error putting order on hold:", error);
     }
   };
 
   const renderCartItem = ({ item, index }) => (
     <View style={styles.cartItem}>
-      <Image source={item?.media?.value ? {uri: item?.media?.value} : productPlaceholder} style={styles.cartItemImage} />
+      <Image
+        source={
+          item?.media?.value ? { uri: item?.media?.value } : productPlaceholder
+        }
+        style={styles.cartItemImage}
+      />
       <View style={styles.cartItemDetails}>
         <Text style={styles.cartItemName}>{item.title}</Text>
+
+        {/* Size and Color display */}
+        {(item?.cart_size || item?.cart_color) && (
+          <View style={styles.variantContainer}>
+            {item?.cart_size && (
+              <Text style={styles.variantText}>Size: {item.cart_size}</Text>
+            )}
+            {item?.cart_color && (
+              <Text style={styles.variantText}>Color: {item.cart_color}</Text>
+            )}
+          </View>
+        )}
+
         <View style={styles.quantityContainer}>
-          <TouchableOpacity style={styles.ButtonRounded} onPress={() => handledecreaseQuantity(index)}>
+          <TouchableOpacity
+            style={styles.ButtonRounded}
+            onPress={() => handledecreaseQuantity(index)}
+          >
             <Icon name="minus" size={20} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.quantityText}>{item?.cart_quantity}</Text>
-          <TouchableOpacity style={styles.ButtonRounded} onPress={() => handleIncreaseQuantity(item)}>
+          <TouchableOpacity
+            style={styles.ButtonRounded}
+            onPress={() => handleIncreaseQuantity(item)}
+          >
             <Icon name="plus" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
-      <View style={styles.cartItemPriceContainer} >
-        <Text style={styles.taxText}> ${(item.max_price*item.cart_quantity).toFixed(2)}</Text>
-       {/* <Text style={styles.taxText}>Tax (10%): ${(item.price * 0.1).toFixed(2)}</Text>
+      <View style={styles.cartItemPriceContainer}>
+        <Text style={styles.taxText}>
+          {" "}
+          ${(item.max_price * item.cart_quantity).toFixed(2)}
+        </Text>
+        {/* <Text style={styles.taxText}>Tax (10%): ${(item.price * 0.1).toFixed(2)}</Text>
         <Text style={styles.cartItemPrice}>Total Due: ${(item.price + item.price * 0.1).toFixed(2)}</Text>*/}
         <TouchableOpacity onPress={() => handleRemoveFromCart(index)}>
           <Icon name="delete" size={24} color="#2222224d" />
@@ -146,9 +198,9 @@ const CartScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       </View>
-      <View style={styles.itemWrpa}>
-        {screenWidth < 500
-        ? <View style={styles.totalContainerMain}>
+      <View style={styles.itemWrap}>
+        {screenWidth < 500 ? (
+          <View style={styles.totalContainerMain}>
             <View style={styles.totalContainer}>
               <View style={styles.totalFlexDirCol}>
                 <Text style={[styles.totalText, styles.totalTextTop]}>
@@ -167,16 +219,29 @@ const CartScreen = ({ navigation }) => {
                 </Text>
               </View>
               <View style={styles.totalFlexDirCol}>
-                <Text style={[styles.totalText, styles.totalAmount, styles.totalTextTop]}>
+                <Text
+                  style={[
+                    styles.totalText,
+                    styles.totalAmount,
+                    styles.totalTextTop,
+                  ]}
+                >
                   Total Due:
                 </Text>
-                <Text style={[styles.totalText, styles.totalAmount, styles.totalTextbottom]}>
+                <Text
+                  style={[
+                    styles.totalText,
+                    styles.totalAmount,
+                    styles.totalTextbottom,
+                  ]}
+                >
                   ${getTotalPrice().totalDue.toFixed(2)}
                 </Text>
               </View>
             </View>
           </View>
-        : <View style={styles.totalContainerMain}>
+        ) : (
+          <View style={styles.totalContainerMain}>
             <View style={styles.totalContainer}>
               <Text style={styles.totalText}>
                 Subtotal: ${getTotalPrice().subtotal.toFixed(2)}
@@ -189,7 +254,7 @@ const CartScreen = ({ navigation }) => {
               </Text>
             </View>
           </View>
-        }
+        )}
         <View style={styles.allItems}>
           <FlatList
             data={cart}
@@ -267,9 +332,9 @@ const styles = StyleSheet.create({
     padding: 15,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent:'space-between',
+    justifyContent: "space-between",
   },
-  titleLeft:{
+  titleLeft: {
     flexDirection: "row",
     alignItems: "center",
   },
@@ -277,38 +342,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: "#000",
-    marginLeft:10,
+    marginLeft: 10,
   },
-  titleCancel:{
+  titleCancel: {
     color: "#fff",
     fontWeight: "bold",
     borderWidth: 1,
     borderColor: "#c7c8c7",
-    paddingHorizontal:10,
-    paddingVertical:10,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
     borderRadius: 5,
-    backgroundColor:'#c7c8c7',
+    backgroundColor: "#c7c8c7",
+  },
+  itemWrap: {
+    flex: 1,
   },
   allItems: {
-    paddingBottom: 90,
+    paddingBottom: 110,
     paddingLeft: 15,
     paddingRight: 15,
     paddingTop: 15,
-    height: screenHeight * 0.76,
-    
+    flex: 1,
   },
-  totalContainerMain:{
-    padding:15,
+  totalContainerMain: {
+    padding: 15,
   },
-  totalContainer:{
+  totalContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    flexWrap:'wrap',
-    width:"100%",
-    backgroundColor:"#fff",
-    borderRadius:6,
-    marginTop:10,
+    flexWrap: "wrap",
+    width: "100%",
+    backgroundColor: "#fff",
+    borderRadius: 6,
+    marginTop: 10,
   },
   checkoutButton: {
     backgroundColor: "#00c0ff",
@@ -316,12 +383,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     padding: 15,
-    width:"58%",
+    width: "58%",
     borderRadius: 6,
     shadowColor: "#000",
     shadowOffset: {
-        width: 0,
-        height: 4,
+      width: 0,
+      height: 4,
     },
     shadowOpacity: 0.05,
     shadowRadius: 20,
@@ -345,8 +412,8 @@ const styles = StyleSheet.create({
   rightIcon: {
     marginLeft: 0,
   },
-  taxText:{
-    marginBottom:5,
+  taxText: {
+    marginBottom: 5,
   },
   cartItem: {
     flexDirection: "row",
@@ -370,25 +437,25 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 6,
     marginRight: 15,
-    objectFit: 'contain',
+    objectFit: "contain",
   },
   cartItemDetails: {
     flex: 1,
   },
-  totalText:{
-    paddingHorizontal:10,
+  totalText: {
+    paddingHorizontal: 10,
     paddingVertical: 25,
-    textAlign: "center"
+    textAlign: "center",
   },
-  totalTextTop:{
+  totalTextTop: {
     paddingTop: 25,
-    paddingBottom: 5
+    paddingBottom: 5,
   },
-  totalTextbottom:{
+  totalTextbottom: {
     paddingTop: 5,
-    paddingBottom: 25
+    paddingBottom: 25,
   },
-  totalAmount:{
+  totalAmount: {
     fontWeight: "700",
   },
   cartItemName: {
@@ -410,15 +477,15 @@ const styles = StyleSheet.create({
   cartItemPrice: {
     fontSize: 14,
     fontWeight: "bold",
-    marginBottom:5
+    marginBottom: 5,
   },
   ButtonRounded: {
     width: 25,
     height: 25,
-    backgroundColor: '#00c0ff',
+    backgroundColor: "#00c0ff",
     borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalContainer: {
     flex: 1,
@@ -431,14 +498,14 @@ const styles = StyleSheet.create({
     padding: 30,
     borderRadius: 6,
     width: "90%",
-    maxWidth:500,
-    marginHorizontal:'auto',
+    maxWidth: 500,
+    marginHorizontal: "auto",
   },
   modalText: {
     fontSize: 14,
     marginBottom: 20,
-    textAlign:'center',
-    color:'#777',
+    textAlign: "center",
+    color: "#777",
   },
   modalButtons: {
     flexDirection: "row",
@@ -452,7 +519,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
     alignItems: "center",
   },
-  confirmButton:{
+  confirmButton: {
     flex: 1,
     backgroundColor: "red",
     padding: 10,
@@ -465,49 +532,56 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   checkoutContainer: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      position: "absolute",
-      bottom: 0,
-      left: 0,
-      right: 0,
-      padding:20,
-      backgroundColor:"#fff",
-      borderTopWidth: 1,
-      borderTopColor: "#ddd",
-  
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#ddd",
   },
   holdButton: {
-      backgroundColor: "#ff9800", // You can change the color as needed
-      borderRadius: 6,
-      padding: 15,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent:'center',
-      shadowColor: "#000",
-      width:"38%",
-      shadowOffset: {
-          width: 0,
-          height: 4,
-      },
-      shadowOpacity: 0.1,
-      shadowRadius: 20,
-      elevation: 3, // For Android shadow
-      height: screenWidth < 500 ? "100%" : "auto"
+    backgroundColor: "#ff9800", // You can change the color as needed
+    borderRadius: 6,
+    padding: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    width: "38%",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 3, // For Android shadow
+    height: screenWidth < 500 ? "100%" : "auto",
   },
   leftIcon: {
-      marginRight: 10,
+    marginRight: 10,
   },
   holdText: {
-      color: "#FFF",
-      fontSize: 14,
-      fontWeight: "bold",
+    color: "#FFF",
+    fontSize: 14,
+    fontWeight: "bold",
   },
   totalFlexDirCol: {
     flexDirection: "column",
-    width: "33%"
-  }
+    width: "33%",
+  },
+  variantContainer: {
+    marginBottom: 10,
+  },
+  variantText: {
+    fontSize: 12,
+    color: "#777",
+    marginTop: 2,
+  },
 });
 
 export default CartScreen;

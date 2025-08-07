@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import { resetAllStates } from "./resetSlice";
 
 const initialState = {
-  cart: '[]',
+  cart: "[]",
   loading: false,
   error: false,
 };
@@ -51,10 +51,10 @@ const cartSlice = createSlice({
       state.error = true;
     },
     resetCart: (state) => {
-      state.cart = '[]';
+      state.cart = "[]";
       state.error = false;
       state.loading = false;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, (state) => {
@@ -73,7 +73,7 @@ export const {
   removeProductFromCartStart,
   removeProductFromCartSuccess,
   removeProductFromCartError,
-  resetCart
+  resetCart,
 } = cartSlice.actions;
 
 const ignoreCartQuantity = (a, b) => {
@@ -82,61 +82,72 @@ const ignoreCartQuantity = (a, b) => {
   return JSON.stringify(restA) === JSON.stringify(restB);
 };
 
-export const addProductToCart = (product) => async (dispatch, getState) => {
-  try {
-    dispatch(addProductToCartStart());
+export const addProductToCart =
+  (product, quantity) => async (dispatch, getState) => {
+    try {
+      dispatch(addProductToCartStart());
 
-    const cart = JSON.parse(getState().cart.cart);
-    const index = cart.findIndex(obj => ignoreCartQuantity(obj, product));
+      const cart = JSON.parse(getState().cart.cart);
+      const index = cart.findIndex((obj) => ignoreCartQuantity(obj, product));
 
-    if( index !== -1 ){
-      let updatedCart = [...cart];
-      updatedCart[index].cart_quantity += 1;
-      dispatch(addProductToCartSuccess(JSON.stringify(updatedCart)));
-    }else{
-      product['cart_quantity'] = 1;
-      dispatch(addProductToCartSuccess(JSON.stringify([...cart, product])));
+      if (index !== -1) {
+        let updatedCart = [...cart];
+        // when variant product selected cart_quantity value should be there
+        if (quantity) {
+          updatedCart[index].cart_quantity += quantity;
+        } else {
+          updatedCart[index].cart_quantity += 1;
+        }
+
+        dispatch(addProductToCartSuccess(JSON.stringify(updatedCart)));
+      } else {
+        if (!product.cart_quantity) {
+          product["cart_quantity"] = 1;
+        }
+        dispatch(addProductToCartSuccess(JSON.stringify([...cart, product])));
+      }
+    } catch (error) {
+      dispatch(addProductToCartError());
+      console.log(error);
     }
-  } catch (error) {
-    dispatch(addProductToCartError());
-    console.log(error);
-  }
-};
+  };
 
-export const decreaseProductFromCart = (productIndex) => async (dispatch, getState) => {
-  try {
-    dispatch(decreaseProductFromCartStart());
+export const decreaseProductFromCart =
+  (productIndex) => async (dispatch, getState) => {
+    try {
+      dispatch(decreaseProductFromCartStart());
 
-    const cart = JSON.parse(getState().cart.cart);
-    let updatedCart = '[]';
-    if( cart[productIndex].cart_quantity > 1 ){
-      updatedCart = [...cart];
-      updatedCart[productIndex].cart_quantity -= 1;
-    }else{
-      updatedCart = cart.filter((item, index) => index!=productIndex);
+      const cart = JSON.parse(getState().cart.cart);
+      let updatedCart = "[]";
+      if (cart[productIndex].cart_quantity > 1) {
+        updatedCart = [...cart];
+        updatedCart[productIndex].cart_quantity -= 1;
+      } else {
+        updatedCart = cart.filter((item, index) => index != productIndex);
+      }
+
+      dispatch(decreaseProductFromCartSuccess(JSON.stringify(updatedCart)));
+
+      return updatedCart.length;
+    } catch (error) {
+      dispatch(decreaseProductFromCartError());
+      console.log(error);
     }
-  
-    dispatch(decreaseProductFromCartSuccess(JSON.stringify(updatedCart)));
+  };
 
-    return updatedCart.length;
-  } catch (error) {
-    dispatch(decreaseProductFromCartError());
-    console.log(error);
-  }
-};
+export const removeProductFromCart =
+  (productIndex) => async (dispatch, getState) => {
+    try {
+      dispatch(removeProductFromCartStart());
 
-export const removeProductFromCart = (productIndex) => async (dispatch, getState) => {
-  try {
-    dispatch(removeProductFromCartStart());
+      const cart = JSON.parse(getState().cart.cart);
+      updatedCart = cart.filter((item, index) => index != productIndex);
 
-    const cart = JSON.parse(getState().cart.cart);
-    updatedCart = cart.filter((item, index) => index!=productIndex);
-  
-    dispatch(removeProductFromCartSuccess(JSON.stringify(updatedCart)));
-  } catch (error) {
-    dispatch(removeProductFromCartError());
-    console.log(error);
-  }
-};
+      dispatch(removeProductFromCartSuccess(JSON.stringify(updatedCart)));
+    } catch (error) {
+      dispatch(removeProductFromCartError());
+      console.log(error);
+    }
+  };
 
 export default cartSlice.reducer;
