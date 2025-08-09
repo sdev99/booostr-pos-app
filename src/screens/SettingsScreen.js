@@ -122,12 +122,15 @@ const SettingsScreen = ({ navigation }) => {
     console.log("Selected Reader");
     console.log(selectedReader);
     try {
-      const { reader, error } = await connectBluetoothReader({
-        reader: selectedReader,
-        // Since the simulated reader is not associated with a real location, we recommend
-        // specifying its existing mock location.
-        locationId: selectedReader.locationId,
-      }, 'bluetoothScan');
+      const { reader, error } = await connectBluetoothReader(
+        {
+          reader: selectedReader,
+          // Since the simulated reader is not associated with a real location, we recommend
+          // specifying its existing mock location.
+          locationId: selectedReader.locationId,
+        },
+        "bluetoothScan"
+      );
 
       if (error) {
         console.log("connectBluetoothReader error", error.message);

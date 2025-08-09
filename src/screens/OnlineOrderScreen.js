@@ -1,17 +1,30 @@
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ScrollView, Modal, ActivityIndicator } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  ScrollView,
+  Modal,
+  ActivityIndicator,
+} from "react-native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import Header from './Header';
-import BottomBar from './BottomBar';
+import Header from "./Header";
+import BottomBar from "./BottomBar";
 import { memoizedOrderList, memoizedStoreData } from "../store/selectors";
-import { removeOrderFromOrderList, setupOrderList } from "../store/reducers/orderListSlice";
+import {
+  removeOrderFromOrderList,
+  setupOrderList,
+} from "../store/reducers/orderListSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";
-import * as SQLite from 'expo-sqlite';
+import * as SQLite from "expo-sqlite";
 
 const OnlineOrderScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -35,46 +48,53 @@ const OnlineOrderScreen = ({ navigation }) => {
     // Add more items as needed
   ]);
   const [club, setClub] = useState([]);
-  const [isLoadingCompletedOrders, setIsLoadingCompletedOrders] = useState(true);
+  const [isLoadingCompletedOrders, setIsLoadingCompletedOrders] =
+    useState(true);
   const isLoadingOrderList = useSelector((state) => state.orderList.loading);
   const [completedOrders, setCompletedOrders] = useState([]);
   const storeData = useSelector(memoizedStoreData);
-  const db = SQLite.openDatabaseSync('pos.db');
-  const [selectedCol, setSelectedCol] = useState('onHold');
+  const db = SQLite.openDatabaseSync("pos.db");
+  const [selectedCol, setSelectedCol] = useState("onHold");
+  const [holdOrdersErrorMsg, setHoldOrdersErrorMsg] = useState("");
+  const [completedOrdersErrorMsg, setCompletedOrdersErrorMsg] = useState("");
 
   // Get completed orders
   useFocusEffect(
-      React.useCallback(() => {
-        const fetchData = async () => {
-          setIsLoadingCompletedOrders(true);
-          try {
-            const club = await AsyncStorage.getItem("club");
-            if( JSON.parse(club)?.post_slug ) {
-              setClub(JSON.parse(club));
-              const response = await axios.post(`${POS_STORE_API_URL}/pos-order-list`,
-              {"key":"latest"},{
+    React.useCallback(() => {
+      const fetchData = async () => {
+        setIsLoadingCompletedOrders(true);
+        try {
+          const club = await AsyncStorage.getItem("club");
+          if (JSON.parse(club)?.post_slug) {
+            setClub(JSON.parse(club));
+            const response = await axios.post(
+              `${POS_STORE_API_URL}/pos-order-list`,
+              { key: "latest" },
+              {
                 headers: {
-                  'Apitoken': POS_API_TOKEN,
-                  'X-Tenant': JSON.parse(club).post_slug
+                  Apitoken: POS_API_TOKEN,
+                  "X-Tenant": JSON.parse(club).post_slug,
                 },
-              });
-              if(response?.data?.result?.data){
-                setCompletedOrders(response.data.result.data);
-              }else if( response?.data?.error && response?.data?.message){
-                alert( response.data.message );
-              }else{
-                alert("kindly try after some time.");
               }
-            };
-          } catch (error) {
-            // console.error("Error fetching data:", error);
-            alert("kindly try after some time.");
+            );
+            if (response?.data?.result?.data) {
+              setCompletedOrdersErrorMsg("");
+              setCompletedOrders(response.data.result.data);
+            } else if (response?.data?.error && response?.data?.message) {
+              setCompletedOrdersErrorMsg(response.data.message);
+            } else {
+              setCompletedOrdersErrorMsg("No orders found");
+            }
           }
-          setIsLoadingCompletedOrders(false);
-        };
-        
-        fetchData();
-      }, [])
+        } catch (error) {
+          // console.error("Error fetching data:", error);
+          setCompletedOrdersErrorMsg("No orders found");
+        }
+        setIsLoadingCompletedOrders(false);
+      };
+
+      fetchData();
+    }, [])
   );
 
   const handleLogout = () => {
@@ -83,54 +103,91 @@ const OnlineOrderScreen = ({ navigation }) => {
 
   const formatedOrderStatus = (status) => {
     switch (status) {
-      case 'on-hold':
-        status = 'On Hold';
+      case "on-hold":
+        status = "On Hold";
         break;
-      case 'completed':
-        status = 'Completed';
+      case "completed":
+        status = "Completed";
         break;
       default:
         break;
     }
     return status;
-  }
+  };
 
   const getOrderTotalPrice = (items) => {
-    return '$' + items?.reduce((total, item) => total + item.max_price*item.cart_quantity, 0).toFixed(2);
-  }
+    return (
+      "$" +
+      items
+        ?.reduce(
+          (total, item) => total + item.max_price * item.cart_quantity,
+          0
+        )
+        .toFixed(2)
+    );
+  };
 
   const getOnHoldOrderId = (order) => {
-    return '#OH'+(orderList.indexOf(order)+1).toString().padStart(5,"0");
-  }
+    return "#OH" + (orderList.indexOf(order) + 1).toString().padStart(5, "0");
+  };
 
   const getOrderTotalItems = (items) => {
     return items?.reduce((total, item) => total + item.cart_quantity, 0);
-  }
+  };
 
   const renderOrderedItem = (order) => {
     return (
-      <TouchableOpacity onPress={() => handleItemPress(orderList.indexOf(order))}>
+      <TouchableOpacity
+        onPress={() => handleItemPress(orderList.indexOf(order))}
+      >
         <View style={styles.orderedItemContainer}>
           <View style={styles.orderedItem}>
-           {/* <View style={[styles.imageAndNameContainer, styles.pdBottom]}>
+            {/* <View style={[styles.imageAndNameContainer, styles.pdBottom]}>
             <Image source={item.image} style={styles.orderedItemImage} />
               <Text style={styles.orderedItemText}>{item.name}</Text>
             </View>*/}
             {/* <Text style={[styles.orderedItemText, styles.pdBottom]}>{item.name}</Text> */}
-            <Text style={[styles.orderedItemText, styles.pdBottom]}>{getOnHoldOrderId(order)}</Text>
-            <Text style={[styles.orderedItemStatus, styles.pdBottom, { color: order.status === "completed" ? "green" : "red" }]}>
+            <Text style={[styles.orderedItemText, styles.pdBottom]}>
+              {getOnHoldOrderId(order)}
+            </Text>
+            <Text
+              style={[
+                styles.orderedItemStatus,
+                styles.pdBottom,
+                { color: order.status === "completed" ? "green" : "red" },
+              ]}
+            >
               {formatedOrderStatus(order.status)}
             </Text>
-            <Text style={[styles.orderedItemText, styles.pdBottom]}>{getOrderTotalPrice(order.items)}</Text>
-            <View style={[styles.tmRow,styles.tmRowTop]}>
-              <Text style={[styles.orderedItemText, styles.quantText]}>Number of items: {getOrderTotalItems(order.items)}</Text>
-              <Text style={styles.orderedItemText}>{order?.created_at?.substring(11)}</Text>
-              <Text style={styles.orderedItemText}>{order?.created_at?.substring(0,10)}</Text>
+            <Text style={[styles.orderedItemText, styles.pdBottom]}>
+              {getOrderTotalPrice(order.items)}
+            </Text>
+            <View style={[styles.tmRow, styles.tmRowTop]}>
+              <Text style={[styles.orderedItemText, styles.quantText]}>
+                Number of items: {getOrderTotalItems(order.items)}
+              </Text>
+              <Text style={styles.orderedItemText}>
+                {order?.created_at?.substring(11)}
+              </Text>
+              <Text style={styles.orderedItemText}>
+                {order?.created_at?.substring(0, 10)}
+              </Text>
             </View>
-            <View style={[styles.tmRow, order.status === "on-hold" && styles.flexEnd]}>
-               {/* <Text style={[styles.CustomerText,styles.pdBottom]}>Customer: {item.Customer}</Text> */}
-               {order.status === "on-hold" && (
-                <TouchableOpacity onPress={() => {setSelectedOrder(orderList.indexOf(order));setCancelModalVisible(true)}} style={styles.cancelButton}>
+            <View
+              style={[
+                styles.tmRow,
+                order.status === "on-hold" && styles.flexEnd,
+              ]}
+            >
+              {/* <Text style={[styles.CustomerText,styles.pdBottom]}>Customer: {item.Customer}</Text> */}
+              {order.status === "on-hold" && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedOrder(orderList.indexOf(order));
+                    setCancelModalVisible(true);
+                  }}
+                  style={styles.cancelButton}
+                >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
@@ -143,27 +200,55 @@ const OnlineOrderScreen = ({ navigation }) => {
 
   const getCompletedOrderTotalItems = (items) => {
     return items.reduce((total, item) => total + item.qty, 0);
-  }
+  };
 
   const renderCompletedOrderedItem = (order) => {
     return (
       <TouchableOpacity onPress={() => handleCompletedOrderPress(order)}>
         <View style={styles.orderedItemContainer}>
           <View style={styles.orderedItem}>
-            <Text style={[styles.orderedItemText, styles.pdBottom]}>#{order.invoice_no}</Text>
-            <Text style={[styles.orderedItemStatus, styles.pdBottom, { color: "green" }]}>
+            <Text style={[styles.orderedItemText, styles.pdBottom]}>
+              #{order.invoice_no}
+            </Text>
+            <Text
+              style={[
+                styles.orderedItemStatus,
+                styles.pdBottom,
+                { color: "green" },
+              ]}
+            >
               Completed
             </Text>
-            <Text style={[styles.orderedItemText, styles.pdBottom]}>{storeData?.currency_info?.currency_icon}{order.total.toFixed(2)}</Text>
-            <View style={[styles.tmRow,styles.tmRowTop]}>
-              <Text style={[styles.orderedItemText, styles.quantText]}>Number of items: {getCompletedOrderTotalItems(order.orderitems)}</Text>
-              <Text style={styles.orderedItemText}>{order?.created_at?.substring(11,19)}</Text>
-              <Text style={styles.orderedItemText}>{order?.created_at?.substring(0,10)}</Text>
+            <Text style={[styles.orderedItemText, styles.pdBottom]}>
+              {storeData?.currency_info?.currency_icon}
+              {order.total.toFixed(2)}
+            </Text>
+            <View style={[styles.tmRow, styles.tmRowTop]}>
+              <Text style={[styles.orderedItemText, styles.quantText]}>
+                Number of items: {getCompletedOrderTotalItems(order.orderitems)}
+              </Text>
+              <Text style={styles.orderedItemText}>
+                {order?.created_at?.substring(11, 19)}
+              </Text>
+              <Text style={styles.orderedItemText}>
+                {order?.created_at?.substring(0, 10)}
+              </Text>
             </View>
-            <View style={[styles.tmRow, order.status === "on-hold" && styles.flexEnd]}>
-               {/* <Text style={[styles.CustomerText,styles.pdBottom]}>Customer: {item.Customer}</Text> */}
-               {order.status === "on-hold" && (
-                <TouchableOpacity onPress={() => {setSelectedOrder(orderList.indexOf(order));setCancelModalVisible(true)}} style={styles.cancelButton}>
+            <View
+              style={[
+                styles.tmRow,
+                order.status === "on-hold" && styles.flexEnd,
+              ]}
+            >
+              {/* <Text style={[styles.CustomerText,styles.pdBottom]}>Customer: {item.Customer}</Text> */}
+              {order.status === "on-hold" && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedOrder(orderList.indexOf(order));
+                    setCancelModalVisible(true);
+                  }}
+                  style={styles.cancelButton}
+                >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
               )}
@@ -187,27 +272,27 @@ const OnlineOrderScreen = ({ navigation }) => {
   const handleCancelOrder = async () => {
     try {
       dispatch(removeOrderFromOrderList(selectedOrder))
-      .then(() => {
+        .then(() => {
           db.transaction((tx) => {
             tx.executeSql(
-              'DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;',
+              "DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;",
               [orderList[selectedOrder].created_at, club.post_slug],
               () => {
-                console.log('Row deleted successfully');
+                console.log("Row deleted successfully");
               },
               (_, error) => {
-                console.error('Error deleting row:', error);
+                console.error("Error deleting row:", error);
               }
             );
           });
           setSelectedOrder(null);
           setCancelModalVisible(false); // Close the modal after handling cancel
-      })
-      .catch((error) => {
+        })
+        .catch((error) => {
           console.error("Error putting order on hold:", error);
-      });
+        });
     } catch (error) {
-        console.error("Error putting order on hold:", error);
+      console.error("Error putting order on hold:", error);
     }
   };
   const Tab = createMaterialTopTabNavigator();
@@ -217,65 +302,82 @@ const OnlineOrderScreen = ({ navigation }) => {
     return (
       <View style={styles.tabM}>
         <View style={styles.tabContainer}>
-        {state.routes.map((route, index) => {
-          const isFocused = state.index === index;
-          const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
-          };
+          {state.routes.map((route, index) => {
+            const isFocused = state.index === index;
+            const onPress = () => {
+              const event = navigation.emit({
+                type: "tabPress",
+                target: route.key,
+                canPreventDefault: true,
+              });
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            };
 
             return (
-                <TouchableOpacity
+              <TouchableOpacity
                 key={index}
                 style={[styles.tabButton, isFocused ? styles.activeTab : null]}
                 onPress={onPress}
+              >
+                <Text
+                  style={[
+                    styles.tabButtonText,
+                    isFocused ? styles.activeTabText : null,
+                  ]}
                 >
-                <Text style={[styles.tabButtonText, isFocused ? styles.activeTabText : null]}>
-                    {route.name}
+                  {route.name}
                 </Text>
-                </TouchableOpacity>
+              </TouchableOpacity>
             );
-            })}
+          })}
         </View>
       </View>
     );
   };
 
-  const PendingOrdersScreen = () => (
-    isLoadingOrderList
-    ? <View style={styles.containerLoaderTop}>
+  const PendingOrdersScreen = () => {
+    const holdedOrdersList = orderList.filter(
+      (item) => item.status === "on-hold"
+    );
+    return isLoadingOrderList ? (
+      <View style={styles.containerLoaderTop}>
         <ActivityIndicator size="medium" color="#00c0ff" />
       </View>
-    : <View style={styles.pdMain}>
-      <FlatList
-        data={orderList.filter((item) => item.status === "on-hold")}
-        renderItem={({item}) => renderOrderedItem(item)}
-        keyExtractor={(item) => orderList.indexOf(item).toString()}
-      />
-    </View>
-  );
-  
-  const CompletedOrdersScreen = () => (
-    isLoadingCompletedOrders
-    ? <View style={styles.containerLoaderTop}>
-        <ActivityIndicator size="medium" color="#00c0ff" />
+    ) : (
+      <View style={styles.pdMain}>
+        {holdedOrdersList?.length > 0 ? (
+          <FlatList
+            data={holdedOrdersList}
+            renderItem={({ item }) => renderOrderedItem(item)}
+            keyExtractor={(item) => orderList.indexOf(item).toString()}
+          />
+        ) : (
+          <Text style={styles.errorMessage}>No orders found</Text>
+        )}
       </View>
-    : <View style={styles.cmMain}>
-        <FlatList
-          data={completedOrders}
-          renderItem={({item}) => renderCompletedOrderedItem(item)}
-          keyExtractor={(item) => item.id.toString()}
-        />
-      </View>
-  );
+    );
+  };
 
-  
+  const CompletedOrdersScreen = () =>
+    isLoadingCompletedOrders ? (
+      <View style={styles.containerLoaderTop}>
+        <ActivityIndicator size="medium" color="#00c0ff" />
+      </View>
+    ) : (
+      <View style={styles.cmMain}>
+        {completedOrders?.length > 0 ? (
+          <FlatList
+            data={completedOrders}
+            renderItem={({ item }) => renderCompletedOrderedItem(item)}
+            keyExtractor={(item) => item.id.toString()}
+          />
+        ) : (
+          <Text style={styles.errorMessage}>{completedOrdersErrorMsg}</Text>
+        )}
+      </View>
+    );
 
   // Remove Expired On-Hold Orders
   useFocusEffect(
@@ -301,10 +403,10 @@ const OnlineOrderScreen = ({ navigation }) => {
           });
         }, 1000); // Run every second
       };
-      
+
       checkOrders();
     }, [])
-);
+  );
 
   return (
     <View style={styles.container}>
@@ -319,26 +421,55 @@ const OnlineOrderScreen = ({ navigation }) => {
       <View style={styles.nestedTabContainer}>
         <View style={styles.tabClickNav}>
           <TouchableOpacity
-            style={[styles.tabButton, styles.tabClickNavBtn, {backgroundColor: selectedCol === 'onHold' ? "#00c0ff" : "#fff", color: selectedCol === 'onHold' ? "#fff" : "#000"}]}
-            onPress={() => setSelectedCol('onHold')}
+            style={[
+              styles.tabButton,
+              styles.tabClickNavBtn,
+              {
+                backgroundColor: selectedCol === "onHold" ? "#00c0ff" : "#fff",
+                color: selectedCol === "onHold" ? "#fff" : "#000",
+              },
+            ]}
+            onPress={() => setSelectedCol("onHold")}
+          >
+            <Text
+              style={[
+                styles.tabButtonText,
+                { color: selectedCol === "onHold" ? "#fff" : "#000" },
+              ]}
             >
-            <Text style={[styles.tabButtonText, {color: selectedCol === 'onHold' ? "#fff" : "#000"}]}>On Hold</Text>
+              On Hold
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tabButton, styles.tabClickNavBtn, {backgroundColor: selectedCol === 'completed' ? "#00c0ff" : "#fff"}]}
-            onPress={() => setSelectedCol('completed')}
+            style={[
+              styles.tabButton,
+              styles.tabClickNavBtn,
+              {
+                backgroundColor:
+                  selectedCol === "completed" ? "#00c0ff" : "#fff",
+              },
+            ]}
+            onPress={() => setSelectedCol("completed")}
+          >
+            <Text
+              style={[
+                styles.tabButtonText,
+                { color: selectedCol === "completed" ? "#fff" : "#000" },
+              ]}
             >
-            <Text style={[styles.tabButtonText, {color: selectedCol === 'completed' ? "#fff" : "#000"}]}>Completed</Text>
+              Completed
+            </Text>
           </TouchableOpacity>
         </View>
         {/* <Tab.Navigator tabBar={CustomTabBar}>
           <Tab.Screen name="On Hold" component={PendingOrdersScreen} />
           <Tab.Screen name="Completed" component={CompletedOrdersScreen} />
         </Tab.Navigator> */}
-        { selectedCol === 'onHold'
-            ? <PendingOrdersScreen />
-            : <CompletedOrdersScreen />
-        }
+        {selectedCol === "onHold" ? (
+          <PendingOrdersScreen />
+        ) : (
+          <CompletedOrdersScreen />
+        )}
       </View>
       <View style={styles.bottomBar}>
         <BottomBar />
@@ -353,13 +484,22 @@ const OnlineOrderScreen = ({ navigation }) => {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalText}>
-              You have chosen to CANCEL an order in progress. If you wish to CANCEL this current order, please click CONFIRM CANCELLATION below. If you chose this by error, please click CANCEL CANCELLATION.
+              You have chosen to CANCEL an order in progress. If you wish to
+              CANCEL this current order, please click CONFIRM CANCELLATION
+              below. If you chose this by error, please click CANCEL
+              CANCELLATION.
             </Text>
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.confirmButton} onPress={handleCancelOrder}>
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={handleCancelOrder}
+              >
                 <Text style={styles.modalButtonText}>CONFIRM CANCELLATION</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalButton} onPress={() => setCancelModalVisible(false)}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => setCancelModalVisible(false)}
+              >
                 <Text style={styles.modalButtonText}>CANCEL CANCELLATION</Text>
               </TouchableOpacity>
             </View>
@@ -373,8 +513,8 @@ const OnlineOrderScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingBottom:80,
-    position: 'relative',
+    paddingBottom: 80,
+    position: "relative",
   },
   titleContainer: {
     padding: 15,
@@ -387,21 +527,22 @@ const styles = StyleSheet.create({
     color: "#000",
     marginLeft: 10,
   },
-  tabM:{
-    paddingHorizontal:11,
-    paddingTop:15,
+  tabM: {
+    paddingHorizontal: 11,
+    paddingTop: 15,
   },
-  cmMain:{
-    padding:15,
+  cmMain: {
+    padding: 15,
+    width: "100%",
   },
-  pdMain:{
-    padding:15,
+  pdMain: {
+    padding: 15,
+    width: "100%",
   },
   tabContainer: {
     height: "100%",
     flexDirection: "row",
-    borderRadius:6,
-    
+    borderRadius: 6,
   },
   tabButton: {
     flex: 1,
@@ -409,24 +550,22 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 6,
     padding: 15,
-    width: '49%',
-    marginHorizontal:"1%",
+    width: "49%",
+    marginHorizontal: "1%",
   },
   tabButtonText: {
     color: "#000",
     fontSize: 14,
     fontWeight: "bold",
-
   },
   activeTab: {
     backgroundColor: "#00c0ff",
-    
   },
   activeTabText: {
     color: "white",
   },
   bottomBar: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
@@ -434,45 +573,45 @@ const styles = StyleSheet.create({
   orderedItemContainer: {
     marginVertical: 5,
   },
-  tmRow:{
+  tmRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    flexWrap:'wrap',
-    width:"100%",
-    backgroundColor:"#f1f1f1",
-    borderRadius:6,
-    marginTop:10,
+    flexWrap: "wrap",
+    width: "100%",
+    backgroundColor: "#f1f1f1",
+    borderRadius: 6,
+    marginTop: 10,
   },
-  tmRowTop:{
-    borderRadius:0,
-    borderTopColor:'#ddd',
-    borderTopWidth:1,
-    borderBottomColor:'#ddd',
-    borderBottomWidth:1,
-    backgroundColor:'none',
+  tmRowTop: {
+    borderRadius: 0,
+    borderTopColor: "#ddd",
+    borderTopWidth: 1,
+    borderBottomColor: "#ddd",
+    borderBottomWidth: 1,
+    backgroundColor: "none",
   },
   flexEnd: {
     justifyContent: "flex-end",
   },
-  quantText:{
-    padding:8,
+  quantText: {
+    padding: 8,
   },
-  Customer:{
-    textAlign:'right',
+  Customer: {
+    textAlign: "right",
     flexDirection: "row",
-    justifyContent:'flex-end'
+    justifyContent: "flex-end",
   },
   orderedItem: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    flexWrap:'wrap',
+    flexWrap: "wrap",
     padding: 15,
     borderRadius: 6,
     backgroundColor: "#FFF",
     shadowColor: "#000",
-    height:'auto',
+    height: "auto",
     shadowOffset: {
       width: 0,
       height: 4,
@@ -484,8 +623,8 @@ const styles = StyleSheet.create({
   imageAndNameContainer: {
     alignItems: "center",
   },
-  pdBottom:{
-    paddingVertical:10,
+  pdBottom: {
+    paddingVertical: 10,
   },
   orderedItemImage: {
     width: "40%",
@@ -500,7 +639,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginLeft: 10,
   },
-  CustomerText:{
+  CustomerText: {
     flex: 1,
     fontSize: 14,
     color: "#515151",
@@ -516,11 +655,11 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     marginLeft: 10,
-    padding:8,
-    backgroundColor:'red',
-    borderRadius:6,
+    padding: 8,
+    backgroundColor: "red",
+    borderRadius: 6,
   },
-  
+
   cancelButtonText: {
     color: "#fff",
     fontSize: 14,
@@ -537,14 +676,14 @@ const styles = StyleSheet.create({
     padding: 30,
     borderRadius: 6,
     width: "90%",
-    maxWidth:500,
-    marginHorizontal:'auto',
+    maxWidth: 500,
+    marginHorizontal: "auto",
   },
   modalText: {
     fontSize: 14,
     marginBottom: 20,
-    textAlign:'center',
-    color:'#777',
+    textAlign: "center",
+    color: "#777",
   },
   modalButtons: {
     flexDirection: "row",
@@ -558,7 +697,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
     alignItems: "center",
   },
-  confirmButton:{
+  confirmButton: {
     flex: 1,
     backgroundColor: "red",
     padding: 10,
@@ -574,36 +713,44 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "flex-start",
-    paddingTop: 40
+    paddingTop: 40,
   },
   nestedTabContainer: {
     height: "100%",
     display: "flex",
-    flexDirection: 'row',
+    flexDirection: "row",
     position: "relative",
     paddingTop: 55,
-    paddingBottom : 150
+    paddingBottom: 150,
   },
   tabClickNav: {
     width: "100%",
-    display: 'flex',
-    flexDirection: 'row'
+    display: "flex",
+    flexDirection: "row",
   },
   tabClickNav: {
-    padding:15,
+    padding: 15,
     paddingHorizontal: 10,
     position: "absolute",
     top: 0,
     width: "100%",
     height: 80,
-    display: 'flex',
-    flexDirection: 'row'
+    display: "flex",
+    flexDirection: "row",
   },
   tabClickNavBtn: {
     width: "100%",
-    backgroundColor: '#fff',
-    zIndex: 1
-  }
+    backgroundColor: "#fff",
+    zIndex: 1,
+  },
+  errorMessage: {
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    fontSize: 16,
+    color: "#444",
+    width: "100%",
+    textAlign: "center",
+  },
 });
 
 export default OnlineOrderScreen;

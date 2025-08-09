@@ -71,16 +71,8 @@ export const fetchStoreData = (club) => async (dispatch) => {
     }
   } catch (error) {
     dispatch(fetchStoreDataError());
-    Alert.alert(
-      "Alert!",
-      error.response?.data?.message ?? error.message,
-      [
-        {
-          text: "OK",
-          onPress: () => console.log("OK Pressed"),
-        },
-      ],
-      { cancelable: true }
+    console.log(
+      `pos-get-store-details:${error.response?.data?.message ?? error.message}`
     );
   }
 };

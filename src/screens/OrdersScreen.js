@@ -403,41 +403,45 @@ const OrdersScreen = ({ navigation, route }) => {
           { paddingBottom: cart.length > 0 ? 90 : 0 },
         ]}
       >
-        <ScrollView
-          ref={scrollViewRef}
-          onScroll={({ nativeEvent }) => {
-            const isCloseToBottom =
-              nativeEvent.layoutMeasurement.height +
-                nativeEvent.contentOffset.y >=
-              nativeEvent.contentSize.height - 10;
-            if (
-              isCloseToBottom &&
-              !isMoreProductLoading &&
+        {groupedProducts?.length > 0 ? (
+          <ScrollView
+            ref={scrollViewRef}
+            onScroll={({ nativeEvent }) => {
+              const isCloseToBottom =
+                nativeEvent.layoutMeasurement.height +
+                  nativeEvent.contentOffset.y >=
+                nativeEvent.contentSize.height - 10;
+              if (
+                isCloseToBottom &&
+                !isMoreProductLoading &&
+                categoryCurrentPage[selectedCategory] <
+                  categoryTotalPages[selectedCategory]
+              ) {
+                setPreviousLastItemPosition(
+                  nativeEvent.layoutMeasurement.height - 50
+                );
+                setIsMoreProductLoading(true);
+                loadMoreContent();
+              }
+            }}
+            scrollEventThrottle={16}
+          >
+            {groupedProducts.map((item, index) => {
+              return renderTwoProductsInRow(item, index);
+            })}
+            {(categoryCurrentPage[selectedCategory] == undefined ||
               categoryCurrentPage[selectedCategory] <
-                categoryTotalPages[selectedCategory]
-            ) {
-              setPreviousLastItemPosition(
-                nativeEvent.layoutMeasurement.height - 50
-              );
-              setIsMoreProductLoading(true);
-              loadMoreContent();
-            }
-          }}
-          scrollEventThrottle={16}
-        >
-          {groupedProducts.map((item, index) => {
-            return renderTwoProductsInRow(item, index);
-          })}
-          {(categoryCurrentPage[selectedCategory] == undefined ||
-            categoryCurrentPage[selectedCategory] <
-              categoryTotalPages[selectedCategory]) && (
-            <View style={styles.loadMoreContainer}>
-              <View style={styles.loader}>
-                <ActivityIndicator size="medium" color="#00c0ff" />
+                categoryTotalPages[selectedCategory]) && (
+              <View style={styles.loadMoreContainer}>
+                <View style={styles.loader}>
+                  <ActivityIndicator size="medium" color="#00c0ff" />
+                </View>
               </View>
-            </View>
-          )}
-        </ScrollView>
+            )}
+          </ScrollView>
+        ) : (
+          <Text style={styles.errorMessage}>No products found</Text>
+        )}
       </View>
       {cart.length > 0 && renderCheckoutButton()}
       {/* Cancel Order Modal */}
@@ -737,6 +741,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 40,
     paddingBottom: 20,
+  },
+  errorMessage: {
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    fontSize: 16,
+    color: "#444",
+    width: "100%",
+    textAlign: "center",
   },
 });
 
