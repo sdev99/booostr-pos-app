@@ -8,6 +8,7 @@ import {
   Linking,
   Modal,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useSelector, useDispatch } from "react-redux";
@@ -44,9 +45,11 @@ const SettingsScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const [isAccountModalVisible, setAccountModalVisible] = useState(false);
   const [isReadersModalVisible, setReadersModalVisible] = useState(false);
+  const [discoverReaderErrorMsg, setDiscoverReaderErrorMsg] = useState("");
   const loading = useSelector((state) => state.auth.loading);
   const userData = useSelector(memoizedUserData);
   const {
+    getLocations,
     discoverReaders,
     connectReader: connectBluetoothReader,
     discoveredReaders,
@@ -96,6 +99,7 @@ const SettingsScreen = ({ navigation }) => {
   const handleDiscoverReaders = async () => {
     // The list of discovered readers is reported in the `didUpdateDiscoveredReaders` method
     // within the `useStripeTerminal` hook.
+    setDiscoverReaderErrorMsg("");
     const { error } = await discoverReaders({
       discoveryMethod: "bluetoothScan",
       // simulated: true,
@@ -103,7 +107,7 @@ const SettingsScreen = ({ navigation }) => {
 
     if (error) {
       if (error.code != "Canceled") {
-        alert(`Discover readers error: ${error.message}`);
+        setDiscoverReaderErrorMsg(error.message);
       }
     }
   };
@@ -113,38 +117,62 @@ const SettingsScreen = ({ navigation }) => {
 
     if (error) {
       console.log("connectBluetoothReader error", error);
-      alert(`Error cancelling scan: ${error.message}`);
+      // alert(`Error cancelling scan: ${error.message}`);
       return;
     }
   };
 
   const handleConnectBluetoothReader = async (selectedReader) => {
-    console.log("Selected Reader");
-    console.log(selectedReader);
+    // Get locations
+    let locationId = selectedReader.locationId;
     try {
+      const club = await AsyncStorage.getItem("club");
+      const clubData = JSON.parse(club);
+
+      const response = await getLocations(); // get locations from stripe
+      if (response.locations?.length > 0) {
+        const locationData = response.locations.find(
+          (location) =>
+            location.displayName.toLowerCase() ===
+            clubData.post_title.toLowerCase()
+        );
+        if (locationData) {
+          locationId = locationData.id;
+        } else {
+          locationId = response.locations[0].id;
+        }
+      }
+    } catch (error) {}
+
+    try {
+      if (!locationId) {
+        Alert.alert(
+          "Location Not Found!",
+          "Please create location on the stripe dashboard for your club."
+        );
+        return;
+      }
       const { reader, error } = await connectBluetoothReader(
         {
           reader: selectedReader,
           // Since the simulated reader is not associated with a real location, we recommend
           // specifying its existing mock location.
-          locationId: selectedReader.locationId,
+          locationId,
         },
         "bluetoothScan"
       );
 
       if (error) {
         console.log("connectBluetoothReader error", error.message);
-        alert("Unable to connect to reader.");
+        Alert.alert("Connect Error!", error.message);
         return;
       } else {
         setReadersModalVisible(false);
-        alert("Reader connected successfully.");
+        Alert.alert("Success!", "Reader connected successfully.");
       }
     } catch (error) {
       console.error("Error while fetching connected reader:", error);
-      alert(
-        `An error occurred while connecting to the reader: ${error.message}`
-      );
+      Alert.alert("Connect Error!", `Throw: ${error.message}`);
     }
   };
 
@@ -290,22 +318,36 @@ const SettingsScreen = ({ navigation }) => {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Found Stripe Reader</Text>
+            <Text style={styles.modalTitle}>
+              {discoveredReaders?.length > 0
+                ? "Found Stripe Reader"
+                : "Stripe Reader Discover"}
+            </Text>
             <ScrollView style={styles.readerList}>
-              {discoveredReaders.map((reader, index) => {
-                return (
-                  <View key={index} style={styles.reader}>
-                    <Text style={styles.readerText}>{reader.serialNumber}</Text>
-                    <TouchableOpacity
-                      style={styles.readerConnect}
-                      onPress={() => handleConnectBluetoothReader(reader)}
-                    >
-                      <Text style={styles.readerConnectText}>Connect</Text>
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
-              <Text style={styles.scanning}>Scanning...</Text>
+              {discoverReaderErrorMsg ? (
+                <Text style={styles.scanning}>{discoverReaderErrorMsg}</Text>
+              ) : (
+                <>
+                  {discoveredReaders.map((reader, index) => {
+                    return (
+                      <View key={index} style={styles.reader}>
+                        <Text style={styles.readerText}>
+                          {reader.serialNumber}
+                        </Text>
+                        <TouchableOpacity
+                          style={styles.readerConnect}
+                          onPress={() => handleConnectBluetoothReader(reader)}
+                        >
+                          <Text style={styles.readerConnectText}>Connect</Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                  {discoveredReaders.length === 0 && (
+                    <Text style={styles.scanning}>Scanning...</Text>
+                  )}
+                </>
+              )}
             </ScrollView>
             <TouchableOpacity
               style={styles.modalCloseButton}
