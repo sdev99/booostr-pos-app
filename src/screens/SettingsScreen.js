@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,8 @@ import { memoizedUserData } from "../store/selectors";
 import Header from "./Header";
 import BottomBar from "./BottomBar";
 import { useStripeTerminal } from "@stripe/stripe-terminal-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import FullScreenLoader from "./Modal/FullScreenLoader";
 
 const CustomModal = ({ isVisible, onClose, title, content }) => {
   return (
@@ -43,6 +45,8 @@ const CustomModal = ({ isVisible, onClose, title, content }) => {
 
 const SettingsScreen = ({ navigation }) => {
   const dispatch = useDispatch();
+  const loaderRef = useRef();
+
   const [isAccountModalVisible, setAccountModalVisible] = useState(false);
   const [isReadersModalVisible, setReadersModalVisible] = useState(false);
   const [discoverReaderErrorMsg, setDiscoverReaderErrorMsg] = useState("");
@@ -126,6 +130,8 @@ const SettingsScreen = ({ navigation }) => {
     // Get locations
     let locationId = selectedReader.locationId;
     try {
+      loaderRef.current.show(`Connecting Reader\n(${selectedReader.serialNumber})`);
+
       const club = await AsyncStorage.getItem("club");
       const clubData = JSON.parse(club);
 
@@ -146,6 +152,7 @@ const SettingsScreen = ({ navigation }) => {
 
     try {
       if (!locationId) {
+        loaderRef.current.hide();
         Alert.alert(
           "Location Not Found!",
           "Please create location on the stripe dashboard for your club."
@@ -163,14 +170,17 @@ const SettingsScreen = ({ navigation }) => {
       );
 
       if (error) {
+        loaderRef.current.hide();
         console.log("connectBluetoothReader error", error.message);
         Alert.alert("Connect Error!", error.message);
         return;
       } else {
+        loaderRef.current.hide();
         setReadersModalVisible(false);
         Alert.alert("Success!", "Reader connected successfully.");
       }
     } catch (error) {
+      loaderRef.current.hide();
       console.error("Error while fetching connected reader:", error);
       Alert.alert("Connect Error!", `Throw: ${error.message}`);
     }
@@ -357,6 +367,7 @@ const SettingsScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         </View>
+        <FullScreenLoader ref={loaderRef} />
       </Modal>
 
       <View style={styles.bottomBar}>
