@@ -1,15 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Modal} from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  Modal,
+} from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import Header from './Header';
-import BottomBar from './BottomBar';
+import Header from "./Header";
+import BottomBar from "./BottomBar";
 import { memoizedOrderList } from "../store/selectors";
 import productPlaceholder from "../assets/product-placeholder.png";
-import { removeOrderFromOrderList, increaseItemInOrder, decreaseItemInOrder, removeItemFromOrder } from "../store/reducers/orderListSlice";
-import * as SQLite from 'expo-sqlite';
+import {
+  removeOrderFromOrderList,
+  increaseItemInOrder,
+  decreaseItemInOrder,
+  removeItemFromOrder,
+} from "../store/reducers/orderListSlice";
+import * as SQLite from "expo-sqlite";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import { getItemPrice, getVariationsNames } from "../api/product";
 
 const OrderDetailScreen = ({ route, navigation }) => {
   const dispatch = useDispatch();
@@ -17,7 +30,7 @@ const OrderDetailScreen = ({ route, navigation }) => {
   const orderList = useSelector(memoizedOrderList);
   const [isCancelModalVisible, setCancelModalVisible] = useState(false);
   const orderIndex = route.params?.orderIndex;
-  const db = SQLite.openDatabaseSync('pos.db');
+  const db = SQLite.openDatabaseSync("pos.db");
 
   const orderDate = orderList[orderIndex]?.created_at;
   const futureDate = new Date(orderDate);
@@ -28,10 +41,10 @@ const OrderDetailScreen = ({ route, navigation }) => {
   useEffect(() => {
     const fetchClub = async () => {
       const club = await AsyncStorage.getItem("club");
-      if( JSON.parse(club)?.post_slug ) {
+      if (JSON.parse(club)?.post_slug) {
         setClub(JSON.parse(club));
       }
-    }
+    };
 
     fetchClub();
   }, []);
@@ -46,20 +59,23 @@ const OrderDetailScreen = ({ route, navigation }) => {
         try {
           db.transaction((tx) => {
             tx.executeSql(
-              'DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;',
+              "DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;",
               [orderDate, club.post_slug],
               () => {
-                console.log('Row deleted successfully');
+                console.log("Row deleted successfully");
                 dispatch(removeOrderFromOrderList(orderIndex))
                   .then(() => {
-                    navigation.navigate('OnlineOrder');
+                    navigation.navigate("OnlineOrder");
                   })
                   .catch((error) => {
-                    console.error("Error removing order from orderList:", error);
+                    console.error(
+                      "Error removing order from orderList:",
+                      error
+                    );
                   });
               },
               (_, error) => {
-                console.error('Error deleting row:', error);
+                console.error("Error deleting row:", error);
               }
             );
           });
@@ -95,22 +111,21 @@ const OrderDetailScreen = ({ route, navigation }) => {
 
   const handleDeleteItem = async (itemId) => {
     try {
-      if(orderList[orderIndex].items.length === 1){
+      if (orderList[orderIndex].items.length === 1) {
         dispatch(removeOrderFromOrderList(orderIndex))
-        .then(() => {
-          navigation.navigate('OnlineOrder');
-        })
-        .catch((error) => {
+          .then(() => {
+            navigation.navigate("OnlineOrder");
+          })
+          .catch((error) => {
             console.error("Error removing order from orderList:", error);
-        });
-      }else{
-        dispatch(removeItemFromOrder(orderIndex, itemId))
-        .catch((error) => {
-            console.error("Error removing item from order:", error);
+          });
+      } else {
+        dispatch(removeItemFromOrder(orderIndex, itemId)).catch((error) => {
+          console.error("Error removing item from order:", error);
         });
       }
     } catch (error) {
-        console.error("Error removing item from order:", error);
+      console.error("Error removing item from order:", error);
     }
   };
 
@@ -124,13 +139,12 @@ const OrderDetailScreen = ({ route, navigation }) => {
   };
   const handleContinueShopping = () => {
     // Handle logic for Continue Shopping button
-   navigation.navigate('Orders');
+    navigation.navigate("Orders");
   };
   const handleIncreaseQuantity = async (itemIndex) => {
     try {
-      dispatch(increaseItemInOrder(orderIndex, itemIndex))
-      .catch((error) => {
-          console.error("Error increasing item quantity:", error);
+      dispatch(increaseItemInOrder(orderIndex, itemIndex)).catch((error) => {
+        console.error("Error increasing item quantity:", error);
       });
     } catch (error) {
       console.error("Error increasing item quantity:", error);
@@ -139,12 +153,12 @@ const OrderDetailScreen = ({ route, navigation }) => {
   const handleDecreaseQuantity = async (itemIndex) => {
     try {
       dispatch(decreaseItemInOrder(orderIndex, itemIndex))
-      .then((itemsCount) => {
-        if( itemsCount === 0 ) navigation.navigate('OnlineOrder');
-      })
-      .catch((error) => {
+        .then((itemsCount) => {
+          if (itemsCount === 0) navigation.navigate("OnlineOrder");
+        })
+        .catch((error) => {
           console.error("Error decreasing item quantity:", error);
-      });
+        });
     } catch (error) {
       console.error("Error decreasing item quantity:", error);
     }
@@ -154,20 +168,20 @@ const OrderDetailScreen = ({ route, navigation }) => {
       console.log(orderDate);
       db.transaction((tx) => {
         tx.executeSql(
-          'DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;',
+          "DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;",
           [orderDate, club.post_slug],
           () => {
-            console.log('Row deleted successfully');
+            console.log("Row deleted successfully");
             dispatch(removeOrderFromOrderList(orderIndex))
-            .then(() => {
-              navigation.navigate('OnlineOrder');
-            })
-            .catch((error) => {
+              .then(() => {
+                navigation.navigate("OnlineOrder");
+              })
+              .catch((error) => {
                 console.error("Error removing order from orderList:", error);
-            });
+              });
           },
           (_, error) => {
-            console.error('Error deleting row:', error);
+            console.error("Error deleting row:", error);
           }
         );
       });
@@ -177,8 +191,8 @@ const OrderDetailScreen = ({ route, navigation }) => {
   };
 
   const getOnHoldOrderId = (order) => {
-    return '#OH'+(orderList.indexOf(order)+1).toString().padStart(5,"0");
-  }
+    return "#OH" + (orderList.indexOf(order) + 1).toString().padStart(5, "0");
+  };
 
   return (
     <View style={styles.container}>
@@ -188,50 +202,87 @@ const OrderDetailScreen = ({ route, navigation }) => {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={24} color="black" />
           </TouchableOpacity>
-          <Text style={styles.title}>Order {getOnHoldOrderId(orderList[orderIndex])}</Text>
+          <Text style={styles.title}>
+            Order {getOnHoldOrderId(orderList[orderIndex])}
+          </Text>
         </View>
         <View style={styles.titleRight}>
-        <TouchableOpacity onPress={() => setCancelModalVisible(true)}>
-          <Text style={styles.titleCancel}>Cancel Order</Text>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={() => setCancelModalVisible(true)}>
+            <Text style={styles.titleCancel}>Cancel Order</Text>
+          </TouchableOpacity>
         </View>
       </View>
       <View style={styles.titleContainer}>
-        { ( timeLeft?.days || timeLeft?.hours || timeLeft?.minutes || timeLeft?.seconds ) && timeLeft?.days >= 0
-          ? <Text>Expiry: {timeLeft?.days}d {timeLeft?.hours}h {timeLeft?.minutes}m {timeLeft?.seconds}s</Text>
-          : null
-        }
+        {(timeLeft?.days ||
+          timeLeft?.hours ||
+          timeLeft?.minutes ||
+          timeLeft?.seconds) &&
+        timeLeft?.days >= 0 ? (
+          <Text>
+            Expiry: {timeLeft?.days}d {timeLeft?.hours}h {timeLeft?.minutes}m{" "}
+            {timeLeft?.seconds}s
+          </Text>
+        ) : null}
       </View>
       <View style={styles.itemsMain}>
         <View style={styles.itemsMainWrap}>
           <FlatList
             data={orderList[orderIndex]?.items}
-            keyExtractor={(item) => orderList[orderIndex]?.items.indexOf(item).toString()}
+            keyExtractor={(item) =>
+              orderList[orderIndex]?.items.indexOf(item).toString()
+            }
             renderItem={({ item, index }) => (
               <View style={styles.cartItem}>
-              <Image source={item?.media?.value ? {uri: item?.media?.value} : productPlaceholder} style={styles.cartItemImage} />
-              <View style={styles.cartItemDetails}>
-                <Text style={styles.cartItemName}>{item.title}</Text>
-                <View style={styles.quantityContainer}>
-                  <TouchableOpacity style={styles.ButtonRounded} onPress={() => handleDecreaseQuantity(index)}>
-                    <Icon name="minus" size={20} color="#fff" />
-                  </TouchableOpacity>
-                  <Text style={styles.quantityText}>{item?.cart_quantity}</Text>
-                  <TouchableOpacity style={styles.ButtonRounded} onPress={() => handleIncreaseQuantity(index)}>
-                    <Icon name="plus" size={20} color="#fff" />
+                <Image
+                  source={
+                    item?.media?.value
+                      ? { uri: item?.media?.value }
+                      : productPlaceholder
+                  }
+                  style={styles.cartItemImage}
+                />
+                <View style={styles.cartItemDetails}>
+                  <Text style={styles.cartItemName}>{item.title}</Text>
+                  {item.is_variation === 1 && (
+                    <View style={styles.variantContainer}>
+                      {getVariationsNames(item).map((option, index) => (
+                        <Text key={index} style={styles.variantText}>
+                          {option}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                  <View style={styles.quantityContainer}>
+                    <TouchableOpacity
+                      style={styles.ButtonRounded}
+                      onPress={() => handleDecreaseQuantity(index)}
+                    >
+                      <Icon name="minus" size={20} color="#fff" />
+                    </TouchableOpacity>
+                    <Text style={styles.quantityText}>
+                      {item?.cart_quantity}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.ButtonRounded}
+                      onPress={() => handleIncreaseQuantity(index)}
+                    >
+                      <Icon name="plus" size={20} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <View style={styles.cartItemPriceContainer}>
+                  <Text style={styles.cartItemPrice}>
+                    {" "}
+                    ${(getItemPrice(item) * item.cart_quantity).toFixed(2)}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDeleteItem(item.id)}
+                  >
+                    <Icon name="delete" size={24} color="#2222224d" />
                   </TouchableOpacity>
                 </View>
               </View>
-              <View style={styles.cartItemPriceContainer}>
-                <Text style={styles.cartItemPrice}> ${(item.max_price*item.cart_quantity).toFixed(2)}</Text>
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={() => handleDeleteItem(item.id)}
-                >
-                  <Icon name="delete" size={24} color="#2222224d" />
-                </TouchableOpacity>
-              </View>
-            </View>
             )}
           />
           <View style={styles.bottomButtonsContainer}>
@@ -246,8 +297,17 @@ const OrderDetailScreen = ({ route, navigation }) => {
               onPress={handleCompleteButtonPress}
               disabled={false} // You can adjust the disabled state based on your logic
             >
-              <Text style={[styles.bottomButtonText, styles.completeButtonText]}>Complete Order</Text>
-              <Icon name="chevron-right" size={20} color="#fff" style={styles.completeButtonIcon} />
+              <Text
+                style={[styles.bottomButtonText, styles.completeButtonText]}
+              >
+                Complete Order
+              </Text>
+              <Icon
+                name="chevron-right"
+                size={20}
+                color="#fff"
+                style={styles.completeButtonIcon}
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -255,8 +315,8 @@ const OrderDetailScreen = ({ route, navigation }) => {
       <View style={styles.bottomBar}>
         <BottomBar />
       </View>
-       {/* Cancel Order Modal */}
-       <Modal
+      {/* Cancel Order Modal */}
+      <Modal
         animationType="slide"
         transparent={true}
         visible={isCancelModalVisible}
@@ -265,13 +325,22 @@ const OrderDetailScreen = ({ route, navigation }) => {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalText}>
-              You have chosen to CANCEL an order in progress. If you wish to CANCEL this current order, please click CONFIRM CANCELLATION below. If you chose this by error, please click CANCEL CANCELLATION.
+              You have chosen to CANCEL an order in progress. If you wish to
+              CANCEL this current order, please click CONFIRM CANCELLATION
+              below. If you chose this by error, please click CANCEL
+              CANCELLATION.
             </Text>
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.confirmButton} onPress={handleCancelOrder}>
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={handleCancelOrder}
+              >
                 <Text style={styles.modalButtonText}>CONFIRM CANCELLATION</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalButton} onPress={() => setCancelModalVisible(false)}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => setCancelModalVisible(false)}
+              >
                 <Text style={styles.modalButtonText}>CANCEL CANCELLATION</Text>
               </TouchableOpacity>
             </View>
@@ -285,52 +354,52 @@ const OrderDetailScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingBottom:80,
-    position:'relative'
+    paddingBottom: 80,
+    position: "relative",
   },
-  
+
   title: {
     fontSize: 16,
     fontWeight: "bold",
     color: "#000",
-    marginLeft:10,
+    marginLeft: 10,
   },
-  titleLeft:{
+  titleLeft: {
     flexDirection: "row",
     alignItems: "center",
   },
-  titleCancel:{
+  titleCancel: {
     color: "#fff",
     fontWeight: "bold",
     borderWidth: 1,
     borderColor: "#c7c8c7",
-    paddingHorizontal:10,
-    paddingVertical:10,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
     borderRadius: 5,
-    backgroundColor:'#c7c8c7',
+    backgroundColor: "#c7c8c7",
   },
   titleContainer: {
     padding: 15,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent:'space-between',
+    justifyContent: "space-between",
   },
   bottomBar: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
   },
-  itemsMain:{
-    flex:1,
-    flexDirection:'column',
+  itemsMain: {
+    flex: 1,
+    flexDirection: "column",
   },
   cartItem: {
     flexDirection: "row",
     alignItems: "center",
     padding: 15,
     borderRadius: 6,
-    marginVertical:5,
+    marginVertical: 5,
     backgroundColor: "#FFF",
     shadowColor: "#000",
     shadowOffset: {
@@ -341,11 +410,11 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 0,
   },
-  itemsMainWrap:{
-    paddingHorizontal:15,
-    flex:1,
-    flexDirection:'column',
-    paddingBottom:80
+  itemsMainWrap: {
+    paddingHorizontal: 15,
+    flex: 1,
+    flexDirection: "column",
+    paddingBottom: 80,
   },
   cartItemImage: {
     width: 80,
@@ -360,6 +429,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     marginBottom: 10,
+  },
+  variantContainer: {
+    marginBottom: 10,
+  },
+  variantText: {
+    fontSize: 12,
+    color: "#777",
+    marginTop: 2,
   },
   quantityContainer: {
     flexDirection: "row",
@@ -378,29 +455,29 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 20,
   },
   button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#00c0ff',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#00c0ff",
     borderRadius: 4,
     padding: 15,
-    width: '100%',
+    width: "100%",
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
   },
   icon: {
     marginLeft: 5,
   },
   disabledButton: {
-    backgroundColor: '#c0c0c0', // Use a different color for the disabled state
+    backgroundColor: "#c0c0c0", // Use a different color for the disabled state
   },
   deleteButton: {
     marginTop: 10,
@@ -413,40 +490,40 @@ const styles = StyleSheet.create({
     bottom: 5,
     left: 0,
     right: 0,
-    padding:15,
-    backgroundColor:"#fff",
+    padding: 15,
+    backgroundColor: "#fff",
     borderTopWidth: 1,
     borderTopColor: "#ddd",
     borderBottomWidth: 1,
     borderBottomColor: "#ddd",
   },
   bottomButton: {
-    backgroundColor: '#34c759', // You can use your desired color
+    backgroundColor: "#34c759", // You can use your desired color
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 4,
-    width:"49%",
+    width: "49%",
   },
   bottomButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    textAlign:'center'
+    textAlign: "center",
   },
   completeButton: {
-    backgroundColor: '#00c0ff',
-    flexDirection:'row',
-    alignItems:'center',
-    justifyContent:'center'
+    backgroundColor: "#00c0ff",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   completeButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     marginRight: 5,
   },
   completeButtonIcon: {
     marginLeft: 5,
-    marginTop:2
+    marginTop: 2,
   },
   modalContainer: {
     flex: 1,
@@ -459,14 +536,14 @@ const styles = StyleSheet.create({
     padding: 30,
     borderRadius: 6,
     width: "90%",
-    maxWidth:500,
-    marginHorizontal:'auto',
+    maxWidth: 500,
+    marginHorizontal: "auto",
   },
   modalText: {
     fontSize: 14,
     marginBottom: 20,
-    textAlign:'center',
-    color:'#777',
+    textAlign: "center",
+    color: "#777",
   },
   modalButtons: {
     flexDirection: "row",
@@ -480,7 +557,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
     alignItems: "center",
   },
-  confirmButton:{
+  confirmButton: {
     flex: 1,
     backgroundColor: "red",
     padding: 10,
@@ -495,12 +572,11 @@ const styles = StyleSheet.create({
   ButtonRounded: {
     width: 25,
     height: 25,
-    backgroundColor: '#00c0ff',
+    backgroundColor: "#00c0ff",
     borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-
 });
 
 export default OrderDetailScreen;

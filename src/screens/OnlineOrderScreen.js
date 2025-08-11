@@ -25,6 +25,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";
 import * as SQLite from "expo-sqlite";
+import { getItemPrice } from "../api/product";
 
 const OnlineOrderScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -120,7 +121,7 @@ const OnlineOrderScreen = ({ navigation }) => {
       "$" +
       items
         ?.reduce(
-          (total, item) => total + item.max_price * item.cart_quantity,
+          (total, item) => total + getItemPrice(item) * item.cart_quantity,
           0
         )
         .toFixed(2)

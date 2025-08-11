@@ -15,6 +15,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Header from './Header';
 import { sendReceipt } from "../actions/email";
 import { memoizedOrderList } from "../store/selectors";
+import { getItemPrice } from '../api/product';
 
 const CashReceiptScreen = ({ orderTotal, amountTendered, changeDue, navigation, route }) => {
   // const order = route.params.order;
@@ -178,9 +179,9 @@ const handleSendReceipt = () => {
                 {order.items.map((item, index) => (
                   <View key={index} style={styles.receiptItem}>
                     <Text style={[styles.testHd, styles.headingFirst]}>{item.title}</Text>
-                    <Text style={styles.testHd}>{`$${item.max_price}`}</Text>
+                    <Text style={styles.testHd}>{`$${getItemPrice(item)}`}</Text>
                     <Text style={styles.testHd}>{item.cart_quantity}</Text>
-                    <Text style={[ styles.testHd, styles.price]}>${(item.cart_quantity*item.max_price).toFixed(2)}</Text>
+                    <Text style={[ styles.testHd, styles.price]}>${(item.cart_quantity*getItemPrice(item)).toFixed(2)}</Text>
                   </View>
                 ))}
 

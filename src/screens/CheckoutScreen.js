@@ -36,6 +36,7 @@ import axios from "axios";
 import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";
 //import { FontAwesome } from "@expo/vector-icons";
 import * as SQLite from "expo-sqlite";
+import { getItemPrice } from "../api/product";
 
 const { height } = Dimensions.get("window");
 const screenWidth = Dimensions.get("window").width;
@@ -162,7 +163,7 @@ const CheckoutScreen = ({ navigation, route }) => {
   const getTotalPrice = () => {
     // Calculate total of all items without tax
     const subtotal = cart?.reduce(
-      (total, item) => total + item.max_price * item.cart_quantity,
+      (total, item) => total + getItemPrice(item) * item.cart_quantity,
       0
     );
 
@@ -310,6 +311,16 @@ const CheckoutScreen = ({ navigation, route }) => {
     return calculateSubtotal() + calculateGST(); // Total due is the sum of subtotal and GST
   };
 
+  // remove variation_price_object key before submit to api ,
+  // it was added for display variation data in the cart and other screens
+  const getCartObj = () => {
+    // return JSON.parse(JSON.stringify(cart)).map((item) => {
+    //   delete item["variation_price_object"];
+    //   return item;
+    // });
+    return cart;
+  };
+
   const handleCardPay = async () => {
     if (processingOrder) return;
     setProcessingOrder(true);
@@ -329,7 +340,8 @@ const CheckoutScreen = ({ navigation, route }) => {
           .getSeconds()
           .toString()
           .padStart(2, "0")}`;
-        order["items"] = cart;
+        order["items"] = getCartObj();
+
         order["order_total"] = totalAmount;
         order["order_subtotal"] = getTotalPrice().subtotal;
         order["order_tax"] = getTotalPrice().tax;
@@ -344,6 +356,8 @@ const CheckoutScreen = ({ navigation, route }) => {
         order["club_name"] = club?.post_title;
         order["wpuid"] = userData.user_id;
         order["timezone"] = storeData.club_info.timezone;
+        console.log("order::", order);
+
         dispatch(processOrder(order, club))
           .then((response) => {
             if (response?.status === "success") {
@@ -460,7 +474,7 @@ const CheckoutScreen = ({ navigation, route }) => {
           .getSeconds()
           .toString()
           .padStart(2, "0")}`;
-        order["items"] = cart;
+        order["items"] = getCartObj();
         order["order_total"] = totalAmount;
         order["order_subtotal"] = getTotalPrice().subtotal;
         order["order_tax"] = getTotalPrice().tax;
@@ -470,6 +484,8 @@ const CheckoutScreen = ({ navigation, route }) => {
         order["club_name"] = club?.post_title;
         order["wpuid"] = userData.user_id;
         order["timezone"] = storeData.club_info.timezone;
+        console.log("order::", order);
+
         dispatch(processOrder(order, club))
           .then((response) => {
             if (response?.status === "success") {
@@ -737,7 +753,7 @@ const CheckoutScreen = ({ navigation, route }) => {
         .getSeconds()
         .toString()
         .padStart(2, "0")}`;
-      order["items"] = cart;
+      order["items"] = getCartObj();
       order["order_total"] = totalAmount;
       order["order_subtotal"] = getTotalPrice().subtotal;
       order["order_tax"] = getTotalPrice().tax;
@@ -745,6 +761,8 @@ const CheckoutScreen = ({ navigation, route }) => {
       order["payment_method"] = "reader";
       order["payment_details"] = payment;
       order["wpuid"] = userData.user_id;
+      console.log("order::", order);
+
       dispatch(processOrder(order, club))
         .then((response) => {
           if (response?.status === "success") {

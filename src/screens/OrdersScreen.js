@@ -30,6 +30,7 @@ import productPlaceholder from "../assets/product-placeholder.png";
 import Header from "./Header";
 import * as SQLite from "expo-sqlite";
 import { ProductVariantModal } from "./Modal/ProductVariantModal";
+import { getItemPrice } from "../api/product";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -124,7 +125,7 @@ const OrdersScreen = ({ navigation, route }) => {
 
   const getTotalPrice = () => {
     return cart
-      .reduce((total, item) => total + item.max_price * item.cart_quantity, 0)
+      .reduce((total, item) => total + getItemPrice(item) * item.cart_quantity, 0)
       .toFixed(2);
   };
 
@@ -204,13 +205,7 @@ const OrdersScreen = ({ navigation, route }) => {
         if (item.is_variation === 1) {
           variantModalRef.current?.open({
             product: item,
-            sizeOptions: ["Small", "Medium", "Large"],
-            colorOptions: ["Red", "Pink", "Yellow"],
-            // selectedOptions: {
-            //   size: "Small",
-            //   color: "Red",
-            //   quantity: 1,
-            // },
+            club,
           });
         } else {
           handleAddToCart(item);
@@ -226,7 +221,7 @@ const OrdersScreen = ({ navigation, route }) => {
           }
           style={styles.productImage}
         />
-        <Text style={styles.productPrice}>${item.max_price.toFixed(2)}</Text>
+        <Text style={styles.productPrice}>${getItemPrice(item).toFixed(2)}</Text>
         <Text style={styles.productName}>{item.title}</Text>
       </View>
       <PaperButton mode="contained" style={styles.addToCartButton}>

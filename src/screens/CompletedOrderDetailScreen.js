@@ -1,12 +1,19 @@
-import React from 'react';
+import React from "react";
 import { useSelector } from "react-redux";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image} from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Image,
+} from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import Header from './Header';
-import BottomBar from './BottomBar';
+import Header from "./Header";
+import BottomBar from "./BottomBar";
 import { memoizedStoreData } from "../store/selectors";
 import productPlaceholder from "../assets/product-placeholder.png";
-
+import { getVariationsNames } from "../api/product";
 
 const CompletedOrderDetailScreen = ({ route, navigation }) => {
   const storeData = useSelector(memoizedStoreData);
@@ -32,20 +39,52 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
           <FlatList
             data={order?.orderitems}
             keyExtractor={(item) => item?.term_id}
-            renderItem={({ item, index }) => (
-              <View style={styles.cartItem}>
-                <Image source={item?.term?.media?.value ? {uri: item?.term?.media?.value} : productPlaceholder} style={styles.cartItemImage} />
-                <View style={styles.cartItemDetails}>
-                  <Text style={styles.cartItemName}>{item?.term?.title}</Text>
-                  <View style={styles.quantityContainer}>
-                    <Text style={styles.quantityText}>{item?.qty}</Text>
+            renderItem={({ item, index }) => {
+              let variations;
+              let price = item.amount;
+
+              if (item.term.is_variation === 1) {
+                const info = JSON.parse(item.info);
+                const options = info.options;
+                if (typeof options === "object" && options.price) {
+                  price = options.price;
+                  variations = getVariationsNames(options);
+                }
+              }
+
+              return (
+                <View style={styles.cartItem}>
+                  <Image
+                    source={
+                      item?.term?.media?.value
+                        ? { uri: item?.term?.media?.value }
+                        : productPlaceholder
+                    }
+                    style={styles.cartItemImage}
+                  />
+                  <View style={styles.cartItemDetails}>
+                    <Text style={styles.cartItemName}>{item?.term?.title}</Text>
+                    {variations?.length > 0 && (
+                      <View style={styles.variantContainer}>
+                        {variations.map((option) => (
+                          <Text style={styles.variantText}>{option}</Text>
+                        ))}
+                      </View>
+                    )}
+                    <View style={styles.quantityContainer}>
+                      <Text style={styles.quantityText}>{item?.qty}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.cartItemPriceContainer}>
+                    <Text style={styles.cartItemPrice}>
+                      {" "}
+                      {storeData?.currency_info?.currency_icon}
+                      {price.toFixed(2)}
+                    </Text>
                   </View>
                 </View>
-                <View style={styles.cartItemPriceContainer}>
-                  <Text style={styles.cartItemPrice}> {storeData?.currency_info?.currency_icon}{(item?.amount).toFixed(2)}</Text>
-                </View>
-              </View>
-            )}
+              );
+            }}
           />
         </View>
       </View>
@@ -59,52 +98,52 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingBottom:80,
-    position:'relative'
+    paddingBottom: 80,
+    position: "relative",
   },
-  
+
   title: {
     fontSize: 16,
     fontWeight: "bold",
     color: "#000",
-    marginLeft:10,
+    marginLeft: 10,
   },
-  titleLeft:{
+  titleLeft: {
     flexDirection: "row",
     alignItems: "center",
   },
-  titleCancel:{
+  titleCancel: {
     color: "#fff",
     fontWeight: "bold",
     borderWidth: 1,
     borderColor: "#c7c8c7",
-    paddingHorizontal:10,
-    paddingVertical:10,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
     borderRadius: 5,
-    backgroundColor:'#c7c8c7',
+    backgroundColor: "#c7c8c7",
   },
   titleContainer: {
     padding: 15,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent:'space-between',
+    justifyContent: "space-between",
   },
   bottomBar: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
   },
-  itemsMain:{
-    flex:1,
-    flexDirection:'column',
+  itemsMain: {
+    flex: 1,
+    flexDirection: "column",
   },
   cartItem: {
     flexDirection: "row",
     alignItems: "center",
     padding: 15,
     borderRadius: 6,
-    marginVertical:5,
+    marginVertical: 5,
     backgroundColor: "#FFF",
     shadowColor: "#000",
     shadowOffset: {
@@ -115,11 +154,11 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 0,
   },
-  itemsMainWrap:{
-    paddingHorizontal:15,
-    flex:1,
-    flexDirection:'column',
-    paddingBottom:80
+  itemsMainWrap: {
+    paddingHorizontal: 15,
+    flex: 1,
+    flexDirection: "column",
+    paddingBottom: 80,
   },
   cartItemImage: {
     width: 80,
@@ -135,6 +174,14 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 10,
   },
+  variantContainer: {
+    marginBottom: 10,
+  },
+  variantText: {
+    fontSize: 12,
+    color: "#777",
+    marginTop: 2,
+  },
   quantityContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -146,36 +193,35 @@ const styles = StyleSheet.create({
   cartItemPriceContainer: {
     flex: 1, // Adjust the style based on your design
     alignItems: "flex-end",
-    
   },
   cartItemPrice: {
     fontSize: 14,
     fontWeight: "bold",
   },
   buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 20,
   },
   button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#00c0ff',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#00c0ff",
     borderRadius: 4,
     padding: 15,
-    width: '100%',
+    width: "100%",
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
   },
   icon: {
     marginLeft: 5,
   },
   disabledButton: {
-    backgroundColor: '#c0c0c0', // Use a different color for the disabled state
+    backgroundColor: "#c0c0c0", // Use a different color for the disabled state
   },
   deleteButton: {
     marginTop: 10,
@@ -188,40 +234,40 @@ const styles = StyleSheet.create({
     bottom: 5,
     left: 0,
     right: 0,
-    padding:15,
-    backgroundColor:"#fff",
+    padding: 15,
+    backgroundColor: "#fff",
     borderTopWidth: 1,
     borderTopColor: "#ddd",
     borderBottomWidth: 1,
     borderBottomColor: "#ddd",
   },
   bottomButton: {
-    backgroundColor: '#34c759', // You can use your desired color
+    backgroundColor: "#34c759", // You can use your desired color
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 4,
-    width:"49%",
+    width: "49%",
   },
   bottomButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    textAlign:'center'
+    textAlign: "center",
   },
   completeButton: {
-    backgroundColor: '#00c0ff',
-    flexDirection:'row',
-    alignItems:'center',
-    justifyContent:'center'
+    backgroundColor: "#00c0ff",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   completeButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     marginRight: 5,
   },
   completeButtonIcon: {
     marginLeft: 5,
-    marginTop:2
+    marginTop: 2,
   },
   modalContainer: {
     flex: 1,
@@ -234,14 +280,14 @@ const styles = StyleSheet.create({
     padding: 30,
     borderRadius: 6,
     width: "90%",
-    maxWidth:500,
-    marginHorizontal:'auto',
+    maxWidth: 500,
+    marginHorizontal: "auto",
   },
   modalText: {
     fontSize: 14,
     marginBottom: 20,
-    textAlign:'center',
-    color:'#777',
+    textAlign: "center",
+    color: "#777",
   },
   modalButtons: {
     flexDirection: "row",
@@ -255,7 +301,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
     alignItems: "center",
   },
-  confirmButton:{
+  confirmButton: {
     flex: 1,
     backgroundColor: "red",
     padding: 10,
@@ -270,12 +316,11 @@ const styles = StyleSheet.create({
   ButtonRounded: {
     width: 25,
     height: 25,
-    backgroundColor: '#00c0ff',
+    backgroundColor: "#00c0ff",
     borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-
 });
 
 export default CompletedOrderDetailScreen;

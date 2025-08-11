@@ -102,7 +102,7 @@ export const addProductToCart =
         dispatch(addProductToCartSuccess(JSON.stringify(updatedCart)));
       } else {
         if (!product.cart_quantity) {
-          product["cart_quantity"] = 1;
+          product["cart_quantity"] = quantity ?? 1;
         }
         dispatch(addProductToCartSuccess(JSON.stringify([...cart, product])));
       }

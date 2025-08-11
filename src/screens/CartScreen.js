@@ -21,6 +21,7 @@ import {
   resetCart,
 } from "../store/reducers/cartSlice";
 import { addToOrderList } from "../store/reducers/orderListSlice";
+import { getItemPrice, getVariationsNames } from "../api/product";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -33,7 +34,7 @@ const CartScreen = ({ navigation }) => {
   const getTotalPrice = () => {
     // Calculate total of all items without tax
     const subtotal = cart?.reduce(
-      (total, item) => total + item.max_price * item.cart_quantity,
+      (total, item) => total + getItemPrice(item) * item.cart_quantity,
       0
     );
 
@@ -129,58 +130,61 @@ const CartScreen = ({ navigation }) => {
     }
   };
 
-  const renderCartItem = ({ item, index }) => (
-    <View style={styles.cartItem}>
-      <Image
-        source={
-          item?.media?.value ? { uri: item?.media?.value } : productPlaceholder
-        }
-        style={styles.cartItemImage}
-      />
-      <View style={styles.cartItemDetails}>
-        <Text style={styles.cartItemName}>{item.title}</Text>
+  const renderCartItem = ({ item, index }) => {
+    return (
+      <View style={styles.cartItem}>
+        <Image
+          source={
+            item?.media?.value
+              ? { uri: item?.media?.value }
+              : productPlaceholder
+          }
+          style={styles.cartItemImage}
+        />
+        <View style={styles.cartItemDetails}>
+          <Text style={styles.cartItemName}>{item.title}</Text>
 
-        {/* Size and Color display */}
-        {(item?.cart_size || item?.cart_color) && (
-          <View style={styles.variantContainer}>
-            {item?.cart_size && (
-              <Text style={styles.variantText}>Size: {item.cart_size}</Text>
-            )}
-            {item?.cart_color && (
-              <Text style={styles.variantText}>Color: {item.cart_color}</Text>
-            )}
+          {/* Size and Color display */}
+          {item.is_variation === 1 && item?.variation_price_object && (
+            <View style={styles.variantContainer}>
+              {getVariationsNames(item)?.map((option) => (
+                <Text style={styles.variantText}>
+                  {option}
+                </Text>
+              ))}
+            </View>
+          )}
+
+          <View style={styles.quantityContainer}>
+            <TouchableOpacity
+              style={styles.ButtonRounded}
+              onPress={() => handledecreaseQuantity(index)}
+            >
+              <Icon name="minus" size={20} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.quantityText}>{item?.cart_quantity}</Text>
+            <TouchableOpacity
+              style={styles.ButtonRounded}
+              onPress={() => handleIncreaseQuantity(item)}
+            >
+              <Icon name="plus" size={20} color="#fff" />
+            </TouchableOpacity>
           </View>
-        )}
-
-        <View style={styles.quantityContainer}>
-          <TouchableOpacity
-            style={styles.ButtonRounded}
-            onPress={() => handledecreaseQuantity(index)}
-          >
-            <Icon name="minus" size={20} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.quantityText}>{item?.cart_quantity}</Text>
-          <TouchableOpacity
-            style={styles.ButtonRounded}
-            onPress={() => handleIncreaseQuantity(item)}
-          >
-            <Icon name="plus" size={20} color="#fff" />
+        </View>
+        <View style={styles.cartItemPriceContainer}>
+          <Text style={styles.taxText}>
+            {" "}
+            ${(getItemPrice(item) * item.cart_quantity).toFixed(2)}
+          </Text>
+          {/* <Text style={styles.taxText}>Tax (10%): ${(item.price * 0.1).toFixed(2)}</Text>
+        <Text style={styles.cartItemPrice}>Total Due: ${(item.price + item.price * 0.1).toFixed(2)}</Text>*/}
+          <TouchableOpacity onPress={() => handleRemoveFromCart(index)}>
+            <Icon name="delete" size={24} color="#2222224d" />
           </TouchableOpacity>
         </View>
       </View>
-      <View style={styles.cartItemPriceContainer}>
-        <Text style={styles.taxText}>
-          {" "}
-          ${(item.max_price * item.cart_quantity).toFixed(2)}
-        </Text>
-        {/* <Text style={styles.taxText}>Tax (10%): ${(item.price * 0.1).toFixed(2)}</Text>
-        <Text style={styles.cartItemPrice}>Total Due: ${(item.price + item.price * 0.1).toFixed(2)}</Text>*/}
-        <TouchableOpacity onPress={() => handleRemoveFromCart(index)}>
-          <Icon name="delete" size={24} color="#2222224d" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>

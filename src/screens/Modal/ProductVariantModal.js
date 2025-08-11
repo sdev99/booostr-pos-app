@@ -1,4 +1,9 @@
-import React, { useImperativeHandle, useState, forwardRef } from "react";
+import React, {
+  useImperativeHandle,
+  useState,
+  forwardRef,
+  Fragment,
+} from "react";
 import {
   Modal,
   View,
@@ -6,38 +11,75 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { APP_BUTTON_COLOR, APP_DISABLED_BUTTON_COLOR } from "../../color";
+import { getProductVariations } from "../../api/product";
 
 export const ProductVariantModal = forwardRef((props, ref) => {
   const [visible, setVisible] = useState(false);
 
   const [product, setProduct] = useState();
-  const [sizeOptions, setSizeOptions] = useState([]);
-  const [colorOptions, setColorOptions] = useState([]);
+  const [variations, setVariations] = useState([]);
+  const [variationsPrices, setVariationsPrices] = useState([]);
+  const [selectedVariations, setSelectedVariations] = useState({});
 
-  const [selectedSize, setSelectedSize] = useState(null);
-  const [selectedColor, setSelectedColor] = useState(null);
+  const [fetchingVariations, setFetchingVariations] = useState(false);
+  const [variationError, setVariationError] = useState("");
   const [quantity, setQuantity] = useState(1);
 
   // Expose open/close methods to parent
   useImperativeHandle(ref, () => ({
-    open: ({ product, sizeOptions, colorOptions, selectedOptions }) => {
+    open: ({ product, club, sizeOptions, colorOptions, selectedOptions }) => {
       setProduct(product);
-      setSizeOptions(sizeOptions);
-      setColorOptions(colorOptions);
-      setSelectedSize(selectedOptions?.size);
-      setSelectedColor(selectedOptions?.color);
       setQuantity(selectedOptions?.quantity || 1);
       setVisible(true);
+
+      // reset states
+      setSelectedVariations({});
+      setVariationError("");
+      setFetchingVariations(false);
+      setVariationsPrices([]);
+      setVariations([]);
+
+      getVariations(product, club);
     },
     close: () => setVisible(false),
   }));
 
+  const findPriceBySelectedVariations = (prices, selectedVariations) => {
+    // selectedVariations will be something like:
+    // { 46: 47, 20: 21 }  // categoryId: variationId
+
+    return prices.find((priceObj) => {
+      // Extract variation IDs from priceObj
+      const variationIds = priceObj.varitions.map((v) => v.id);
+
+      // Check if all selected variation IDs are present
+      return Object.values(selectedVariations).every((id) =>
+        variationIds.includes(id)
+      );
+    });
+  };
+
+  const getVariations = async (product, club) => {
+    setFetchingVariations(true);
+    const response = await getProductVariations(product.id, club);
+    setFetchingVariations(false);
+
+    if (response.status === "success") {
+      // Extract variation from product detail
+      setVariations(response.result.optionwithcategories);
+      setVariationsPrices(response.result.prices);
+    } else {
+      setVariationError(response);
+    }
+  };
+
   if (!visible) return null;
 
   const shouldDisable = () => {
-    return !selectedColor || !selectedSize;
+    return Object.keys(selectedVariations).length < (variations.length || 1);
   };
 
   return (
@@ -50,57 +92,58 @@ export const ProductVariantModal = forwardRef((props, ref) => {
               Select product attributes below, then add to order.
             </Text>
 
-            <Text style={styles.sectionLabel}>Choose Size</Text>
-            <View style={styles.optionRow}>
-              {sizeOptions.map((size) => {
-                const isSelected = size === selectedSize;
-                return (
-                  <TouchableOpacity
-                    key={size}
-                    style={[
-                      styles.optionButton,
-                      isSelected && styles.optionButtonSelected,
-                    ]}
-                    onPress={() => setSelectedSize(size)}
-                  >
-                    <Text
-                      style={[
-                        styles.optionText,
-                        isSelected && styles.optionTextSelected,
-                      ]}
-                    >
-                      {size}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <Text style={styles.sectionLabel}>Choose Color</Text>
-            <View style={styles.optionRow}>
-              {colorOptions.map((color) => {
-                const isSelected = color === selectedColor;
-                return (
-                  <TouchableOpacity
-                    key={color}
-                    style={[
-                      styles.optionButton,
-                      isSelected && styles.optionButtonSelected,
-                    ]}
-                    onPress={() => setSelectedColor(color)}
-                  >
-                    <Text
-                      style={[
-                        styles.optionText,
-                        isSelected && styles.optionTextSelected,
-                      ]}
-                    >
-                      {color}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            {fetchingVariations ? (
+              <View style={styles.containerLoader}>
+                <ActivityIndicator size="medium" color="#00c0ff" />
+              </View>
+            ) : (
+              <>
+                {variations?.length > 0 ? (
+                  variations.map((variation, key) => {
+                    return (
+                      <Fragment key={key}>
+                        <Text style={styles.sectionLabel}>
+                          {variation.category.name}
+                        </Text>
+                        <View style={styles.optionRow}>
+                          {variation.priceswithvaritions.map((item) => {
+                            const isSelected =
+                              selectedVariations[variation.category.id] ===
+                              item.id;
+                            return (
+                              <TouchableOpacity
+                                key={item.id}
+                                style={[
+                                  styles.optionButton,
+                                  isSelected && styles.optionButtonSelected,
+                                ]}
+                                onPress={() =>
+                                  setSelectedVariations({
+                                    ...selectedVariations,
+                                    [variation.category.id]: item.id,
+                                  })
+                                }
+                              >
+                                <Text
+                                  style={[
+                                    styles.optionText,
+                                    isSelected && styles.optionTextSelected,
+                                  ]}
+                                >
+                                  {item.name}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      </Fragment>
+                    );
+                  })
+                ) : (
+                  <Text style={styles.errorMessage}>{variationError}</Text>
+                )}
+              </>
+            )}
 
             <View style={styles.quantityRow}>
               <Text style={[styles.sectionLabel, styles.quantitySectionLabel]}>
@@ -146,11 +189,15 @@ export const ProductVariantModal = forwardRef((props, ref) => {
               disabled={shouldDisable()}
               onPress={() => {
                 if (props.onConfirm) {
+                  const variationPrice = findPriceBySelectedVariations(
+                    variationsPrices,
+                    selectedVariations
+                  );
                   props.onConfirm(
                     {
                       ...product,
-                      cart_color: selectedColor,
-                      cart_size: selectedSize,
+                      variation_id: variationPrice.id,
+                      variation_price_object: variationPrice, // remove it before submit to api in make order api.
                     },
                     quantity
                   );
@@ -289,5 +336,19 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     color: "#666",
+  },
+  containerLoader: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 100,
+  },
+  errorMessage: {
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    fontSize: 16,
+    color: "#444",
+    width: "100%",
+    textAlign: "center",
   },
 });
