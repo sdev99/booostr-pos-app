@@ -8,8 +8,11 @@ const FullScreenLoader = forwardRef((props, ref) => {
 
   useImperativeHandle(ref, () => ({
     show: (text = "") => {
-      setMessage(text);
       setVisible(true);
+      setMessage(text);
+    },
+    updateMessage: (text = "") => {
+      setMessage(text);
     },
     hide: () => setVisible(false),
   }));
@@ -33,11 +36,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 9999, // make sure it's on top
     elevation: 9999, // Android
+    padding: 16,
   },
   loaderBox: {
     alignItems: "center",
