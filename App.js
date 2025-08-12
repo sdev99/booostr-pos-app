@@ -1,30 +1,35 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { StyleSheet, View } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { StyleSheet, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ActivityIndicator } from "react-native-paper";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import LoginScreen from './src/screens/LoginScreen';
-import { fetchUserData } from './src/store/reducers/authSlice';
-import { fetchEulaUpdate } from './src/store/reducers/eulaSlice';
-import OrdersScreen from './src/screens/OrdersScreen';
-import CartScreen from './src/screens/CartScreen';
-import CheckoutScreen from './src/screens/CheckoutScreen';
-import DashboardScreen from './src/screens/DashboardScreen';
-import BottomBar from './src/screens/BottomBar';
-import SettingsScreen from './src/screens/SettingsScreen';
-import OnlineOrderScreen from './src/screens/OnlineOrderScreen';
-import ClubList from './src/screens/ClubList';
-import OrderDetailScreen from './src/screens/OrderDetailScreen';
-import CompletedOrderDetailScreen from './src/screens/CompletedOrderDetailScreen';
-import PaymentSuccessScreen from './src/screens/PaymentSuccessScreen';
-import AgreementScreen from './src/screens/Agreement';
-import CashScreen from './src/screens/CashScreen';
-import CashReceiptScreen from './src/screens/CashReceiptScreen';
-import * as SQLite from 'expo-sqlite';
-import { useStripeTerminal } from '@stripe/stripe-terminal-react-native';
+import LoginScreen from "./src/screens/LoginScreen";
+import { fetchUserData } from "./src/store/reducers/authSlice";
+import { fetchEulaUpdate } from "./src/store/reducers/eulaSlice";
+import OrdersScreen from "./src/screens/OrdersScreen";
+import CartScreen from "./src/screens/CartScreen";
+import CheckoutScreen from "./src/screens/CheckoutScreen";
+import DashboardScreen from "./src/screens/DashboardScreen";
+import BottomBar from "./src/screens/BottomBar";
+import SettingsScreen from "./src/screens/SettingsScreen";
+import OnlineOrderScreen from "./src/screens/OnlineOrderScreen";
+import ClubList from "./src/screens/ClubList";
+import OrderDetailScreen from "./src/screens/OrderDetailScreen";
+import CompletedOrderDetailScreen from "./src/screens/CompletedOrderDetailScreen";
+import PaymentSuccessScreen from "./src/screens/PaymentSuccessScreen";
+import AgreementScreen from "./src/screens/Agreement";
+import CashScreen from "./src/screens/CashScreen";
+import CashReceiptScreen from "./src/screens/CashReceiptScreen";
+import * as SQLite from "expo-sqlite";
+import { useStripeTerminal } from "@stripe/stripe-terminal-react-native";
+import { Buffer } from "buffer";
+
+if (typeof global.Buffer === "undefined") {
+  global.Buffer = Buffer;
+}
 
 const Stack = createNativeStackNavigator();
 
@@ -36,7 +41,7 @@ const App = () => {
   const isEulaLoading = useSelector((state) => state.eula.loading);
   const [club, setClub] = useState(null);
   const [isClubLoading, setIsClubLoading] = useState(true);
-  const db = SQLite.openDatabaseSync('pos.db');
+  const db = SQLite.openDatabaseSync("pos.db");
   const { initialize } = useStripeTerminal();
   // AsyncStorage.clear();
   // AsyncStorage.removeItem('eula_consent');
@@ -60,28 +65,27 @@ const App = () => {
   //         });
   //       }
   //   }
-    
+
   //   setupDb();
   // }, [club]);
-  
+
   useEffect(() => {
     const fetchData = async () => {
       const storedUserId = await AsyncStorage.getItem("user_id");
-      if (storedUserId){
+      if (storedUserId) {
         dispatch(fetchUserData(parseInt(JSON.parse(storedUserId))));
         dispatch(fetchEulaUpdate(parseInt(JSON.parse(storedUserId))));
       }
     };
 
     fetchData(); // Call the async function
-    
   }, [dispatch]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const club = await AsyncStorage.getItem("club");
-        if( club ) setClub(JSON.parse(club));
+        if (club) setClub(JSON.parse(club));
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -98,7 +102,11 @@ const App = () => {
     });
   }, [initialize]);
 
-  if ( (loading && !isLoggedIn) || (isLoggedIn && isEulaLoading) || isClubLoading )
+  if (
+    (loading && !isLoggedIn) ||
+    (isLoggedIn && isEulaLoading) ||
+    isClubLoading
+  )
     return (
       <View
         style={{
@@ -114,7 +122,18 @@ const App = () => {
     <SafeAreaProvider>
       <View style={styles.container}>
         <NavigationContainer>
-          <Stack.Navigator initialRouteName={isLoggedIn && isEula && club ? "Dashboard" : isLoggedIn && isEula ? "Club" : isLoggedIn && !isEula ? "Agrement" : "Login"} screenOptions={{ headerShown: false }}>
+          <Stack.Navigator
+            initialRouteName={
+              isLoggedIn && isEula && club
+                ? "Dashboard"
+                : isLoggedIn && isEula
+                ? "Club"
+                : isLoggedIn && !isEula
+                ? "Agrement"
+                : "Login"
+            }
+            screenOptions={{ headerShown: false }}
+          >
             <Stack.Screen name="Agrement" component={AgreementScreen} />
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Club" component={ClubList} />
@@ -124,16 +143,21 @@ const App = () => {
             <Stack.Screen name="Checkout" component={CheckoutScreen} />
             <Stack.Screen name="Cash" component={CashScreen} />
             <Stack.Screen name="CashReceipt" component={CashReceiptScreen} />
-            <Stack.Screen name="PaymentSuccess" component={PaymentSuccessScreen} />
+            <Stack.Screen
+              name="PaymentSuccess"
+              component={PaymentSuccessScreen}
+            />
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="OnlineOrder" component={OnlineOrderScreen} />
             <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
-            <Stack.Screen name="CompletedOrderDetail" component={CompletedOrderDetailScreen} />
+            <Stack.Screen
+              name="CompletedOrderDetail"
+              component={CompletedOrderDetailScreen}
+            />
             <Stack.Screen name="BottomBar" component={BottomBar} />
           </Stack.Navigator>
         </NavigationContainer>
       </View>
-      
     </SafeAreaProvider>
   );
 };

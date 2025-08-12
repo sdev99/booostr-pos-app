@@ -11,9 +11,6 @@ const FullScreenLoader = forwardRef((props, ref) => {
       setVisible(true);
       setMessage(text);
     },
-    updateMessage: (text = "") => {
-      setMessage(text);
-    },
     hide: () => setVisible(false),
   }));
 

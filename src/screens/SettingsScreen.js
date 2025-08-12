@@ -17,6 +17,7 @@ import Header from "./Header";
 import BottomBar from "./BottomBar";
 import { useStripeTerminal } from "@stripe/stripe-terminal-react-native";
 import StripeReaderModal from "./Modal/StripReaderModal";
+import { STRIPE_TERMINAL_SIMULATE_MODE } from "../config";
 
 const CustomModal = ({ isVisible, onClose, title, content }) => {
   return (
@@ -104,7 +105,7 @@ const SettingsScreen = ({ navigation }) => {
     setDiscoverReaderErrorMsg("");
     const { error } = await discoverReaders({
       discoveryMethod: "bluetoothScan",
-      // simulated: true,
+      simulated: STRIPE_TERMINAL_SIMULATE_MODE,
     });
 
     if (error) {
