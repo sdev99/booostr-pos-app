@@ -8,7 +8,7 @@ import { resetOrderList } from "../store/reducers/orderListSlice";
 import { resetCart } from "../store/reducers/cartSlice";
 import { memoizedCart } from "../store/selectors";
 
-const Header = ({ title, clubName }) => {
+const Header = ({ clubName }) => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const [club, setClub] = useState(null);
@@ -17,18 +17,18 @@ const Header = ({ title, clubName }) => {
   // Fetch Club Data
   useEffect(() => {
     const fetchData = async () => {
-        try {
-            const club = await AsyncStorage.getItem("club");
-            if( club ){
-                setClub(JSON.parse(club));
-            }
-        } catch (error) {
-            console.error("Error fetching club data:", error);
+      try {
+        const club = await AsyncStorage.getItem("club");
+        if (club) {
+          setClub(JSON.parse(club));
         }
+      } catch (error) {
+        console.error("Error fetching club data:", error);
+      }
     };
 
     fetchData();
-  }, []);
+  }, [clubName]);
 
   const handleNewOrder = () => {
     // Navigate to the OrderScreen when the "New Order" button is pressed
@@ -42,7 +42,7 @@ const Header = ({ title, clubName }) => {
         dispatch(resetOrderList());
         dispatch(resetCart());
       } catch (error) {
-          console.error("Error changing club:", error);
+        console.error("Error changing club:", error);
       }
       navigation.navigate("Club");
     } catch (error) {
@@ -59,7 +59,9 @@ const Header = ({ title, clubName }) => {
         </Text>
       </View>
       <TouchableOpacity style={styles.rightContainer} onPress={handleNewOrder}>
-        <Text style={styles.newOrderButton}>{cart?.length ? 'Continue Order' : 'New Order'}</Text>
+        <Text style={styles.newOrderButton}>
+          {cart?.length ? "Continue Order" : "New Order"}
+        </Text>
       </TouchableOpacity>
     </View>
   );

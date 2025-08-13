@@ -15,11 +15,9 @@ import {
   Alert,
 } from "react-native";
 import FullScreenLoader from "./FullScreenLoader";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSelector } from "react-redux";
 import { memoizedStoreData } from "../../store/selectors";
 import { createStripeLocation } from "../../api/stripe";
-import { STRIPE_TERMINAL_SIMULATE_MODE } from "../../config";
 
 const StripeReaderModal = forwardRef(
   (
@@ -55,23 +53,23 @@ const StripeReaderModal = forwardRef(
         }
         locationName = clubAddress.store_legal_name;
 
-        if (!STRIPE_TERMINAL_SIMULATE_MODE && selectedReader.locationId) {
-          locationId = selectedReader.locationId;
-        } else {
-          loaderRef.current?.show(`Fetching Locations`);
-          const response = await getLocations(); // get locations from stripe
+        // if (!STRIPE_TERMINAL_SIMULATE_MODE && selectedReader.locationId) {
+        //   locationId = selectedReader.locationId;
+        // } else {
+        loaderRef.current?.show(`Fetching Locations`);
+        const response = await getLocations(); // get locations from stripe
 
-          if (response.locations?.length > 0) {
-            const locationData = response.locations.find(
-              (location) =>
-                location.displayName.toLowerCase() ===
-                clubAddress.store_legal_name.toLowerCase()
-            );
-            if (locationData) {
-              locationId = locationData.id;
-            }
+        if (response.locations?.length > 0) {
+          const locationData = response.locations.find(
+            (location) =>
+              location.displayName.toLowerCase() ===
+              clubAddress.store_legal_name.toLowerCase()
+          );
+          if (locationData) {
+            locationId = locationData.id;
           }
         }
+        // }
 
         // If no location found in the stripe dashboard , create new location
         if (!locationId) {

@@ -154,7 +154,6 @@ const DashboardScreen = ({ navigation }) => {
         const club = await AsyncStorage.getItem("club");
         if (club) {
           setClub(JSON.parse(club));
-          dispatch(fetchStoreData(JSON.parse(club)));
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -164,7 +163,7 @@ const DashboardScreen = ({ navigation }) => {
     };
 
     fetchData();
-  }, []);
+  }, [storeData]);
 
   // Get Store Anylytics
   useFocusEffect(
@@ -443,7 +442,10 @@ const DashboardScreen = ({ navigation }) => {
     </View>
   ) : (
     <View style={styles.container}>
-      <Header clubName={club.post_title} onLogout={handleLogout} />
+      <Header
+        clubName={storeData?.club_info?.club_name ?? club.post_title}
+        onLogout={handleLogout}
+      />
       <View style={styles.titleContainer}>
         <Text style={styles.title}>Dashboard</Text>
       </View>

@@ -15,6 +15,7 @@ import { logout } from "../actions/auth";
 import { memoizedClubList, memoizedUserData } from "../store/selectors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
+import { fetchStoreData } from "../store/reducers/storeDetailSlice";
 
 const ClubList = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -41,10 +42,8 @@ const ClubList = ({ navigation }) => {
 
   const handleClubClick = async (club) => {
     try {
-      await AsyncStorage.setItem(
-        "club",
-        JSON.stringify(club)
-      );
+      await AsyncStorage.setItem("club", JSON.stringify(club));
+      dispatch(fetchStoreData(club));
       navigation.navigate("Dashboard");
     } catch (error) {
       console.error("Unable to set selected Club:", error);
@@ -70,7 +69,11 @@ const ClubList = ({ navigation }) => {
       <View style={styles.clubImageContainer}>
         {/* Add your image component here */}
         <Image
-          source={item?.user_photo ? { uri: item?.user_photo } : require("../assets/club_demo.png")}
+          source={
+            item?.user_photo
+              ? { uri: item?.user_photo }
+              : require("../assets/club_demo.png")
+          }
           style={styles.clubImage}
         />
       </View>
@@ -85,45 +88,52 @@ const ClubList = ({ navigation }) => {
       <View style={styles.titleContainer}>
         <Text style={styles.title}>Club List</Text>
       </View>
-      {userDataLoading || clubListLoading
-        ? <View style={styles.containerLoader}>
-            <ActivityIndicator size="medium" color="#00c0ff" />
+      {userDataLoading || clubListLoading ? (
+        <View style={styles.containerLoader}>
+          <ActivityIndicator size="medium" color="#00c0ff" />
+        </View>
+      ) : (
+        <>
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.wrapText}>
+                Hello{" "}
+                <Text style={styles.userName}>
+                  {userData?.first_name} {userData?.last_name}
+                </Text>{" "}
+                ! You are logged into Booostr POS, but it seems you are a
+                profile manager for multiple clubs. Please choose the club POS
+                system below that you would like to access.
+              </Text>
+            </View>
+            <View style={styles.headerRight}></View>
           </View>
-        : <>
-            <View style={styles.header}>
-              <View style={styles.headerLeft}>
-                <Text style={styles.wrapText}>
-                Hello <Text style={styles.userName}>{userData?.first_name} {userData?.last_name}</Text> ! You are logged into Booostr POS, but it seems you are a profile manager for multiple clubs. Please choose the club POS system below that you would like to access.
-                </Text>
-              </View>
-              <View style={styles.headerRight}></View>
-            </View>
-            <View style={styles.clubListContainer}>
-              {clubList?.length > 0 ? (
-                <SectionList
-                  sections={[
-                    {
-                      data: clubList,
-                    },
-                  ]}
-                  renderItem={renderItem}
-                  keyExtractor={(item) => item.post_id}
-                />
-              ) : (
-                 <View style={styles.notFoundContainer}>
-                  <Text style={styles.notFound}>No clubs found.</Text>
+          <View style={styles.clubListContainer}>
+            {clubList?.length > 0 ? (
+              <SectionList
+                sections={[
+                  {
+                    data: clubList,
+                  },
+                ]}
+                renderItem={renderItem}
+                keyExtractor={(item) => item.post_id}
+              />
+            ) : (
+              <View style={styles.notFoundContainer}>
+                <Text style={styles.notFound}>No clubs found.</Text>
 
-                  <TouchableOpacity
-                    style={styles.logoutButton}
-                    onPress={handleLogout}
-                  >
-                    <Text style={styles.logoutText}>Logout</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          </>
-      }
+                <TouchableOpacity
+                  style={styles.logoutButton}
+                  onPress={handleLogout}
+                >
+                  <Text style={styles.logoutText}>Logout</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </>
+      )}
     </View>
   );
 };
@@ -131,34 +141,33 @@ const ClubList = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    position:'relative',
+    position: "relative",
   },
   tabContent: {
     flex: 1,
-    backgroundColor:'#fff',
-    borderRadius:6,
-    padding:10,
+    backgroundColor: "#fff",
+    borderRadius: 6,
+    padding: 10,
   },
-  userName:{
-    color:'#000',
-    fontWeight:'bold'
+  userName: {
+    color: "#000",
+    fontWeight: "bold",
   },
   titleContainer: {
     paddingTop: Platform.OS == "ios" ? 55 : 30,
     padding: 15,
     flexDirection: "row",
-   alignItems: "center",
-   paddingBottom:0,
+    alignItems: "center",
+    paddingBottom: 0,
   },
   title: {
     fontSize: 16,
     fontWeight: "bold",
     color: "#000",
   },
-  tabContentMain:{
+  tabContentMain: {
     flex: 1,
-    padding:15,
-    
+    padding: 15,
   },
   bottomBar: {
     position: "absolute",
@@ -168,7 +177,7 @@ const styles = StyleSheet.create({
   },
   clubListContainer: {
     flex: 1,
-    paddingBottom:15,
+    paddingBottom: 15,
   },
   clubItem: {
     flexDirection: "row",
@@ -194,7 +203,7 @@ const styles = StyleSheet.create({
     height: "100%",
     backgroundColor: "#efefef",
     padding: 2,
-    objectFit:'contain'
+    objectFit: "contain",
   },
   clubInfo: {
     flex: 1,
@@ -244,7 +253,7 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   notFoundContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 20,
   },
   notFound: {
@@ -257,13 +266,13 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     marginTop: 30,
-    backgroundColor: '#FF3B30',
+    backgroundColor: "#FF3B30",
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
   },
   logoutText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
   },
   containerLoader: {
@@ -282,7 +291,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     padding: 15,
     marginHorizontal: 5,
-    backgroundColor:"#fff"
+    backgroundColor: "#fff",
   },
   tabButtonText: {
     color: "#000", // Change the text color as needed

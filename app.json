@@ -14,7 +14,7 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "bundleIdentifier": "com.booostr.pos",
-      "buildNumber": "10",
+      "buildNumber": "12",
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "To scan cards."
