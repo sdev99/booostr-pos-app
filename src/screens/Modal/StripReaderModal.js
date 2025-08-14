@@ -73,9 +73,7 @@ const StripeReaderModal = forwardRef(
 
         // If no location found in the stripe dashboard , create new location
         if (!locationId) {
-          loaderRef.current?.show(
-            `Location creating for club ${clubAddress.store_legal_name}`
-          );
+          loaderRef.current?.show(`Location Creating`);
 
           const getways = storeData?.Getway;
           const locationRes = await createStripeLocation(getways, clubAddress);
@@ -91,9 +89,7 @@ const StripeReaderModal = forwardRef(
           }
         }
 
-        loaderRef.current?.show(
-          `${locationName}\n(${locationId})  \nConnecting Reader\n(${selectedReader.serialNumber})`
-        );
+        loaderRef.current?.show(`Connecting Reader, Please wait`);
       } catch (error) {
         loaderRef.current?.hide();
         Alert.alert("Error!", `Location error: ${error.message}`);
@@ -142,7 +138,7 @@ const StripeReaderModal = forwardRef(
                 ? "Found Stripe Reader"
                 : "Stripe Reader Discover"}
             </Text>
-            <View>
+            <View style={{ flex: 1 }}>
               <ScrollView style={styles.readerList}>
                 {discoverReaderErrorMsg ? (
                   <Text style={styles.scanning}>{discoverReaderErrorMsg}</Text>
@@ -200,6 +196,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     width: "80%",
     maxHeight: "80%",
+    minHeight: 220,
   },
   modalTitle: {
     fontSize: 18,
