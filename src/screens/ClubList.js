@@ -8,6 +8,7 @@ import {
   SectionList,
   Platform,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchClubList } from "../store/reducers/clubListSlice";
@@ -37,7 +38,7 @@ const ClubList = ({ navigation }) => {
       };
 
       fetchData();
-    }, [])
+    }, [userData?.user_id])
   );
 
   const handleClubClick = async (club) => {

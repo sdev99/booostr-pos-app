@@ -179,7 +179,7 @@ const PaymentSuccessScreen = ({
               >
                 <Text style={styles.dueText}>Order Total</Text>
                 <Text style={styles.dueAmount}>
-                  ${order.order_total.toFixed(2)}
+                  ${parseFloat(order.order_total).toFixed(2)}
                 </Text>
               </View>
               <View
@@ -258,7 +258,7 @@ const PaymentSuccessScreen = ({
                     Tax (10%): ${order.order_tax.toFixed(2)}
                   </Text>
                   <Text style={[styles.totalText, styles.totalAmount]}>
-                    Total: ${order.order_total.toFixed(2)}
+                    Total: ${parseFloat(order.order_total).toFixed(2)}
                   </Text>
                 </View>
               </View>

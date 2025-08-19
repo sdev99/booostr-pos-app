@@ -15,7 +15,6 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { CheckBox, Button } from "react-native-elements";
 import Header from "./Header";
 import {
   memoizedCart,
@@ -37,8 +36,12 @@ import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";
 //import { FontAwesome } from "@expo/vector-icons";
 import * as SQLite from "expo-sqlite";
 import { getItemPrice } from "../api/product";
+import {
+  CardForm,
+  StripeProvider,
+  useStripe,
+} from "@stripe/stripe-react-native";
 
-const { height } = Dimensions.get("window");
 const screenWidth = Dimensions.get("window").width;
 
 const CheckoutScreen = ({ navigation, route }) => {
@@ -47,11 +50,14 @@ const CheckoutScreen = ({ navigation, route }) => {
   const [cart, setCart] = useState(useSelector(memoizedCart));
   const userData = useSelector(memoizedUserData);
   const db = SQLite.openDatabaseSync("pos.db");
+  const [publishableKey, setPublishableKey] = useState("");
 
   const storeData = useSelector(memoizedStoreData);
   const [processingOrder, setProcessingOrder] = useState(false);
   const [readerStatusText, setReaderStatusText] = useState("Setting Up...");
   //const { totalAmount } = route?.params || {};
+  const { confirmPayment } = useStripe();
+
   const {
     connectedReader,
     retrievePaymentIntent,
@@ -69,18 +75,6 @@ const CheckoutScreen = ({ navigation, route }) => {
 
   const [paymentType, setPaymentType] = useState("card");
   const [selectedCardType, setSelectedCardType] = useState("mastercard");
-  const [cardDetails, setCardDetails] = useState({
-    cardholderName: "",
-    cardNumber: "",
-    expirationDate: "",
-    cvc: "",
-  });
-  const [validationStatus, setValidationStatus] = useState({
-    cardholderName: false,
-    cardNumber: false,
-    expirationDate: false,
-    cvc: false,
-  });
 
   const [quickAmtBtn, setQuickAmtBtn] = useState(0);
 
@@ -104,62 +98,6 @@ const CheckoutScreen = ({ navigation, route }) => {
     }, [])
   );
 
-  const formatCardNumber = (inputCardNumber) => {
-    const cleanedInput = inputCardNumber.replace(/\D/g, "");
-    let formattedCardNumber = "";
-    for (let i = 0; i < cleanedInput.length; i++) {
-      if (i > 0 && i % 4 === 0) {
-        formattedCardNumber += " ";
-      }
-      formattedCardNumber += cleanedInput[i];
-    }
-    return formattedCardNumber;
-  };
-
-  const isValidCardNumber = (inputCardNumber) => {
-    const cardNumberWithoutSpaces = inputCardNumber.replace(/\s/g, "");
-    return /^\d{16}$/.test(cardNumberWithoutSpaces); // Basic check for 16 digits
-  };
-
-  const handleCardNumberChange = (inputCardNumber) => {
-    const formattedCardNumber = formatCardNumber(inputCardNumber);
-    setCardDetails((prevState) => ({
-      ...prevState,
-      cardNumber: formattedCardNumber,
-    }));
-    const isValid = isValidCardNumber(inputCardNumber);
-    setValidationStatus((prevState) => ({
-      ...prevState,
-      cardNumber: isValid,
-    }));
-  };
-
-  const formatExpirationDate = (inputExpirationDate) => {
-    const cleanedInput = inputExpirationDate.replace(/\D/g, "");
-    if (cleanedInput.length <= 2) {
-      return cleanedInput;
-    }
-    return `${cleanedInput.slice(0, 2)}/${cleanedInput.slice(2, 4)}`;
-  };
-
-  const handleExpirationDateChange = (inputExpirationDate) => {
-    const formattedExpirationDate = formatExpirationDate(inputExpirationDate);
-    setCardDetails((prevState) => ({
-      ...prevState,
-      expirationDate: formattedExpirationDate,
-    }));
-
-    const [month, year] = formattedExpirationDate.split("/");
-    const currentDate = new Date();
-    const expirationDate = new Date(`20${year}`, month - 1); // Assuming 20 is added to the year (e.g., 20YY)
-    const isValidExpirationDate = expirationDate > currentDate;
-
-    setValidationStatus((prevState) => ({
-      ...prevState,
-      expirationDate: isValidExpirationDate,
-    }));
-  };
-
   const getTotalPrice = () => {
     // Calculate total of all items without tax
     const subtotal = cart?.reduce(
@@ -171,7 +109,7 @@ const CheckoutScreen = ({ navigation, route }) => {
     const tax = (subtotal * parseFloat(storeData?.tax)) / 100;
     const totalDue = subtotal + tax;
 
-    return { subtotal, tax, totalDue };
+    return { subtotal, tax, totalDue: parseFloat(totalDue).toFixed(2) };
   };
 
   const totalAmount = getTotalPrice().totalDue;
@@ -183,9 +121,9 @@ const CheckoutScreen = ({ navigation, route }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const club = await AsyncStorage.getItem("club");
-        if (club) {
-          setClub(JSON.parse(club));
+        const clubStr = await AsyncStorage.getItem("club");
+        if (clubStr) {
+          setClub(JSON.parse(clubStr));
         }
       } catch (error) {
         console.error("Error fetching club data:", error);
@@ -194,6 +132,28 @@ const CheckoutScreen = ({ navigation, route }) => {
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (storeData) {
+      const getways = storeData?.Getway;
+      const stripGateway = getways.find(
+        (item) => item.name.toLowerCase() === "stripe"
+      );
+      const gatewayCredential = JSON.parse(stripGateway.data);
+
+      setPublishableKey(
+        stripGateway.test_mode === 1
+          ? gatewayCredential.test_publishable_key
+          : gatewayCredential.publishable_key
+      );
+    }
+  }, [storeData]);
+
+  useEffect(() => {
+    if (club && totalAmount >= 0) {
+      generateStripePaymentIntent();
+    }
+  }, [club, totalAmount, generateStripePaymentIntent]);
 
   const handleKeypadPress = (value) => {
     if (value === "C") {
@@ -325,7 +285,25 @@ const CheckoutScreen = ({ navigation, route }) => {
     if (processingOrder) return;
     setProcessingOrder(true);
 
-    if (validateCardDetails()) {
+    if (!stripeClientSecret || !stripeCardForm?.complete) {
+      setProcessingOrder(false);
+      return;
+    }
+
+    const { paymentIntent, error } = await confirmPayment(stripeClientSecret, {
+      paymentMethodType: "Card",
+      paymentMethodData: {
+        billingDetails: {
+          // name, email, etc. if needed
+        },
+      },
+    });
+
+    if (error) {
+      Alert.alert("Payment confirmation error", error.message);
+      setProcessingOrder(false);
+      return;
+    } else if (paymentIntent) {
       try {
         let order = {};
         const d = new Date();
@@ -348,15 +326,12 @@ const CheckoutScreen = ({ navigation, route }) => {
         order["tax"] = `${storeData?.tax}%`;
         order["payment_method"] = "card";
         order["payment_details"] = {
-          card_details: {
-            ...cardDetails,
-            cardNumber: cardDetails.cardNumber.replace(/\s/g, ""),
-          },
+          charges: [{ id: paymentIntent.id }],
         };
         order["club_name"] = club?.post_title;
         order["wpuid"] = userData.user_id;
         order["timezone"] = storeData.club_info.timezone;
-        console.log("order::", order);
+        console.log("order::", JSON.stringify(order));
 
         dispatch(processOrder(order, club))
           .then((response) => {
@@ -423,15 +398,6 @@ const CheckoutScreen = ({ navigation, route }) => {
     }
   };
 
-  const validateCardDetails = () => {
-    return (
-      validationStatus.cardholderName &&
-      validationStatus.cardNumber &&
-      validationStatus.expirationDate &&
-      validationStatus.cvc
-    );
-  };
-
   const handleLogout = () => {
     navigation.navigate("Login");
   };
@@ -446,7 +412,7 @@ const CheckoutScreen = ({ navigation, route }) => {
     setProcessingOrder(true);
 
     const tenderedAmount = parseFloat(amountTendered);
-    if (tenderedAmount < totalAmount.toFixed(2)) {
+    if (tenderedAmount < totalAmount) {
       Alert.alert(
         "Insufficient Amount",
         "The amount being tendered is less than the order amount. Please update tendered amount to be equal or more than the order amount.",
@@ -625,13 +591,16 @@ const CheckoutScreen = ({ navigation, route }) => {
     }
   };
 
-  const generateReaderPaymentIntent = async () => {
+  const [stripeClientSecret, setStripeClientSecret] = useState("");
+  const [stripeCardForm, setStripeCardForm] = useState();
+
+  const generateStripePaymentIntent = async () => {
     try {
       // Rounded to whole integer number to fix invalid integer error from api
       const roundedAmount = Math.ceil(totalAmount);
       const response = await axios.post(
         `${POS_STORE_API_URL}/pos-stripe-reader-client-secret`,
-        { order_total: roundedAmount },
+        { order_total: totalAmount },
         {
           // const response = await axios.post(`https://phplaravel-1180784-4531756.cloudwaysapps.com/api/stripe-reader-client-secret`, {order_total: totalAmount}, {
           headers: {
@@ -642,7 +611,65 @@ const CheckoutScreen = ({ navigation, route }) => {
       );
 
       if (response?.data?.status) {
-        clientSecret = response.data.client_secret;
+        const clientSecret = response.data.client_secret;
+        setStripeClientSecret(clientSecret);
+        console.log(`clientSecret: ${clientSecret}`);
+
+        // const { paymentIntent, error } = await retrievePaymentIntent(
+        //   clientSecret
+        // );
+
+        // if (error) {
+        //   console.log(error);
+        //   Alert.alert("Error!", `RetrievePaymentIntent: ${error.message}`);
+        //   setReaderStatusText(`Error: ${error.message}`);
+        //   return;
+        // }
+
+        // collectReaderPayment(paymentIntent);
+      } else if (response?.data?.message) {
+        Alert.alert("Error!", `Stripe client secret: ${response.data.message}`);
+        // setReaderStatusText(`Error: ${response.data.message}`);
+      } else {
+        Alert.alert(
+          "Error!",
+          `Stripe client secret: unable to process your request at the moment.`
+        );
+        // setReaderStatusText(
+        //   `Error: unable to process your request at the moment.`
+        // );
+      }
+    } catch (error) {
+      if (error?.response?.data?.message) {
+        Alert.alert(
+          "Error!",
+          `Stripe client secret: ${error.response.data.message}`
+        );
+      } else {
+        Alert.alert("Error!", `Stripe client secret: ${error.toString()}`);
+      }
+      setReaderStatusText("Error: " + error.toString());
+    }
+  };
+
+  const generateReaderPaymentIntent = async () => {
+    try {
+      // Rounded to whole integer number to fix invalid integer error from api
+      const roundedAmount = Math.ceil(totalAmount);
+      const response = await axios.post(
+        `${POS_STORE_API_URL}/pos-stripe-reader-client-secret`,
+        { order_total: totalAmount },
+        {
+          // const response = await axios.post(`https://phplaravel-1180784-4531756.cloudwaysapps.com/api/stripe-reader-client-secret`, {order_total: totalAmount}, {
+          headers: {
+            Apitoken: POS_API_TOKEN,
+            "X-Tenant": club.post_slug,
+          },
+        }
+      );
+
+      if (response?.data?.status) {
+        const clientSecret = response.data.client_secret;
 
         console.log(`clientSecret: ${clientSecret}`);
 
@@ -824,7 +851,7 @@ const CheckoutScreen = ({ navigation, route }) => {
               {cart?.reduce((total, item) => total + item.cart_quantity, 0)}
             </Text>
             <Text style={[styles.totalTextNew, styles.totalAmountNew]}>
-              ${getTotalPrice().totalDue.toFixed(2)}
+              ${getTotalPrice().totalDue}
             </Text>
           </View>
         </View>
@@ -908,8 +935,8 @@ const CheckoutScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
 
-          {/* Card type selection row within the card tab */}
-          {paymentType === "card" && (
+          {/* Card type selection row within the card tab, after added stripe package we don't need this */}
+          {paymentType === "card---disablenow" && (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -968,55 +995,21 @@ const CheckoutScreen = ({ navigation, route }) => {
 
           {/* Display form based on the selected payment type */}
           {paymentType === "card" ? (
-            <View style={styles.cardForm}>
-              <TextInput
-                style={styles.input}
-                placeholder="Cardholder Name"
-                onChangeText={(text) => {
-                  setCardDetails({ ...cardDetails, cardholderName: text });
-                  setValidationStatus({
-                    ...validationStatus,
-                    cardholderName: text.length > 0,
-                  });
-                }}
-                value={cardDetails.cardholderName}
-              />
-              <View style={styles.row}>
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  placeholder="Card Number"
-                  // onChangeText={(text) => setCardDetails({ ...cardDetails, cardNumber: text })}
-                  onChangeText={handleCardNumberChange}
-                  value={cardDetails.cardNumber}
-                  maxLength={19}
-                />
-              </View>
-              <View style={styles.row}>
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  placeholder="Expiration Date (MM/YY)"
-                  // onChangeText={(text) => setCardDetails({ ...cardDetails, expirationDate: text })}
-                  onChangeText={handleExpirationDateChange}
-                  value={cardDetails.expirationDate}
-                  keyboardType="numeric"
-                />
-                <TextInput
-                  style={[styles.input, { flex: 1, marginLeft: 5 }]}
-                  placeholder="CVV"
-                  onChangeText={(text) => {
-                    const cleanedText = text.replace(/\D/g, ""); // Remove non-digit characters
-                    setCardDetails({ ...cardDetails, cvc: cleanedText });
-                    setValidationStatus({
-                      ...validationStatus,
-                      cvc: cleanedText.length === 3,
-                    }); // Set cvc validation status based on the length of cleanedText
-                  }}
-                  value={cardDetails.cvc}
-                  keyboardType="numeric"
-                  maxLength={3}
-                />
-              </View>
-            </View>
+            <>
+              {publishableKey && (
+                <StripeProvider publishableKey={publishableKey}>
+                  <View style={styles.cardForm}>
+                    <CardForm
+                      style={{ width: "100%", height: 180 }}
+                      onFormComplete={(values) => {
+                        setStripeCardForm({ complete: true, ...values });
+                      }}
+                      onFormChange={(values) => setStripeCardForm(values)}
+                    />
+                  </View>
+                </StripeProvider>
+              )}
+            </>
           ) : paymentType === "cash" ? (
             <>
               {/* <ScrollView style={{ ...styles.scView, height: height * 0.72 }}> */}
@@ -1027,7 +1020,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                       <View style={styles.dueContainer}>
                         <Text style={styles.dueText}> Amount due</Text>
                         <Text style={styles.dueAmount}>
-                          ${getTotalPrice().totalDue.toFixed(2)}
+                          ${getTotalPrice().totalDue}
                         </Text>
                       </View>
                       <View style={styles.mainWrapDiv}>
@@ -1062,7 +1055,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                             <View style={styles.selectionRow}>
                               {renderSelectionButton(
                                 "Exact",
-                                totalAmount.toFixed(2)
+                                totalAmount
                               )}
                               {renderSelectionButton("$10.00", "10.00")}
                               {renderSelectionButton("$20.00", "20.00")}
@@ -1121,7 +1114,7 @@ const CheckoutScreen = ({ navigation, route }) => {
               styles.payButton,
               {
                 backgroundColor:
-                  amountTendered < totalAmount.toFixed(2) || processingOrder
+                  amountTendered < totalAmount || processingOrder
                     ? "#ddd"
                     : "#00c0ff",
               },
@@ -1154,11 +1147,11 @@ const CheckoutScreen = ({ navigation, route }) => {
           <TouchableOpacity
             style={[
               styles.payButton,
-              (!validateCardDetails() || processingOrder) &&
+              (!stripeCardForm?.complete || processingOrder) &&
                 styles.disabledButton,
             ]}
             onPress={handleCardPay}
-            disabled={!validateCardDetails()}
+            disabled={!stripeCardForm?.complete}
           >
             <Text style={styles.payButtonText}>Pay for Order</Text>
             <Icon
