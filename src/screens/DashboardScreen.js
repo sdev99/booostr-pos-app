@@ -114,6 +114,9 @@ const DashboardScreen = ({ navigation }) => {
   const [latestOrderErrorMsg, setLatestOrderErrorMsg] = useState("");
   const [topSellingErrorMsg, setTopSellingErrorMsg] = useState("");
 
+  useEffect(() => {
+    console.log("storeData::", storeData);
+  }, [storeData]);
   // Setup Order Database
   useEffect(() => {
     const setupDb = async () => {
@@ -154,6 +157,7 @@ const DashboardScreen = ({ navigation }) => {
         const club = await AsyncStorage.getItem("club");
         if (club) {
           setClub(JSON.parse(club));
+          dispatch(fetchStoreData(JSON.parse(club)));
         }
       } catch (error) {
         console.error("Error fetching data:", error);

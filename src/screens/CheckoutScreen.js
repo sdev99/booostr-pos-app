@@ -37,6 +37,7 @@ import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";
 import * as SQLite from "expo-sqlite";
 import { getItemPrice } from "../api/product";
 import {
+  CardField,
   CardForm,
   StripeProvider,
   useStripe,
@@ -999,13 +1000,20 @@ const CheckoutScreen = ({ navigation, route }) => {
               {publishableKey && (
                 <StripeProvider publishableKey={publishableKey}>
                   <View style={styles.cardForm}>
-                    <CardForm
+                    <CardField
+                      postalCodeEnabled={true}
+                      style={{ width: "100%", height: 50 }}
+                      onCardChange={(card) => {
+                        setStripeCardForm(card);
+                      }}
+                    />
+                    {/* <CardForm
                       style={{ width: "100%", height: 180 }}
                       onFormComplete={(values) => {
                         setStripeCardForm({ complete: true, ...values });
                       }}
                       onFormChange={(values) => setStripeCardForm(values)}
-                    />
+                    /> */}
                   </View>
                 </StripeProvider>
               )}
@@ -1053,10 +1061,7 @@ const CheckoutScreen = ({ navigation, route }) => {
 
                           <View style={styles.amountContainer}>
                             <View style={styles.selectionRow}>
-                              {renderSelectionButton(
-                                "Exact",
-                                totalAmount
-                              )}
+                              {renderSelectionButton("Exact", totalAmount)}
                               {renderSelectionButton("$10.00", "10.00")}
                               {renderSelectionButton("$20.00", "20.00")}
                             </View>
