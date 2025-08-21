@@ -326,6 +326,7 @@ const CheckoutScreen = ({ navigation, route }) => {
         order["order_tax"] = getTotalPrice().tax;
         order["tax"] = `${storeData?.tax}%`;
         order["payment_method"] = "card";
+        order["payment_identifiers"] = "card";
         order["payment_details"] = {
           charges: [{ id: paymentIntent.id }],
         };
@@ -598,10 +599,9 @@ const CheckoutScreen = ({ navigation, route }) => {
   const generateStripePaymentIntent = async () => {
     try {
       // Rounded to whole integer number to fix invalid integer error from api
-      const roundedAmount = Math.ceil(totalAmount);
       const response = await axios.post(
         `${POS_STORE_API_URL}/pos-stripe-reader-client-secret`,
-        { order_total: totalAmount },
+        { order_total: totalAmount, payment_identifiers: "card" },
         {
           // const response = await axios.post(`https://phplaravel-1180784-4531756.cloudwaysapps.com/api/stripe-reader-client-secret`, {order_total: totalAmount}, {
           headers: {
@@ -656,10 +656,9 @@ const CheckoutScreen = ({ navigation, route }) => {
   const generateReaderPaymentIntent = async () => {
     try {
       // Rounded to whole integer number to fix invalid integer error from api
-      const roundedAmount = Math.ceil(totalAmount);
       const response = await axios.post(
         `${POS_STORE_API_URL}/pos-stripe-reader-client-secret`,
-        { order_total: totalAmount },
+        { order_total: totalAmount, payment_identifiers: "terminal" },
         {
           // const response = await axios.post(`https://phplaravel-1180784-4531756.cloudwaysapps.com/api/stripe-reader-client-secret`, {order_total: totalAmount}, {
           headers: {
@@ -787,6 +786,7 @@ const CheckoutScreen = ({ navigation, route }) => {
       order["order_tax"] = getTotalPrice().tax;
       order["tax"] = `${storeData?.tax}%`;
       order["payment_method"] = "reader";
+      order["payment_identifiers"] = "terminal";
       order["payment_details"] = payment;
       order["wpuid"] = userData.user_id;
       console.log("order::", order);
