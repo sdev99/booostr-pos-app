@@ -512,7 +512,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#c7c8c7",
   },
   categoryItem: {
-    width: 120,
     padding: 15,
     marginRight: 10,
     backgroundColor: "#e7effc",

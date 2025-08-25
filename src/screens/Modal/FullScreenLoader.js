@@ -1,5 +1,10 @@
 // FullScreenLoader.js
-import React, { forwardRef, useImperativeHandle, useState } from "react";
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useState,
+} from "react";
 import { View, ActivityIndicator, Text, StyleSheet } from "react-native";
 
 const FullScreenLoader = forwardRef((props, ref) => {
@@ -13,6 +18,10 @@ const FullScreenLoader = forwardRef((props, ref) => {
     },
     hide: () => setVisible(false),
   }));
+
+  useEffect(() => {
+    setVisible(props.show);
+  }, [props.show]);
 
   if (!visible) return null;
 

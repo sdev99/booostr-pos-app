@@ -36,6 +36,7 @@ import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";
 //import { FontAwesome } from "@expo/vector-icons";
 import * as SQLite from "expo-sqlite";
 import { getItemPrice } from "../api/product";
+import FullScreenLoader from "./Modal/FullScreenLoader";
 import {
   CardField,
   CardForm,
@@ -149,12 +150,6 @@ const CheckoutScreen = ({ navigation, route }) => {
       );
     }
   }, [storeData]);
-
-  useEffect(() => {
-    if (club && totalAmount >= 0) {
-      generateStripePaymentIntent();
-    }
-  }, [club, totalAmount, generateStripePaymentIntent]);
 
   const handleKeypadPress = (value) => {
     if (value === "C") {
@@ -285,6 +280,8 @@ const CheckoutScreen = ({ navigation, route }) => {
   const handleCardPay = async () => {
     if (processingOrder) return;
     setProcessingOrder(true);
+
+    const stripeClientSecret = await generateStripePaymentIntent();
 
     if (!stripeClientSecret || !stripeCardForm?.complete) {
       setProcessingOrder(false);
@@ -448,11 +445,11 @@ const CheckoutScreen = ({ navigation, route }) => {
         order["order_tax"] = getTotalPrice().tax;
         order["tax"] = `${storeData?.tax}%`;
         order["payment_method"] = "cash";
+        order["payment_identifiers"] = "cash";
         order["payment_details"] = { tendered_amount: tenderedAmount };
         order["club_name"] = club?.post_title;
         order["wpuid"] = userData.user_id;
         order["timezone"] = storeData.club_info.timezone;
-        console.log("order::", order);
 
         dispatch(processOrder(order, club))
           .then((response) => {
@@ -502,7 +499,7 @@ const CheckoutScreen = ({ navigation, route }) => {
             }
           })
           .catch((error) => {
-            alert(error.toString());
+            Alert.alert("Cash Error!", error.toString());
           })
           .finally(() => {
             setProcessingOrder(false);
@@ -593,7 +590,6 @@ const CheckoutScreen = ({ navigation, route }) => {
     }
   };
 
-  const [stripeClientSecret, setStripeClientSecret] = useState("");
   const [stripeCardForm, setStripeCardForm] = useState();
 
   const generateStripePaymentIntent = async () => {
@@ -612,22 +608,7 @@ const CheckoutScreen = ({ navigation, route }) => {
       );
 
       if (response?.data?.status) {
-        const clientSecret = response.data.client_secret;
-        setStripeClientSecret(clientSecret);
-        console.log(`clientSecret: ${clientSecret}`);
-
-        // const { paymentIntent, error } = await retrievePaymentIntent(
-        //   clientSecret
-        // );
-
-        // if (error) {
-        //   console.log(error);
-        //   Alert.alert("Error!", `RetrievePaymentIntent: ${error.message}`);
-        //   setReaderStatusText(`Error: ${error.message}`);
-        //   return;
-        // }
-
-        // collectReaderPayment(paymentIntent);
+        return response.data.client_secret;
       } else if (response?.data?.message) {
         Alert.alert("Error!", `Stripe client secret: ${response.data.message}`);
         // setReaderStatusText(`Error: ${response.data.message}`);
@@ -636,9 +617,6 @@ const CheckoutScreen = ({ navigation, route }) => {
           "Error!",
           `Stripe client secret: unable to process your request at the moment.`
         );
-        // setReaderStatusText(
-        //   `Error: unable to process your request at the moment.`
-        // );
       }
     } catch (error) {
       if (error?.response?.data?.message) {
@@ -649,8 +627,8 @@ const CheckoutScreen = ({ navigation, route }) => {
       } else {
         Alert.alert("Error!", `Stripe client secret: ${error.toString()}`);
       }
-      setReaderStatusText("Error: " + error.toString());
     }
+    return;
   };
 
   const generateReaderPaymentIntent = async () => {
@@ -1014,6 +992,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                       }}
                       onFormChange={(values) => setStripeCardForm(values)}
                     /> */}
+                    {processingOrder && <FullScreenLoader show />}
                   </View>
                 </StripeProvider>
               )}
@@ -1082,6 +1061,8 @@ const CheckoutScreen = ({ navigation, route }) => {
                               {renderClearButton()}
                             </View>
                           </View>
+
+                          {processingOrder && <FullScreenLoader show />}
                         </KeyboardAwareScrollView>
                       </View>
                     </View>
