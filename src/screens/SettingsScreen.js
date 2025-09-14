@@ -8,6 +8,7 @@ import {
   Linking,
   Modal,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useSelector, useDispatch } from "react-redux";
@@ -15,7 +16,10 @@ import { logout } from "../actions/auth";
 import { memoizedUserData } from "../store/selectors";
 import Header from "./Header";
 import BottomBar from "./BottomBar";
-import { useStripeTerminal } from "@stripe/stripe-terminal-react-native";
+import {
+  requestNeededAndroidPermissions,
+  useStripeTerminal,
+} from "@stripe/stripe-terminal-react-native";
 import StripeReaderModal from "./Modal/StripReaderModal";
 import { STRIPE_TERMINAL_SIMULATE_MODE } from "../config";
 
@@ -100,6 +104,24 @@ const SettingsScreen = ({ navigation }) => {
   };
 
   const handleDiscoverReaders = async () => {
+    if (Platform.OS === "android") {
+      try {
+        const granted = await requestNeededAndroidPermissions({
+          accessFineLocation: {
+            title: "Location Permission",
+            message: "Location access is required in order to accept payments.",
+            buttonPositive: "Accept",
+          },
+        });
+        if (granted) {
+          // Initialize the SDK
+        } else {
+          console.error(
+            "Location and BT services are required to connect to a reader."
+          );
+        }
+      } catch {}
+    }
     // The list of discovered readers is reported in the `didUpdateDiscoveredReaders` method
     // within the `useStripeTerminal` hook.
     setDiscoverReaderErrorMsg("");
@@ -320,6 +342,7 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 14,
     fontWeight: "700",
+    flex: 1,
   },
   modalContainer: {
     flex: 1,

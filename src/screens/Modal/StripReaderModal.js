@@ -57,7 +57,7 @@ const StripeReaderModal = forwardRef(
         //   locationId = selectedReader.locationId;
         // } else {
         loaderRef.current?.show(`Fetching Locations`);
-        const response = await getLocations(); // get locations from stripe
+        const response = await getLocations({}); // get locations from stripe
 
         if (response.locations?.length > 0) {
           const locationData = response.locations.find(
@@ -215,12 +215,14 @@ const styles = StyleSheet.create({
   readerText: {
     alignSelf: "center",
     fontSize: 16,
+    flex: 1,
   },
   readerConnect: {
     backgroundColor: "#34c759",
     padding: 8,
     borderRadius: 5,
     color: "white",
+    alignSelf: "center",
   },
   readerConnectText: {
     color: "white",

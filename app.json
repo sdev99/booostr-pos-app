@@ -11,9 +11,7 @@
       "backgroundColor": "#03cb8a"
     },
     "owner": "sdev99",
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "bundleIdentifier": "com.booostr.pos",
       "buildNumber": "16",
@@ -25,10 +23,16 @@
     "android": {
       "package": "com.booostr.pos",
       "versionCode": 1,
+      "minSdkVersion": 26,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#03cb8a"
-      }
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "BLUETOOTH_CONNECT",
+        "BLUETOOTH_SCAN"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -43,6 +47,7 @@
       "url": "https://u.expo.dev/1e993bd0-906f-4b74-9047-36c3289a14ec"
     },
     "plugins": [
+      "./plugins/withPackagingOptions",
       [
         "expo-build-properties",
         {
