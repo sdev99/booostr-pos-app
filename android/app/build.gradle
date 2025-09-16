@@ -90,9 +90,9 @@ android {
     defaultConfig {
         applicationId 'com.booostr.pos'
         minSdkVersion 26
-        targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.2.3"
+        targetSdkVersion 35
+        versionCode 3
+        versionName "1.0.0"
     }
     signingConfigs {
         debug {

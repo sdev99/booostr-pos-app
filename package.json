@@ -9,7 +9,6 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "@expo/config-plugins": "~9.0.0",
     "@expo/vector-icons": "~14.0.4",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-picker/picker": "^2.11.0",
@@ -51,6 +50,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
+    "@expo/config-plugins": "^54.0.1",
     "@react-native-community/cli": "^19.1.0"
   },
   "private": true
