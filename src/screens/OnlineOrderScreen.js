@@ -19,7 +19,6 @@ import BottomBar from "./BottomBar";
 import { memoizedOrderList, memoizedStoreData } from "../store/selectors";
 import {
   removeOrderFromOrderList,
-  setupOrderList,
 } from "../store/reducers/orderListSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
@@ -274,18 +273,20 @@ const OnlineOrderScreen = ({ navigation }) => {
     try {
       dispatch(removeOrderFromOrderList(selectedOrder))
         .then(() => {
-          db.transaction((tx) => {
-            tx.executeSql(
-              "DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;",
-              [orderList[selectedOrder].created_at, club.post_slug],
-              () => {
-                console.log("Row deleted successfully");
-              },
-              (_, error) => {
-                console.error("Error deleting row:", error);
-              }
-            );
-          });
+          try {
+            db.transaction((tx) => {
+              tx.executeSql(
+                "DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;",
+                [orderList[selectedOrder].created_at, club.post_slug],
+                () => {
+                  console.log("Row deleted successfully");
+                },
+                (_, error) => {
+                  console.error("Error deleting row:", error);
+                }
+              );
+            });
+          } catch (error) {}
           setSelectedOrder(null);
           setCancelModalVisible(false); // Close the modal after handling cancel
         })

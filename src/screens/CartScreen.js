@@ -119,6 +119,7 @@ const CartScreen = ({ navigation }) => {
       order["status"] = "on-hold";
       dispatch(addToOrderList(order))
         .then(() => {
+          console.log("Order put on Hold");
           dispatch(resetCart());
           navigation.navigate("OnlineOrder");
         })
@@ -148,9 +149,7 @@ const CartScreen = ({ navigation }) => {
           {item.is_variation === 1 && item?.variation_price_object && (
             <View style={styles.variantContainer}>
               {getVariationsNames(item)?.map((option) => (
-                <Text style={styles.variantText}>
-                  {option}
-                </Text>
+                <Text style={styles.variantText}>{option}</Text>
               ))}
             </View>
           )}

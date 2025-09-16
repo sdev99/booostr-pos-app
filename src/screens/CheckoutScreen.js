@@ -347,24 +347,26 @@ const CheckoutScreen = ({ navigation, route }) => {
                 created_at: formattedDateTime,
               };
               if (typeof route?.params?.orderIndex == "number") {
-                db.transaction((tx) => {
-                  tx.executeSql(
-                    "DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;",
-                    [
-                      orderList[route.params.orderIndex].created_at,
-                      club.post_slug,
-                    ],
-                    () => {
-                      console.log("Row deleted successfully");
-                      dispatch(
-                        removeOrderFromOrderList(route.params.orderIndex)
-                      );
-                    },
-                    (_, error) => {
-                      console.error("Error deleting row:", error);
-                    }
-                  );
-                });
+                try {
+                  db.transaction((tx) => {
+                    tx.executeSql(
+                      "DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;",
+                      [
+                        orderList[route.params.orderIndex].created_at,
+                        club.post_slug,
+                      ],
+                      () => {
+                        console.log("Row deleted successfully");
+                      },
+                      (_, error) => {
+                        console.error("Error deleting row:", error);
+                      }
+                    );
+                  });
+                } catch (error) {
+                } finally {
+                  dispatch(removeOrderFromOrderList(route.params.orderIndex));
+                }
               }
               dispatch(addToOrderList(order))
                 .then(() => {
@@ -466,24 +468,26 @@ const CheckoutScreen = ({ navigation, route }) => {
                 created_at: formattedDateTime,
               };
               if (typeof route?.params?.orderIndex == "number") {
-                db.transaction((tx) => {
-                  tx.executeSql(
-                    "DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;",
-                    [
-                      orderList[route.params.orderIndex].created_at,
-                      club.post_slug,
-                    ],
-                    () => {
-                      console.log("Row deleted successfully");
-                      dispatch(
-                        removeOrderFromOrderList(route.params.orderIndex)
-                      );
-                    },
-                    (_, error) => {
-                      console.error("Error deleting row:", error);
-                    }
-                  );
-                });
+                try {
+                  db.transaction((tx) => {
+                    tx.executeSql(
+                      "DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;",
+                      [
+                        orderList[route.params.orderIndex].created_at,
+                        club.post_slug,
+                      ],
+                      () => {
+                        console.log("Row deleted successfully");
+                      },
+                      (_, error) => {
+                        console.error("Error deleting row:", error);
+                      }
+                    );
+                  });
+                } catch (error) {
+                } finally {
+                  dispatch(removeOrderFromOrderList(route.params.orderIndex));
+                }
               }
               dispatch(addToOrderList(order))
                 .then(() => {

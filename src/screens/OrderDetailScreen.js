@@ -23,6 +23,7 @@ import {
 import * as SQLite from "expo-sqlite";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getItemPrice, getVariationsNames } from "../api/product";
+import { addProductToCart } from "../store/reducers/cartSlice";
 
 const OrderDetailScreen = ({ route, navigation }) => {
   const dispatch = useDispatch();
@@ -63,16 +64,6 @@ const OrderDetailScreen = ({ route, navigation }) => {
               [orderDate, club.post_slug],
               () => {
                 console.log("Row deleted successfully");
-                dispatch(removeOrderFromOrderList(orderIndex))
-                  .then(() => {
-                    navigation.navigate("OnlineOrder");
-                  })
-                  .catch((error) => {
-                    console.error(
-                      "Error removing order from orderList:",
-                      error
-                    );
-                  });
               },
               (_, error) => {
                 console.error("Error deleting row:", error);
@@ -82,6 +73,14 @@ const OrderDetailScreen = ({ route, navigation }) => {
         } catch (error) {
           console.error("Error removing item from order:", error);
         }
+
+        dispatch(removeOrderFromOrderList(orderIndex))
+          .then(() => {
+            navigation.navigate("OnlineOrder");
+          })
+          .catch((error) => {
+            console.error("Error removing order from orderList:", error);
+          });
       }
     }, 1000);
 
@@ -139,7 +138,24 @@ const OrderDetailScreen = ({ route, navigation }) => {
   };
   const handleContinueShopping = () => {
     // Handle logic for Continue Shopping button
-    navigation.navigate("Orders");
+    try {
+      orderList[orderIndex].items.map((product) => {
+        dispatch(addProductToCart(product, product.cart_quantity)).catch(
+          (error) => {
+            console.error("Error adding product to cart:", error);
+          }
+        );
+      });
+    } catch (error) {
+      console.error("Error adding product to cart:", error);
+    }
+    dispatch(removeOrderFromOrderList(orderIndex))
+      .then(() => {
+        navigation.navigate("Orders");
+      })
+      .catch((error) => {
+        console.error("Error removing order from orderList:", error);
+      });
   };
   const handleIncreaseQuantity = async (itemIndex) => {
     try {
@@ -172,13 +188,6 @@ const OrderDetailScreen = ({ route, navigation }) => {
           [orderDate, club.post_slug],
           () => {
             console.log("Row deleted successfully");
-            dispatch(removeOrderFromOrderList(orderIndex))
-              .then(() => {
-                navigation.navigate("OnlineOrder");
-              })
-              .catch((error) => {
-                console.error("Error removing order from orderList:", error);
-              });
           },
           (_, error) => {
             console.error("Error deleting row:", error);
@@ -188,6 +197,14 @@ const OrderDetailScreen = ({ route, navigation }) => {
     } catch (error) {
       console.error("Error removing item from order:", error);
     }
+
+    dispatch(removeOrderFromOrderList(orderIndex))
+      .then(() => {
+        navigation.navigate("OnlineOrder");
+      })
+      .catch((error) => {
+        console.error("Error removing order from orderList:", error);
+      });
   };
 
   const getOnHoldOrderId = (order) => {

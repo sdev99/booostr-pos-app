@@ -22,6 +22,7 @@
     },
     "android": {
       "package": "com.booostr.pos",
+      "version": "1.0.0",
       "versionCode": 1,
       "minSdkVersion": 26,
       "adaptiveIcon": {

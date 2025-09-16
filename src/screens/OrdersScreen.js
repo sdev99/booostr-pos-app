@@ -149,22 +149,24 @@ const OrdersScreen = ({ navigation, route }) => {
       dispatch(addToOrderList(order))
         .then(() => {
           console.log("inserting order into db");
-          db.transaction((tx) => {
-            tx.executeSql(
-              "INSERT INTO onHoldOrders (data, createdAt, club) VALUES (?, ?, ?)",
-              [JSON.stringify(order), order["created_at"], club.post_slug],
-              (_, { insertId }) => {
-                console.log(`Order inserted with ID: ${insertId}`);
-                dispatch(resetCart());
-                navigation.navigate("OnlineOrder");
-              },
-              (_, error) => {
-                console.error("Error inserting order:", error);
-                dispatch(resetCart());
-                navigation.navigate("OnlineOrder");
-              }
-            );
-          });
+          dispatch(resetCart());
+          navigation.navigate("OnlineOrder");
+          // db.transaction((tx) => {
+          //   tx.executeSql(
+          //     "INSERT INTO onHoldOrders (data, createdAt, club) VALUES (?, ?, ?)",
+          //     [JSON.stringify(order), order["created_at"], club.post_slug],
+          //     (_, { insertId }) => {
+          //       console.log(`Order inserted with ID: ${insertId}`);
+          //       dispatch(resetCart());
+          //       navigation.navigate("OnlineOrder");
+          //     },
+          //     (_, error) => {
+          //       console.error("Error inserting order:", error);
+          //       dispatch(resetCart());
+          //       navigation.navigate("OnlineOrder");
+          //     }
+          //   );
+          // });
         })
         .catch((error) => {
           console.error("Error putting order on hold:", error);
