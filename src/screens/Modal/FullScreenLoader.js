@@ -5,7 +5,8 @@ import React, {
   useImperativeHandle,
   useState,
 } from "react";
-import { View, ActivityIndicator, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
+import { ActivityIndicator } from "react-native-paper";
 
 const FullScreenLoader = forwardRef((props, ref) => {
   const [visible, setVisible] = useState(false);

@@ -10,16 +10,14 @@ import {
   StyleSheet,
   ScrollView,
   Modal,
-  ActivityIndicator,
 } from "react-native";
+import { ActivityIndicator } from "react-native-paper";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Header from "./Header";
 import BottomBar from "./BottomBar";
 import { memoizedOrderList, memoizedStoreData } from "../store/selectors";
-import {
-  removeOrderFromOrderList,
-} from "../store/reducers/orderListSlice";
+import { removeOrderFromOrderList } from "../store/reducers/orderListSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";

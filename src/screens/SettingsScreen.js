@@ -7,9 +7,9 @@ import {
   ScrollView,
   Linking,
   Modal,
-  ActivityIndicator,
   Platform,
 } from "react-native";
+import { ActivityIndicator } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../actions/auth";

@@ -42,6 +42,10 @@ legacy-peer-deps=true
 
 resources {
     excludes += [
+        "META-INF/LICENSE*",
+        "META-INF/NOTICE*",
+        "META-INF/DEPENDENCIES",
+        "META-INF/*.kotlin_module",
         "org/bouncycastle/pqc/crypto/picnic/lowmc*.properties",
         "org/bouncycastle/x509/CertPathReviewerMessages*.properties"
     ]

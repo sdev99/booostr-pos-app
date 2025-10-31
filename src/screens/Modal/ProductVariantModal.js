@@ -10,9 +10,9 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
-  ActivityIndicator,
+  ScrollView
 } from "react-native";
+import { ActivityIndicator } from "react-native-paper";
 import { APP_BUTTON_COLOR, APP_DISABLED_BUTTON_COLOR } from "../../color";
 import { getProductVariations } from "../../api/product";
 

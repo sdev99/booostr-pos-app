@@ -5,9 +5,9 @@ import {
   StyleSheet,
   Image,
   TextInput,
-  ImageBackground,
-  ActivityIndicator,
+  ImageBackground
 } from "react-native";
+import { ActivityIndicator } from "react-native-paper";
 import { Button as PaperButton } from "react-native-paper";
 import { useSelector, useDispatch } from "react-redux";
 import bgImg from "../assets/chat-bg.png";

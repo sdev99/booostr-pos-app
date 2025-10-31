@@ -6,10 +6,9 @@ import {
   Image,
   TouchableOpacity,
   SectionList,
-  Platform,
-  ActivityIndicator,
-  Alert,
+  Platform
 } from "react-native";
+import { ActivityIndicator } from "react-native-paper";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchClubList } from "../store/reducers/clubListSlice";
 import { logout } from "../actions/auth";
