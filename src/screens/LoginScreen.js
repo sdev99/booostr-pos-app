@@ -57,7 +57,6 @@ const LoginScreen = ({ navigation }) => {
     <View style={[styles.top_main]}>
       <ImageBackground style={styles.img_top} source={image} resizeMode="cover">
         <View style={styles.container}>
-          
           <View style={styles.logoBox}>
             {/*<Image source={require("../assets/logo.png")} style={styles.logo} />*/}
             <Text style={styles.title}>Booostr POS</Text>
@@ -71,6 +70,8 @@ const LoginScreen = ({ navigation }) => {
               placeholder="Email or Username"
               onChangeText={(text) => setEmail(text)}
               value={email}
+              selectionColor={"#515151"}
+              placeholderTextColor={"#717171"}
             />
             <TextInput
               style={styles.input}
@@ -78,6 +79,8 @@ const LoginScreen = ({ navigation }) => {
               secureTextEntry
               onChangeText={(text) => setPassword(text)}
               value={password}
+              selectionColor={"#515151"}
+              placeholderTextColor={"#717171"}
             />
             {loading ? (
               <View style={styles.loader}>

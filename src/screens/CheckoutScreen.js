@@ -65,6 +65,7 @@ const CheckoutScreen = ({ navigation, route }) => {
     retrievePaymentIntent,
     collectPaymentMethod,
     confirmPaymentIntent,
+    getConnectionStatus,
   } = useStripeTerminal({
     onDidRequestReaderInput: (options) => {
       // Placeholder for updating your app's checkout UI
@@ -694,6 +695,14 @@ const CheckoutScreen = ({ navigation, route }) => {
 
   const collectReaderPayment = async (intent) => {
     try {
+      const connectionStatus = await getConnectionStatus();
+      if (connectionStatus !== "connected" || !connectedReader) {
+        setReaderStatusText(
+          `Error: Reader not connected`
+        );
+        return;
+      }
+
       const { paymentIntent, error } = await collectPaymentMethod({
         paymentIntent: intent,
       });
@@ -984,6 +993,10 @@ const CheckoutScreen = ({ navigation, route }) => {
                   <View style={styles.cardForm}>
                     <CardField
                       postalCodeEnabled={true}
+                      cardStyle={{
+                        textColor: "#000000",
+                        placeholderColor: "#999999",
+                      }}
                       style={{ width: "100%", height: 50 }}
                       onCardChange={(card) => {
                         setStripeCardForm(card);

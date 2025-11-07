@@ -25,7 +25,7 @@
     "android": {
       "package": "com.booostr.pos",
       "version": "1.0.1",
-      "versionCode": 5,
+      "versionCode": 6,
       "enableEdgeToEdge": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
