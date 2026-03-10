@@ -1,16 +1,39 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 // import {AppRegistry} from 'react-native';
 import App from "./App";
 import { registerRootComponent } from "expo";
-import { Provider } from "react-redux";
+import { Provider, useSelector } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import store, { persistor } from "./src/store/configureStore";
 import { StripeTerminalProvider } from "@stripe/stripe-terminal-react-native";
 import axios from "axios";
 import { POS_STORE_API_URL, POS_API_TOKEN } from "./src/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { StripeProvider } from "@stripe/stripe-react-native";
+import { memoizedStoreData } from "./src/store/selectors";
 
-const ReduxApp = () => {
+const AppWrap = () => {
+  const storeData = useSelector(memoizedStoreData);
+  const [publishableKey, setPublishableKey] = useState("");
+
+  useEffect(() => {
+    if (storeData) {
+      try {
+        const getways = storeData?.Getway;
+        const stripGateway = getways.find(
+          (item) => item.name.toLowerCase() === "stripe",
+        );
+        const gatewayCredential = JSON.parse(stripGateway.data);
+
+        setPublishableKey(
+          stripGateway.test_mode === 1
+            ? gatewayCredential.test_publishable_key
+            : gatewayCredential.publishable_key,
+        );
+      } catch (error) {}
+    }
+  }, [storeData]);
+
   //get connection token for stripe reader
   const fetchTokenProvider = async () => {
     try {
@@ -24,7 +47,7 @@ const ReduxApp = () => {
               Apitoken: POS_API_TOKEN,
               "X-Tenant": JSON.parse(club)?.post_slug,
             },
-          }
+          },
         );
         if (response?.data?.secret?.secret) {
           return response.data.secret.secret;
@@ -39,14 +62,33 @@ const ReduxApp = () => {
   };
 
   return (
+    <>
+      {publishableKey ? (
+        <StripeProvider
+          key={publishableKey} // 👈 IMPORTANT FOR DYNAMIC publishableKey
+          publishableKey={publishableKey}
+          merchantIdentifier="merchant.com.booostr.posapp"
+          urlScheme="booostrpos"
+        >
+          <StripeTerminalProvider
+            logLevel="verbose"
+            tokenProvider={fetchTokenProvider}
+          >
+            <App />
+          </StripeTerminalProvider>
+        </StripeProvider>
+      ) : (
+        <App />
+      )}
+    </>
+  );
+};
+
+const ReduxApp = () => {
+  return (
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
-        <StripeTerminalProvider
-          logLevel="verbose"
-          tokenProvider={fetchTokenProvider}
-        >
-          <App />
-        </StripeTerminalProvider>
+        <AppWrap />
       </PersistGate>
     </Provider>
   );

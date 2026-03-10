@@ -53,6 +53,7 @@ const SettingsScreen = ({ navigation }) => {
   const [isAccountModalVisible, setAccountModalVisible] = useState(false);
   const [isReadersModalVisible, setReadersModalVisible] = useState(false);
   const [discoverReaderErrorMsg, setDiscoverReaderErrorMsg] = useState("");
+  const [discoveryMethod, setDiscoveryMethod] = useState("");
   const loading = useSelector((state) => state.auth.loading);
   const userData = useSelector(memoizedUserData);
   const {
@@ -63,13 +64,13 @@ const SettingsScreen = ({ navigation }) => {
     connectedReader,
     cancelDiscovering,
     disconnectReader,
+    supportsReadersOfType,
   } = useStripeTerminal({
     didUpdateDiscoveredReaders: (readers) => {
-      // After the SDK discovers a reader, your app can connect to it.
-      // Here, we're automatically connecting to the first discovered reader.
-      // handleConnectBluetoothReader(readers[0].id);
-      console.log("Discovered readers: ");
-      // console.log(discoveredReaders);
+      console.log("Discovered readers: ", readers);
+      // NOTE: For 'localMobile' (Tap to Pay), there is usually only one reader (the phone itself).
+      // You can auto-connect here by checking the discovery method or reader type,
+      // or let it pass to your existing StripeReaderModal.
     },
   });
 
@@ -86,7 +87,7 @@ const SettingsScreen = ({ navigation }) => {
 
   const handleHelpAndSupport = () => {
     Linking.openURL("https://support.booostr.co").catch((error) =>
-      console.error("Error opening URL:", error)
+      console.error("Error opening URL:", error),
     );
   };
 
@@ -103,7 +104,38 @@ const SettingsScreen = ({ navigation }) => {
     navigation.navigate("Agrement", { onlyView: true });
   };
 
-  const handleDiscoverReaders = async () => {
+  // --- NEW: Handle Tap to Pay (Local Mobile Reader) ---
+  const handleConnectTapToPay = async () => {
+    setDiscoverReaderErrorMsg("");
+    const { readerSupportResult, error } = await supportsReadersOfType({
+      deviceType: "tapToPay",
+      discoveryMethod: "tapToPay",
+      simulated: STRIPE_TERMINAL_SIMULATE_MODE
+    });
+
+    if (error) {
+      alert("Tap to Pay check error:" + error.message);
+      return;
+    }
+
+    if (readerSupportResult) {
+      console.log("Initializing Tap to Pay on Device");
+      await startDiscoverReaders("tapToPay");
+    } else {
+      alert("Tap to Pay NOT supported on this device");
+    }
+  };
+
+  // --- UPDATED: Handle External Bluetooth Readers ---
+  const handleConnectBluetoothReader = async () => {
+    console.log("Scanning for Bluetooth readers");
+    setDiscoverReaderErrorMsg("");
+    await startDiscoverReaders("bluetoothScan");
+  };
+
+  const startDiscoverReaders = async (discoveryMethodName) => {
+    setDiscoveryMethod(discoveryMethodName);
+
     if (Platform.OS === "android") {
       try {
         const granted = await requestNeededAndroidPermissions({
@@ -113,54 +145,78 @@ const SettingsScreen = ({ navigation }) => {
             buttonPositive: "Accept",
           },
         });
-        if (granted) {
-          // Initialize the SDK
-        } else {
+        if (!granted) {
           console.error(
-            "Location and BT services are required to connect to a reader."
+            "Location and BT services are required to connect to a reader.",
           );
+          return;
         }
-      } catch {}
+      } catch (e) {
+        console.error(e);
+      }
     }
-    // The list of discovered readers is reported in the `didUpdateDiscoveredReaders` method
-    // within the `useStripeTerminal` hook.
+
     setDiscoverReaderErrorMsg("");
+    toggleReadersModal(); // Open modal to show list
+
     const { error } = await discoverReaders({
-      discoveryMethod: "bluetoothScan",
+      discoveryMethod: discoveryMethodName,
       simulated: STRIPE_TERMINAL_SIMULATE_MODE,
     });
 
-    if (error) {
-      if (error.code != "Canceled") {
-        setDiscoverReaderErrorMsg(error.message);
-      }
+    if (error && error.code !== "Canceled") {
+      setDiscoverReaderErrorMsg(error.message);
     }
   };
 
   const cancelDiscoveringReader = async () => {
     const { error } = await cancelDiscovering();
-
     if (error) {
-      console.log("connectReader error", error);
-      // alert(`Error cancelling scan: ${error.message}`);
+      console.log("cancel discover error", error);
       return;
     }
-  };
-
-  const handleConnectReader = () => {
-    console.log("scanning for readers");
-    toggleReadersModal();
-    handleDiscoverReaders();
   };
 
   const disconnectFromReader = async () => {
-    const { reader, error } = await disconnectReader();
-
+    const { error } = await disconnectReader();
     if (error) {
-      console.log("connectBluetoothReader error", error);
+      console.log("disconnect error", error);
       alert("Unable to disconnect from the reader.");
       return;
     }
+  };
+
+  // Helper to determine icon based on reader type
+  const getConnectedReaderIcon = () => {
+    if (!connectedReader) return "contactless-payment-circle";
+    // Check if the connected device is a smartphone vs physical hardware
+    console.log("connectedReader.deviceType::", connectedReader.deviceType);
+    if (
+      connectedReader.deviceType === "tapToPay" ||
+      connectedReader.deviceType === "appleBuiltIn" ||
+      connectedReader.deviceType === "cotsDevice"
+    ) {
+      return "cellphone-nfc";
+    }
+    return "bluetooth-settings";
+  };
+
+  // Detect if Tap to Pay is connected
+  const isTapToPayConnected = () => {
+    if (!connectedReader) return false;
+
+    return (
+      connectedReader.deviceType === "tapToPay" ||
+      connectedReader.deviceType === "appleBuiltIn" ||
+      connectedReader.deviceType === "cotsDevice"
+    );
+  };
+
+  // Detect if Bluetooth Reader is connected
+  const isBluetoothReaderConnected = () => {
+    if (!connectedReader) return false;
+
+    return !isTapToPayConnected();
   };
 
   return (
@@ -181,6 +237,7 @@ const SettingsScreen = ({ navigation }) => {
         <ScrollView style={styles.scrollView}>
           <View style={styles.settingsWrap}>
             <View style={styles.allItems}>
+              {/* Account */}
               <TouchableOpacity
                 style={styles.settingItem}
                 onPress={toggleAccountModal}
@@ -193,19 +250,21 @@ const SettingsScreen = ({ navigation }) => {
                 />
                 <Text style={styles.settingTitle}>Account</Text>
               </TouchableOpacity>
-              {connectedReader ? (
+
+              {/* Reader Connections */}
+              {connectedReader && (
                 <TouchableOpacity
                   style={styles.settingItem}
                   onPress={disconnectFromReader}
                 >
                   <Icon
-                    name="contactless-payment-circle"
+                    name={getConnectedReaderIcon()}
                     size={24}
-                    color="#000"
+                    color="#00c0ff" // Highlighted blue to show active connection
                     style={styles.settingIcon}
                   />
                   <Text style={styles.settingTitle}>
-                    {connectedReader.serialNumber}
+                    {connectedReader.serialNumber || "Reader Connected"}
                   </Text>
                   <View style={styles.disconnectReader}>
                     <View style={styles.disconnectReaderTextWrap}>
@@ -215,20 +274,64 @@ const SettingsScreen = ({ navigation }) => {
                     </View>
                   </View>
                 </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={styles.settingItem}
-                  onPress={handleConnectReader}
-                >
-                  <Icon
-                    name="contactless-payment-circle"
-                    size={24}
-                    color="#000"
-                    style={styles.settingIcon}
-                  />
-                  <Text style={styles.settingTitle}>Connect Reader</Text>
-                </TouchableOpacity>
               )}
+              <>
+                {/* Option 1: Tap to Pay (Local Phone) */}
+                {(!connectedReader || !isTapToPayConnected()) && (
+                  <TouchableOpacity
+                    style={[
+                      styles.settingItem,
+                      isBluetoothReaderConnected() && { opacity: 0.4 },
+                    ]}
+                    onPress={() => {
+                      if (isBluetoothReaderConnected()) {
+                        alert("Disconnect reader first to use Tap to Pay");
+                        return;
+                      }
+                      handleConnectTapToPay();
+                    }}
+                  >
+                    <Icon
+                      name="cellphone-nfc"
+                      size={24}
+                      color="#000"
+                      style={styles.settingIcon}
+                    />
+                    <Text style={styles.settingTitle}>
+                      Tap to Pay on Device
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {/* Option 2: External Bluetooth Reader */}
+                {(!connectedReader || isTapToPayConnected) && (
+                  <TouchableOpacity
+                    style={[
+                      styles.settingItem,
+                      isTapToPayConnected() && { opacity: 0.4 },
+                    ]}
+                    onPress={() => {
+                      if (isTapToPayConnected()) {
+                        alert("Disconnect Tap to Pay first to use Reader");
+                        return;
+                      }
+                      handleConnectBluetoothReader();
+                    }}
+                  >
+                    <Icon
+                      name="bluetooth"
+                      size={24}
+                      color="#000"
+                      style={styles.settingIcon}
+                    />
+                    <Text style={styles.settingTitle}>
+                      Connect Bluetooth Reader
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
+
+              {/* Help & Support */}
               <TouchableOpacity
                 style={styles.settingItem}
                 onPress={handleHelpAndSupport}
@@ -241,12 +344,14 @@ const SettingsScreen = ({ navigation }) => {
                 />
                 <Text style={styles.settingTitle}>Help and Support</Text>
               </TouchableOpacity>
+
+              {/* EULA */}
               <TouchableOpacity
                 style={styles.settingItem}
                 onPress={handleAgreementSupport}
               >
                 <Icon
-                  name="help-circle"
+                  name="file-document-outline"
                   size={24}
                   color="#000"
                   style={styles.settingIcon}
@@ -255,6 +360,8 @@ const SettingsScreen = ({ navigation }) => {
                   End-user License Agreement
                 </Text>
               </TouchableOpacity>
+
+              {/* Logout */}
               <TouchableOpacity
                 style={styles.settingItem}
                 onPress={handleLogout}
@@ -262,10 +369,12 @@ const SettingsScreen = ({ navigation }) => {
                 <Icon
                   name="logout"
                   size={24}
-                  color="#000"
+                  color="red"
                   style={styles.settingIcon}
                 />
-                <Text style={styles.settingTitle}>Logout</Text>
+                <Text style={[styles.settingTitle, { color: "red" }]}>
+                  Logout
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -284,6 +393,7 @@ const SettingsScreen = ({ navigation }) => {
       <StripeReaderModal
         ref={stripeReaderModalRef}
         visible={isReadersModalVisible}
+        discoveryMethod={discoveryMethod}
         discoverReaderErrorMsg={discoverReaderErrorMsg}
         onRequestClose={toggleReadersModal}
         discoveredReaders={discoveredReaders}

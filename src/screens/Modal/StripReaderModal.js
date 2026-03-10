@@ -25,11 +25,12 @@ const StripeReaderModal = forwardRef(
       visible,
       getLocations,
       discoverReaderErrorMsg,
+      discoveryMethod,
       connectReader,
       discoveredReaders,
       onRequestClose,
     },
-    ref
+    ref,
   ) => {
     const loaderRef = useRef();
     const [connectionStateMsg, setConnectionStateMsg] = useState("");
@@ -63,7 +64,7 @@ const StripeReaderModal = forwardRef(
           const locationData = response.locations.find(
             (location) =>
               location.displayName.toLowerCase() ===
-              clubAddress.store_legal_name.toLowerCase()
+              clubAddress.store_legal_name.toLowerCase(),
           );
           if (locationData) {
             locationId = locationData.id;
@@ -83,7 +84,7 @@ const StripeReaderModal = forwardRef(
             loaderRef.current?.hide();
             Alert.alert(
               "Error!",
-              `Unable to create location for club. Error: ${locationRes.message}`
+              `Unable to create location for club. Error: ${locationRes.message}`,
             );
             return;
           }
@@ -96,15 +97,13 @@ const StripeReaderModal = forwardRef(
       }
 
       try {
-        const { reader, error } = await connectReader(
-          {
-            reader: selectedReader,
-            // Since the simulated reader is not associated with a real location, we recommend
-            // specifying its existing mock location.
-            locationId: locationId,
-          },
-          "bluetoothScan"
-        );
+        const { reader, error } = await connectReader({
+          reader: selectedReader,
+          // Since the simulated reader is not associated with a real location, we recommend
+          // specifying its existing mock location.
+          locationId: locationId,
+          discoveryMethod: discoveryMethod,
+        });
 
         if (error) {
           loaderRef.current?.hide();
@@ -180,7 +179,7 @@ const StripeReaderModal = forwardRef(
         </View>
       </Modal>
     );
-  }
+  },
 );
 
 const styles = StyleSheet.create({

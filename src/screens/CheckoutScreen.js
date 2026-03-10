@@ -39,9 +39,11 @@ import { getItemPrice } from "../api/product";
 import FullScreenLoader from "./Modal/FullScreenLoader";
 import {
   CardField,
-  CardForm,
-  StripeProvider,
   useStripe,
+  PlatformPayButton,
+  isPlatformPaySupported,
+  PlatformPay,
+  confirmPlatformPayPayment,
 } from "@stripe/stripe-react-native";
 
 const screenWidth = Dimensions.get("window").width;
@@ -80,6 +82,18 @@ const CheckoutScreen = ({ navigation, route }) => {
   const [selectedCardType, setSelectedCardType] = useState("mastercard");
 
   const [quickAmtBtn, setQuickAmtBtn] = useState(0);
+  const [isApplePaySupported, setIsApplePaySupported] = useState(false);
+  const [googleSupported, setGoogleSupported] = useState(false);
+
+  const handleGooglePay = async () => {};
+
+  useEffect(() => {
+    const checkWalletSupport = async () => {
+      setIsApplePaySupported(await isPlatformPaySupported());
+    };
+
+    checkWalletSupport();
+  }, []);
 
   // Setup Cart
   useFocusEffect(
@@ -89,7 +103,7 @@ const CheckoutScreen = ({ navigation, route }) => {
           setCart(
             typeof route?.params?.orderIndex == "number"
               ? orderList[route.params.orderIndex]?.items
-              : cart
+              : cart,
           );
         } catch (error) {
           console.error("Error setting up cart:", error);
@@ -98,14 +112,14 @@ const CheckoutScreen = ({ navigation, route }) => {
       };
 
       fetchData();
-    }, [])
+    }, []),
   );
 
   const getTotalPrice = () => {
     // Calculate total of all items without tax
     const subtotal = cart?.reduce(
       (total, item) => total + getItemPrice(item) * item.cart_quantity,
-      0
+      0,
     );
 
     // Calculate total with 10% tax
@@ -140,14 +154,14 @@ const CheckoutScreen = ({ navigation, route }) => {
     if (storeData) {
       const getways = storeData?.Getway;
       const stripGateway = getways.find(
-        (item) => item.name.toLowerCase() === "stripe"
+        (item) => item.name.toLowerCase() === "stripe",
       );
       const gatewayCredential = JSON.parse(stripGateway.data);
 
       setPublishableKey(
         stripGateway.test_mode === 1
           ? gatewayCredential.test_publishable_key
-          : gatewayCredential.publishable_key
+          : gatewayCredential.publishable_key,
       );
     }
   }, [storeData]);
@@ -164,7 +178,7 @@ const CheckoutScreen = ({ navigation, route }) => {
         setAmountTendered((prevAmount) => prevAmount + value); // Concatenate the values
       } else {
         setAmountTendered((prevAmount) =>
-          (parseFloat(prevAmount) + parseFloat(value)).toString()
+          (parseFloat(prevAmount) + parseFloat(value)).toString(),
         );
       }
     }
@@ -214,7 +228,7 @@ const CheckoutScreen = ({ navigation, route }) => {
     if (value === "00") {
       setQuickAmtBtn(0);
       setAmountTendered((prevAmount) =>
-        (parseFloat(prevAmount) * 100).toFixed(2)
+        (parseFloat(prevAmount) * 100).toFixed(2),
       );
       return;
     }
@@ -223,12 +237,14 @@ const CheckoutScreen = ({ navigation, route }) => {
       prevAmount === "0.00" || prevAmount == ""
         ? "0.0" + value.toString()
         : quickAmtBtn > 0
-        ? handleAfterQuickClickAmt(prevAmount, value)
-        : prevAmount.includes(".")
-        ? value === "00"
-          ? (parseFloat(prevAmount) * 100).toFixed(2) + "." + value.toString()
-          : (parseFloat(prevAmount) * 10).toFixed(1) + value.toString()
-        : prevAmount + value.toString() + ".00"
+          ? handleAfterQuickClickAmt(prevAmount, value)
+          : prevAmount.includes(".")
+            ? value === "00"
+              ? (parseFloat(prevAmount) * 100).toFixed(2) +
+                "." +
+                value.toString()
+              : (parseFloat(prevAmount) * 10).toFixed(1) + value.toString()
+            : prevAmount + value.toString() + ".00",
     );
   };
   const handleClearPress = () => {
@@ -237,7 +253,7 @@ const CheckoutScreen = ({ navigation, route }) => {
     setAmountTendered((prevAmount) =>
       pattern.test(prevAmount)
         ? prevAmount.substring(0, prevAmount.length - 2)
-        : prevAmount.substring(0, prevAmount.length - 1)
+        : prevAmount.substring(0, prevAmount.length - 1),
     );
   };
   // const [saveCardInfo, setSaveCardInfo] = useState(false);
@@ -251,7 +267,7 @@ const CheckoutScreen = ({ navigation, route }) => {
   const calculateSubtotal = () => {
     return receiptItems.reduce(
       (total, item) => total + item.quantity * item.price,
-      0
+      0,
     );
   };
   const calculateGST = () => {
@@ -282,7 +298,7 @@ const CheckoutScreen = ({ navigation, route }) => {
     if (processingOrder) return;
     setProcessingOrder(true);
 
-    const stripeClientSecret = await generateStripePaymentIntent();
+    const stripeClientSecret = await generateStripePaymentIntent("card");
 
     if (!stripeClientSecret || !stripeCardForm?.complete) {
       setProcessingOrder(false);
@@ -361,7 +377,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                       },
                       (_, error) => {
                         console.error("Error deleting row:", error);
-                      }
+                      },
                     );
                   });
                 } catch (error) {
@@ -394,7 +410,274 @@ const CheckoutScreen = ({ navigation, route }) => {
       }
     } else {
       alert(
-        "Invalid Card Details\nPlease check your card information and try again."
+        "Invalid Card Details\nPlease check your card information and try again.",
+      );
+      setProcessingOrder(false);
+    }
+  };
+  const handleCashAppPay = async () => {
+    if (processingOrder) return;
+    setProcessingOrder(true);
+
+    const stripeClientSecret = await generateStripePaymentIntent("cashapp");
+
+    if (!stripeClientSecret) {
+      setProcessingOrder(false);
+      return;
+    }
+
+    const { paymentIntent, error } = await confirmPayment(stripeClientSecret, {
+      paymentMethodType: "CashApp",
+      paymentMethodData: {
+        billingDetails: {
+          // name, email, etc. if needed
+        },
+      },
+    });
+
+    if (error) {
+      Alert.alert("Payment confirmation error", error.message);
+      setProcessingOrder(false);
+      return;
+    } else if (paymentIntent) {
+      try {
+        let order = {};
+        const d = new Date();
+        order["created_at"] = `${d.getFullYear()}-${(
+          d.getMonth() +
+          1 +
+          ""
+        ).padStart(2, "0")}-${(d.getDate() + "").padStart(2, "0")} ${d
+          .getHours()
+          .toString()
+          .padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}:${d
+          .getSeconds()
+          .toString()
+          .padStart(2, "0")}`;
+        order["items"] = getCartObj();
+
+        order["order_total"] = totalAmount;
+        order["order_subtotal"] = getTotalPrice().subtotal;
+        order["order_tax"] = getTotalPrice().tax;
+        order["tax"] = `${storeData?.tax}%`;
+        order["payment_method"] = "wallet";
+        order["payment_identifiers"] = "cashapp";
+        order["payment_details"] = {
+          charges: [{ id: paymentIntent.id }],
+        };
+        order["club_name"] = club?.post_title;
+        order["wpuid"] = userData.user_id;
+        order["timezone"] = storeData.club_info.timezone;
+        console.log("order::", JSON.stringify(order));
+
+        dispatch(processOrder(order, club))
+          .then((response) => {
+            if (response?.status === "success") {
+              const dateTime = new Date(response?.data?.order_date);
+              const formattedDateTime = dateTime
+                .toISOString()
+                .replace("T", " ")
+                .replace(/\.\d+Z$/, "");
+              order = {
+                ...order,
+                status: "success",
+                orderId: response?.data?.order_id,
+                created_at: formattedDateTime,
+              };
+              if (typeof route?.params?.orderIndex == "number") {
+                try {
+                  db.transaction((tx) => {
+                    tx.executeSql(
+                      "DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;",
+                      [
+                        orderList[route.params.orderIndex].created_at,
+                        club.post_slug,
+                      ],
+                      () => {
+                        console.log("Row deleted successfully");
+                      },
+                      (_, error) => {
+                        console.error("Error deleting row:", error);
+                      },
+                    );
+                  });
+                } catch (error) {
+                } finally {
+                  dispatch(removeOrderFromOrderList(route.params.orderIndex));
+                }
+              }
+              dispatch(addToOrderList(order))
+                .then(() => {
+                  if (typeof route?.params?.orderIndex != "number")
+                    dispatch(resetCart());
+                  navigation.navigate("PaymentSuccess", { order });
+                })
+                .catch((error) => {
+                  console.error("Error processing Order:", error);
+                });
+            } else {
+              alert(response);
+            }
+          })
+          .catch((error) => {
+            alert(error.toString());
+          })
+          .finally(() => {
+            setProcessingOrder(false);
+          });
+      } catch (error) {
+        alert(error.toString());
+        setProcessingOrder(false);
+      }
+    } else {
+      alert(
+        "Invalid Card Details\nPlease check your card information and try again.",
+      );
+      setProcessingOrder(false);
+    }
+  };
+
+  const handleApplePay = async () => {
+    if (processingOrder) return;
+    setProcessingOrder(true);
+
+    const stripeClientSecret = await generateStripePaymentIntent("card");
+
+    if (!stripeClientSecret) {
+      setProcessingOrder(false);
+      return;
+    }
+
+    const { paymentIntent, error } = await confirmPlatformPayPayment(
+      stripeClientSecret,
+      {
+        applePay: {
+          cartItems: [
+            {
+              label: "Subtotal",
+              amount: getTotalPrice().subtotal.toFixed(2),
+              paymentType: PlatformPay.PaymentType.Immediate,
+            },
+            {
+              label: `Tax (${parseFloat(storeData?.tax).toFixed(2)}%)`,
+              amount: getTotalPrice().tax.toFixed(2),
+              paymentType: PlatformPay.PaymentType.Immediate,
+            },
+            {
+              label: "Booostr POS",
+              amount: totalAmount,
+              paymentType: PlatformPay.PaymentType.Immediate,
+            },
+          ],
+          merchantCountryCode: "US",
+          currencyCode: storeData?.currency_info?.currency_name,
+          requiredShippingAddressFields: [
+            // PlatformPay.ContactField.PostalAddress,
+          ],
+          requiredBillingContactFields: [
+            // PlatformPay.ContactField.PhoneNumber
+          ],
+        },
+      },
+    );
+
+    if (error) {
+      Alert.alert("Payment confirmation error", error.message);
+      setProcessingOrder(false);
+      return;
+    } else if (paymentIntent) {
+      try {
+        let order = {};
+        const d = new Date();
+        order["created_at"] = `${d.getFullYear()}-${(
+          d.getMonth() +
+          1 +
+          ""
+        ).padStart(2, "0")}-${(d.getDate() + "").padStart(2, "0")} ${d
+          .getHours()
+          .toString()
+          .padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}:${d
+          .getSeconds()
+          .toString()
+          .padStart(2, "0")}`;
+        order["items"] = getCartObj();
+
+        order["order_total"] = totalAmount;
+        order["order_subtotal"] = getTotalPrice().subtotal;
+        order["order_tax"] = getTotalPrice().tax;
+        order["tax"] = `${storeData?.tax}%`;
+        order["payment_method"] = "wallet";
+        order["payment_identifiers"] = "card";
+        order["payment_details"] = {
+          charges: [{ id: paymentIntent.id }],
+        };
+        order["club_name"] = club?.post_title;
+        order["wpuid"] = userData.user_id;
+        order["timezone"] = storeData.club_info.timezone;
+        console.log("order::", JSON.stringify(order));
+
+        dispatch(processOrder(order, club))
+          .then((response) => {
+            if (response?.status === "success") {
+              const dateTime = new Date(response?.data?.order_date);
+              const formattedDateTime = dateTime
+                .toISOString()
+                .replace("T", " ")
+                .replace(/\.\d+Z$/, "");
+              order = {
+                ...order,
+                status: "success",
+                orderId: response?.data?.order_id,
+                created_at: formattedDateTime,
+              };
+              if (typeof route?.params?.orderIndex == "number") {
+                try {
+                  db.transaction((tx) => {
+                    tx.executeSql(
+                      "DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;",
+                      [
+                        orderList[route.params.orderIndex].created_at,
+                        club.post_slug,
+                      ],
+                      () => {
+                        console.log("Row deleted successfully");
+                      },
+                      (_, error) => {
+                        console.error("Error deleting row:", error);
+                      },
+                    );
+                  });
+                } catch (error) {
+                } finally {
+                  dispatch(removeOrderFromOrderList(route.params.orderIndex));
+                }
+              }
+              dispatch(addToOrderList(order))
+                .then(() => {
+                  if (typeof route?.params?.orderIndex != "number")
+                    dispatch(resetCart());
+                  navigation.navigate("PaymentSuccess", { order });
+                })
+                .catch((error) => {
+                  console.error("Error processing Order:", error);
+                });
+            } else {
+              alert(response);
+            }
+          })
+          .catch((error) => {
+            alert(error.toString());
+          })
+          .finally(() => {
+            setProcessingOrder(false);
+          });
+      } catch (error) {
+        alert(error.toString());
+        setProcessingOrder(false);
+      }
+    } else {
+      alert(
+        "Invalid Card Details\nPlease check your card information and try again.",
       );
       setProcessingOrder(false);
     }
@@ -424,7 +707,7 @@ const CheckoutScreen = ({ navigation, route }) => {
             onPress: () => console.log("OK Pressed"),
           },
         ],
-        { cancelable: false }
+        { cancelable: false },
       );
       setProcessingOrder(false);
     } else {
@@ -482,7 +765,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                       },
                       (_, error) => {
                         console.error("Error deleting row:", error);
-                      }
+                      },
                     );
                   });
                 } catch (error) {
@@ -597,19 +880,19 @@ const CheckoutScreen = ({ navigation, route }) => {
 
   const [stripeCardForm, setStripeCardForm] = useState();
 
-  const generateStripePaymentIntent = async () => {
+  const generateStripePaymentIntent = async (payment_identifiers) => {
     try {
       // Rounded to whole integer number to fix invalid integer error from api
       const response = await axios.post(
         `${POS_STORE_API_URL}/pos-stripe-reader-client-secret`,
-        { order_total: totalAmount, payment_identifiers: "card" },
+        { order_total: totalAmount, payment_identifiers: payment_identifiers },
         {
           // const response = await axios.post(`https://phplaravel-1180784-4531756.cloudwaysapps.com/api/stripe-reader-client-secret`, {order_total: totalAmount}, {
           headers: {
             Apitoken: POS_API_TOKEN,
             "X-Tenant": club.post_slug,
           },
-        }
+        },
       );
 
       if (response?.data?.status) {
@@ -620,14 +903,14 @@ const CheckoutScreen = ({ navigation, route }) => {
       } else {
         Alert.alert(
           "Error!",
-          `Stripe client secret: unable to process your request at the moment.`
+          `Stripe client secret: unable to process your request at the moment.`,
         );
       }
     } catch (error) {
       if (error?.response?.data?.message) {
         Alert.alert(
           "Error!",
-          `Stripe client secret: ${error.response.data.message}`
+          `Stripe client secret: ${error.response.data.message}`,
         );
       } else {
         Alert.alert("Error!", `Stripe client secret: ${error.toString()}`);
@@ -648,7 +931,7 @@ const CheckoutScreen = ({ navigation, route }) => {
             Apitoken: POS_API_TOKEN,
             "X-Tenant": club.post_slug,
           },
-        }
+        },
       );
 
       if (response?.data?.status) {
@@ -656,9 +939,8 @@ const CheckoutScreen = ({ navigation, route }) => {
 
         console.log(`clientSecret: ${clientSecret}`);
 
-        const { paymentIntent, error } = await retrievePaymentIntent(
-          clientSecret
-        );
+        const { paymentIntent, error } =
+          await retrievePaymentIntent(clientSecret);
 
         if (error) {
           console.log(error);
@@ -674,17 +956,17 @@ const CheckoutScreen = ({ navigation, route }) => {
       } else {
         Alert.alert(
           "Error!",
-          `Reader client secret: unable to process your request at the moment.`
+          `Reader client secret: unable to process your request at the moment.`,
         );
         setReaderStatusText(
-          `Error: unable to process your request at the moment.`
+          `Error: unable to process your request at the moment.`,
         );
       }
     } catch (error) {
       if (error?.response?.data?.message) {
         Alert.alert(
           "Error!",
-          `Reader client secret: ${error.response.data.message}`
+          `Reader client secret: ${error.response.data.message}`,
         );
       } else {
         Alert.alert("Error!", `Reader client secret: ${error.toString()}`);
@@ -697,9 +979,7 @@ const CheckoutScreen = ({ navigation, route }) => {
     try {
       const connectionStatus = await getConnectionStatus();
       if (connectionStatus !== "connected" || !connectedReader) {
-        setReaderStatusText(
-          `Error: Reader not connected`
-        );
+        setReaderStatusText(`Error: Reader not connected`);
         return;
       }
 
@@ -776,7 +1056,8 @@ const CheckoutScreen = ({ navigation, route }) => {
       order["order_subtotal"] = getTotalPrice().subtotal;
       order["order_tax"] = getTotalPrice().tax;
       order["tax"] = `${storeData?.tax}%`;
-      order["payment_method"] = "reader";
+      order["payment_method"] =
+        connectedReader.deviceType === "tapToPay" ? "tapToPay" : "reader";
       order["payment_identifiers"] = "terminal";
       order["payment_details"] = payment;
       order["wpuid"] = userData.user_id;
@@ -818,6 +1099,31 @@ const CheckoutScreen = ({ navigation, route }) => {
       alert(error.toString());
     }
   };
+
+  const HoldOrderButton = () => (
+    <TouchableOpacity style={styles.holdButton} onPress={holdOrder}>
+      <View style={styles.checkoutContent}>
+        <Icon style={styles.leftIcon} name="pause" size={24} color="#FFF" />
+        <Text style={styles.holdText}>Hold Order</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const PayForOrderButton = ({ disabled, onPress }) => (
+    <TouchableOpacity
+      style={[styles.payButton, disabled && styles.disabledButton]}
+      onPress={onPress}
+      disabled={disabled}
+    >
+      <Text style={styles.payButtonText}>Pay for Order</Text>
+      <Icon
+        style={styles.rightIcon}
+        name="chevron-right"
+        size={24}
+        color="#FFF"
+      />
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
@@ -873,6 +1179,29 @@ const CheckoutScreen = ({ navigation, route }) => {
                 Card
               </Text>
             </TouchableOpacity>
+            {/* <TouchableOpacity
+              style={[
+                styles.paymentTab,
+                paymentType === "wallet" && styles.activeTab,
+              ]}
+              onPress={() => setPaymentType("wallet")}
+            >
+              <Image
+                source={require("../assets/wallet-filled.png")}
+                style={[
+                  styles.paymentTabImage,
+                  paymentType === "wallet" && styles.activeTabImg,
+                ]}
+              />
+              <Text
+                style={[
+                  styles.paymentTabText,
+                  paymentType === "wallet" && styles.activeTabText,
+                ]}
+              >
+                Wallet
+              </Text>
+            </TouchableOpacity> */}
             <TouchableOpacity
               style={[
                 styles.paymentTab,
@@ -897,34 +1226,69 @@ const CheckoutScreen = ({ navigation, route }) => {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.paymentTab,
-                styles.lastPaymentTab,
-                paymentType === "reader" && styles.activeTab,
-              ]}
-              onPress={() => {
-                setPaymentType("reader"),
-                  setReaderStatusText("Setting Up..."),
-                  generateReaderPaymentIntent();
-              }}
-            >
-              <Image
-                source={require("../assets/reader.png")}
-                style={[
-                  styles.paymentTabImage,
-                  paymentType === "reader" && styles.activeTabImg,
-                ]}
-              />
-              <Text
-                style={[
-                  styles.paymentTabText,
-                  paymentType === "reader" && styles.activeTabText,
-                ]}
-              >
-                Reader
-              </Text>
-            </TouchableOpacity>
+            {connectedReader && connectedReader.id && (
+              <>
+                {connectedReader?.deviceType === "tapToPay" ? (
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentTab,
+                      styles.lastPaymentTab,
+                      paymentType === "taptopay" && styles.activeTab,
+                    ]}
+                    onPress={() => {
+                      (setPaymentType("taptopay"),
+                        setReaderStatusText("Setting Up..."),
+                        generateReaderPaymentIntent());
+                    }}
+                  >
+                    <Image
+                      source={require("../assets/taptopay.png")}
+                      style={[
+                        styles.paymentTabImage,
+                        paymentType === "taptopay" && styles.activeTabImg,
+                      ]}
+                    />
+                    <Text
+                      style={[
+                        styles.paymentTabText,
+                        paymentType === "taptopay" && styles.activeTabText,
+                      ]}
+                    >
+                      Tap to Pay
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentTab,
+                      styles.lastPaymentTab,
+                      paymentType === "reader" && styles.activeTab,
+                    ]}
+                    onPress={() => {
+                      (setPaymentType("reader"),
+                        setReaderStatusText("Setting Up..."),
+                        generateReaderPaymentIntent());
+                    }}
+                  >
+                    <Image
+                      source={require("../assets/reader.png")}
+                      style={[
+                        styles.paymentTabImage,
+                        paymentType === "reader" && styles.activeTabImg,
+                      ]}
+                    />
+                    <Text
+                      style={[
+                        styles.paymentTabText,
+                        paymentType === "reader" && styles.activeTabText,
+                      ]}
+                    >
+                      Reader
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
           </View>
 
           {/* Card type selection row within the card tab, after added stripe package we don't need this */}
@@ -989,30 +1353,35 @@ const CheckoutScreen = ({ navigation, route }) => {
           {paymentType === "card" ? (
             <>
               {publishableKey && (
-                <StripeProvider publishableKey={publishableKey}>
-                  <View style={styles.cardForm}>
-                    <CardField
-                      postalCodeEnabled={true}
-                      cardStyle={{
-                        textColor: "#000000",
-                        placeholderColor: "#999999",
-                      }}
-                      style={{ width: "100%", height: 50 }}
-                      onCardChange={(card) => {
-                        setStripeCardForm(card);
-                      }}
-                    />
-                    {/* <CardForm
-                      style={{ width: "100%", height: 180 }}
-                      onFormComplete={(values) => {
-                        setStripeCardForm({ complete: true, ...values });
-                      }}
-                      onFormChange={(values) => setStripeCardForm(values)}
-                    /> */}
-                    {processingOrder && <FullScreenLoader show />}
-                  </View>
-                </StripeProvider>
+                <View style={styles.cardForm}>
+                  <CardField
+                    postalCodeEnabled={true}
+                    style={{ width: "100%", height: 50 }}
+                    onCardChange={(card) => setStripeCardForm(card)}
+                  />
+                </View>
               )}
+            </>
+          ) : paymentType === "wallet" ? (
+            <>
+            <View style={styles.quickPayContainer}>
+              {isApplePaySupported && (
+                <PlatformPayButton
+                  onPress={handleApplePay}
+                  type={PlatformPay.ButtonType.Default}
+                  appearance={PlatformPay.ButtonStyle.Black}
+                  borderRadius={4}
+                  style={styles.applePayButton}
+                />
+              )}
+
+              <TouchableOpacity
+                style={styles.cashAppButton}
+                onPress={handleCashAppPay}
+              >
+                <Text style={styles.walletButtonText}>Cash App Pay</Text>
+              </TouchableOpacity>
+            </View>
             </>
           ) : paymentType === "cash" ? (
             <>
@@ -1048,7 +1417,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                                 }
                                 onChangeText={(text) =>
                                   setAmountTendered(
-                                    text.replace(/[^0-9.]/g, "")
+                                    text.replace(/[^0-9.]/g, ""),
                                   )
                                 }
                               />
@@ -1101,69 +1470,20 @@ const CheckoutScreen = ({ navigation, route }) => {
       </ScrollView>
       {paymentType === "cash" && (
         <View style={styles.checkoutContainer}>
-          <TouchableOpacity style={styles.holdButton} onPress={holdOrder}>
-            <View style={styles.checkoutContent}>
-              <Icon
-                style={styles.leftIcon}
-                name="pause"
-                size={24}
-                color="#FFF"
-              />
-              <Text style={styles.holdText}>Hold Order</Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.payButton,
-              {
-                backgroundColor:
-                  amountTendered < totalAmount || processingOrder
-                    ? "#ddd"
-                    : "#00c0ff",
-              },
-            ]}
+          <HoldOrderButton />
+          <PayForOrderButton
+            disabled={amountTendered < totalAmount || processingOrder}
             onPress={handleProcessCash}
-          >
-            <Text style={styles.payButtonText}>Pay for Order</Text>
-            <Icon
-              style={styles.rightIcon}
-              name="chevron-right"
-              size={24}
-              color="#FFF"
-            />
-          </TouchableOpacity>
+          />
         </View>
       )}
       {paymentType === "card" && (
         <View style={styles.checkoutContainer}>
-          <TouchableOpacity style={styles.holdButton} onPress={holdOrder}>
-            <View style={styles.checkoutContent}>
-              <Icon
-                style={styles.leftIcon}
-                name="pause"
-                size={24}
-                color="#FFF"
-              />
-              <Text style={styles.holdText}>Hold Order</Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.payButton,
-              (!stripeCardForm?.complete || processingOrder) &&
-                styles.disabledButton,
-            ]}
+          <HoldOrderButton />
+          <PayForOrderButton
             onPress={handleCardPay}
-            disabled={!stripeCardForm?.complete}
-          >
-            <Text style={styles.payButtonText}>Pay for Order</Text>
-            <Icon
-              style={styles.rightIcon}
-              name="chevron-right"
-              size={24}
-              color="#FFF"
-            />
-          </TouchableOpacity>
+            disabled={!stripeCardForm?.complete || processingOrder}
+          />
         </View>
       )}
       {/* Cancel Order Modal */}
@@ -1262,49 +1582,14 @@ const styles = StyleSheet.create({
   },
   paymentTabs: {
     flexDirection: "row",
-    justifyContent: "space-around",
     marginBottom: 20,
-  },
-  iconContainer: {
-    width: 80,
-    height: 80,
-    backgroundColor: "#00c0ff",
-    borderRadius: 50,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
-    marginHorizontal: "auto",
-  },
-  processButton: {
-    backgroundColor: "#00c0ff",
-    padding: 15,
-    borderRadius: 6,
-    marginTop: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "absolute",
-    bottom: 20,
-    left: 16,
-    right: 16,
-    borderRadius: 6,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
-    elevation: 3, // For Android shadow
-  },
-  processButtonText: {
-    color: "#FFF",
-    fontSize: 16,
-    fontWeight: "bold",
+    justifyContent: "space-between",
+    gap: 10,
   },
   paymentTab: {
     flex: 1,
-    padding: 15,
-    marginRight: 10,
+    paddingVertical: 15,
+    paddingHorizontal: 4,
     backgroundColor: "#fff",
     borderRadius: 6,
     justifyContent: "center",
@@ -1333,9 +1618,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#00c0ff",
   },
   paymentTabText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "bold",
     color: "#000",
+    textAlign: "center",
   },
   activeTabText: {
     color: "#fff",
@@ -1692,11 +1978,6 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
   },
 
-  processButtonText: {
-    color: "#FFF",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
   keypadContainer: {
     flexDirection: "column",
   },
@@ -1770,6 +2051,38 @@ const styles = StyleSheet.create({
   readerText: {
     fontSize: 16,
     fontWeight: "bold",
+  },
+  quickPayContainer: {
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 16,
+    paddingVertical: 32,
+    flexDirection: "row",
+    gap: 10,
+    borderRadius: 8,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  applePayButton: {
+    flex: 1,
+    height: 50,
+    borderRadius: 8,
+  },
+
+  cashAppButton: {
+    backgroundColor: "#00D632",
+    borderRadius: 8,
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+    height: 50,
+  },
+
+  walletButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });
 
