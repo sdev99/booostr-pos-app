@@ -33,7 +33,6 @@ const StripeReaderModal = forwardRef(
     ref,
   ) => {
     const loaderRef = useRef();
-    const [connectionStateMsg, setConnectionStateMsg] = useState("");
     const storeData = useSelector(memoizedStoreData);
 
     useImperativeHandle(ref, () => ({
@@ -90,7 +89,7 @@ const StripeReaderModal = forwardRef(
           }
         }
 
-        loaderRef.current?.show(`Connecting Reader, Please wait`);
+        loaderRef.current?.show( discoveryMethod === "tapToPay" ? "Connecting Tap to Pay, Please wait" : "Connecting Reader, Please wait" );
       } catch (error) {
         loaderRef.current?.hide();
         Alert.alert("Error!", `Location error: ${error.message}`);
@@ -113,7 +112,7 @@ const StripeReaderModal = forwardRef(
           return;
         } else {
           loaderRef.current?.hide();
-          Alert.alert("Success!", "Reader connected successfully.");
+          Alert.alert("Success!", discoveryMethod === "tapToPay" ? "Tap to Pay connected successfully." : "Reader connected successfully.");
           onRequestClose();
         }
       } catch (error) {
@@ -133,9 +132,19 @@ const StripeReaderModal = forwardRef(
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
-              {discoveredReaders?.length > 0
-                ? "Found Stripe Reader"
-                : "Stripe Reader Discover"}
+              {discoveredReaders?.length > 0 ? (
+                <>
+                  {discoveryMethod == "tapToPay"
+                    ? "Connect Tap to Pay"
+                    : "Found Stripe Reader"}
+                </>
+              ) : (
+                <>
+                  {discoveryMethod == "tapToPay"
+                    ? "Tap to Pay Discover"
+                    : "Stripe Reader Discover"}
+                </>
+              )}
             </Text>
             <View style={{ flex: 1 }}>
               <ScrollView style={styles.readerList}>
@@ -147,6 +156,9 @@ const StripeReaderModal = forwardRef(
                       return (
                         <View key={index} style={styles.reader}>
                           <Text style={styles.readerText}>
+                            <Text style={styles.readerLabel}>
+                              Reference ID:
+                            </Text>{" "}
                             {reader.serialNumber}
                           </Text>
                           <TouchableOpacity
@@ -213,8 +225,12 @@ const styles = StyleSheet.create({
   },
   readerText: {
     alignSelf: "center",
-    fontSize: 16,
+    fontSize: 12,
     flex: 1,
+    paddingRight: 8,
+  },
+  readerLabel: {
+    fontWeight: "600",
   },
   readerConnect: {
     backgroundColor: "#34c759",

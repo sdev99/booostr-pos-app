@@ -110,7 +110,7 @@ const SettingsScreen = ({ navigation }) => {
     const { readerSupportResult, error } = await supportsReadersOfType({
       deviceType: "tapToPay",
       discoveryMethod: "tapToPay",
-      simulated: STRIPE_TERMINAL_SIMULATE_MODE
+      simulated: STRIPE_TERMINAL_SIMULATE_MODE,
     });
 
     if (error) {
@@ -263,9 +263,29 @@ const SettingsScreen = ({ navigation }) => {
                     color="#00c0ff" // Highlighted blue to show active connection
                     style={styles.settingIcon}
                   />
-                  <Text style={styles.settingTitle}>
-                    {connectedReader.serialNumber || "Reader Connected"}
-                  </Text>
+                  <View style={{ flex: 1 }}>
+                    {connectedReader.deviceType === "tapToPay" ||
+                    connectedReader.deviceType === "appleBuiltIn" ||
+                    connectedReader.deviceType === "cotsDevice" ? (
+                      <>
+                        <Text style={styles.settingTitle}>
+                          Tap to Pay Connected
+                        </Text>
+                        <View style={styles.deviceIdDetailContainer}>
+                          <Text style={styles.deviceIdLabel}>ID: </Text>
+                          <Text style={styles.deviceIdText}>
+                            {connectedReader.serialNumber ||
+                              connectedReader.deviceId ||
+                              "N/A"}
+                          </Text>
+                        </View>
+                      </>
+                    ) : (
+                      <Text style={styles.settingTitle}>
+                        {connectedReader.serialNumber || "Reader Connected"}
+                      </Text>
+                    )}
+                  </View>
                   <View style={styles.disconnectReader}>
                     <View style={styles.disconnectReaderTextWrap}>
                       <Text style={styles.disconnectReaderText}>
@@ -454,6 +474,18 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     flex: 1,
   },
+  deviceIdDetailContainer: {
+    flexDirection: "row",
+    marginTop: 4,
+  },
+  deviceIdLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  deviceIdText: {
+    fontSize: 10,
+    flex: 1,
+  },
   modalContainer: {
     flex: 1,
     justifyContent: "center",
@@ -492,9 +524,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   disconnectReader: {
-    flexGrow: 1,
     flexDirection: "row",
     justifyContent: "flex-end",
+    marginLeft: 5,
   },
   disconnectReaderTextWrap: {
     backgroundColor: "red",

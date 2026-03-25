@@ -58,6 +58,7 @@ const CheckoutScreen = ({ navigation, route }) => {
 
   const storeData = useSelector(memoizedStoreData);
   const [processingOrder, setProcessingOrder] = useState(false);
+  const [readerErrorTitle, setReaderErrorTitle] = useState("");
   const [readerStatusText, setReaderStatusText] = useState("Setting Up...");
   //const { totalAmount } = route?.params || {};
   const { confirmPayment } = useStripe();
@@ -944,42 +945,91 @@ const CheckoutScreen = ({ navigation, route }) => {
 
         if (error) {
           console.log(error);
-          Alert.alert("Error!", `RetrievePaymentIntent: ${error.message}`);
-          setReaderStatusText(`Error: ${error.message}`);
+          Alert.alert(getErrorTitle(error), `${error.message}`);
+          setReaderErrorTitle(getErrorTitle(error));
+          setReaderStatusText(`${error.message}`);
           return;
         }
 
         collectReaderPayment(paymentIntent);
       } else if (response?.data?.message) {
-        Alert.alert("Error!", `Reader client secret: ${response.data.message}`);
-        setReaderStatusText(`Error: ${response.data.message}`);
+        Alert.alert(getErrorTitle(response.data), `${response.data.message}`);
+        setReaderErrorTitle(getErrorTitle(response.data));
+        setReaderStatusText(`${response.data.message}`);
       } else {
         Alert.alert(
-          "Error!",
-          `Reader client secret: unable to process your request at the moment.`,
+          "Something Went Wrong!",
+          `Unable to process your request at the moment.`,
         );
-        setReaderStatusText(
-          `Error: unable to process your request at the moment.`,
-        );
+        setReaderErrorTitle("Something Went Wrong");
+        setReaderStatusText(`Unable to process your request at the moment.`);
       }
     } catch (error) {
       if (error?.response?.data?.message) {
         Alert.alert(
-          "Error!",
-          `Reader client secret: ${error.response.data.message}`,
+          getErrorTitle(error.response.data),
+          `${error.response.data.message}`,
         );
+        setReaderErrorTitle(getErrorTitle(error.response.data));
+        setReaderStatusText(error.response.data.message);
       } else {
-        Alert.alert("Error!", `Reader client secret: ${error.toString()}`);
+        Alert.alert("Error!", `${error.toString()}`);
+        setReaderErrorTitle("Error!");
+        setReaderStatusText(error.toString());
       }
-      setReaderStatusText("Error: " + error.toString());
     }
+  };
+
+  const getErrorTitle = (error) => {
+    const message = error?.message?.toLowerCase() || "";
+
+    if (message.includes("card")) {
+      if (message.includes("declined")) {
+        return "Card Declined";
+      }
+
+      if (message.includes("incorrect")) {
+        return "Incorrect Card Details";
+      }
+
+      if (message.includes("expired")) {
+        return "Card Expired";
+      }
+
+      if (message.includes("insufficient")) {
+        return "Insufficient Funds";
+      }
+    }
+
+    if (message.includes("location")) {
+      return "Please Enable Location Services";
+    }
+
+    if (message.includes("bluetooth")) {
+      return "Please Enable Bluetooth";
+    }
+
+    if (message.includes("network") || message.includes("internet")) {
+      return "No Internet Connection";
+    }
+
+    if (message.includes("reader") || message.includes("not connected")) {
+      return "Reader Not Connected";
+    }
+
+    if (message.includes("cancel")) {
+      return "Transaction Canceled";
+    }
+
+    return "Something Went Wrong"; // fallback
   };
 
   const collectReaderPayment = async (intent) => {
     try {
       const connectionStatus = await getConnectionStatus();
       if (connectionStatus !== "connected" || !connectedReader) {
-        setReaderStatusText(`Error: Reader not connected`);
+        setReaderErrorTitle("Something Went Wrong");
+        setReaderStatusText(`Reader not connected`);
         return;
       }
 
@@ -989,11 +1039,28 @@ const CheckoutScreen = ({ navigation, route }) => {
 
       if (error) {
         console.log(error);
-        Alert.alert("Error!", `Collect PaymentMethod: ${error.message}`);
-        setReaderStatusText(`Error: ${error.message}`);
+
+        const message = error?.message?.toLowerCase() || "";
+
+        let title = getErrorTitle(error);
+        let finalMessage = error.message;
+
+        // ✅ Handle transaction canceled case
+        if (message.includes("canceled") || message.includes("cancelled")) {
+          finalMessage = "The transaction was canceled.";
+        } else {
+          // ✅ Clean unwanted prefix
+          finalMessage = finalMessage.replace(
+            /^collect paymentmethod:\s*/i,
+            "",
+          );
+        }
+        setReaderErrorTitle(title);
+        setReaderStatusText(`${finalMessage}`);
         return;
       }
 
+      setReaderErrorTitle("");
       setReaderStatusText("Collect Payment.");
 
       console.log("Collected PaymentIntent: ");
@@ -1001,17 +1068,20 @@ const CheckoutScreen = ({ navigation, route }) => {
       confirmReaderPayment(paymentIntent);
     } catch (error) {
       if (error.message) {
-        Alert.alert("Error!", `Collect PaymentMethod: ${error.message}`);
-        setReaderStatusText(`Error: ${error.message}`);
+        Alert.alert(getErrorTitle(error), `${error.message}`);
+        setReaderErrorTitle(getErrorTitle(error));
+        setReaderStatusText(`${error.message}`);
       } else {
-        Alert.alert("Error!", `Collect PaymentMethod: ${error.toString()}`);
-        setReaderStatusText(`Error: ${error.toString()}`);
+        Alert.alert(getErrorTitle(error), `${error.toString()}`);
+        setReaderErrorTitle(getErrorTitle(error));
+        setReaderStatusText(`${error.toString()}`);
       }
     }
   };
 
   const confirmReaderPayment = async (intent) => {
     try {
+      setReaderErrorTitle("");
       setReaderStatusText("Processing Payment.");
 
       const { paymentIntent, error } = await confirmPaymentIntent({
@@ -1019,19 +1089,23 @@ const CheckoutScreen = ({ navigation, route }) => {
       });
 
       if (error) {
-        Alert.alert("Error!", `ConfirmPaymentIntent: ${error.message}`);
-        setReaderStatusText(`Error: ${error.message}`);
+        Alert.alert(getErrorTitle(error), `${error.message}`);
+        setReaderErrorTitle(getErrorTitle(error));
+        setReaderStatusText(`${error.message}`);
         return;
       }
 
       console.log("confirmedPaymentIntent: ");
       console.log(paymentIntent);
-      if (paymentIntent.status == "succeeded")
+      if (paymentIntent.status == "succeeded") {
+        setReaderErrorTitle("");
         setReaderStatusText("Payment Success.");
-      handleReaderPay(paymentIntent);
+        handleReaderPay(paymentIntent);
+      }
     } catch (error) {
-      Alert.alert("Error!", `ConfirmPaymentIntent: ${error.toString()}`);
-      setReaderStatusText("Error: " + error.toString());
+      Alert.alert(getErrorTitle(error), `${error.toString()}`);
+      setReaderErrorTitle(getErrorTitle(error));
+      setReaderStatusText(`${error.toString()}`);
     }
   };
 
@@ -1093,10 +1167,10 @@ const CheckoutScreen = ({ navigation, route }) => {
           }
         })
         .catch((error) => {
-          alert(error.toString());
+          // alert(error.toString());
         });
     } catch (error) {
-      alert(error.toString());
+      // alert(error.toString());
     }
   };
 
@@ -1236,9 +1310,10 @@ const CheckoutScreen = ({ navigation, route }) => {
                       paymentType === "taptopay" && styles.activeTab,
                     ]}
                     onPress={() => {
-                      (setPaymentType("taptopay"),
-                        setReaderStatusText("Setting Up..."),
-                        generateReaderPaymentIntent());
+                      setPaymentType("taptopay");
+                      setReaderErrorTitle("");
+                      setReaderStatusText("Setting Up...");
+                      generateReaderPaymentIntent();
                     }}
                   >
                     <Image
@@ -1265,9 +1340,10 @@ const CheckoutScreen = ({ navigation, route }) => {
                       paymentType === "reader" && styles.activeTab,
                     ]}
                     onPress={() => {
-                      (setPaymentType("reader"),
-                        setReaderStatusText("Setting Up..."),
-                        generateReaderPaymentIntent());
+                      setPaymentType("reader");
+                      setReaderErrorTitle("");
+                      setReaderStatusText("Setting Up...");
+                      generateReaderPaymentIntent();
                     }}
                   >
                     <Image
@@ -1364,24 +1440,24 @@ const CheckoutScreen = ({ navigation, route }) => {
             </>
           ) : paymentType === "wallet" ? (
             <>
-            <View style={styles.quickPayContainer}>
-              {isApplePaySupported && (
-                <PlatformPayButton
-                  onPress={handleApplePay}
-                  type={PlatformPay.ButtonType.Default}
-                  appearance={PlatformPay.ButtonStyle.Black}
-                  borderRadius={4}
-                  style={styles.applePayButton}
-                />
-              )}
+              <View style={styles.quickPayContainer}>
+                {isApplePaySupported && (
+                  <PlatformPayButton
+                    onPress={handleApplePay}
+                    type={PlatformPay.ButtonType.Default}
+                    appearance={PlatformPay.ButtonStyle.Black}
+                    borderRadius={4}
+                    style={styles.applePayButton}
+                  />
+                )}
 
-              <TouchableOpacity
-                style={styles.cashAppButton}
-                onPress={handleCashAppPay}
-              >
-                <Text style={styles.walletButtonText}>Cash App Pay</Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  style={styles.cashAppButton}
+                  onPress={handleCashAppPay}
+                >
+                  <Text style={styles.walletButtonText}>Cash App Pay</Text>
+                </TouchableOpacity>
+              </View>
             </>
           ) : paymentType === "cash" ? (
             <>
@@ -1460,7 +1536,20 @@ const CheckoutScreen = ({ navigation, route }) => {
           ) : (
             <View style={styles.reader}>
               {connectedReader ? (
-                <Text style={styles.readerText}>{readerStatusText}</Text>
+                <>
+                  {readerErrorTitle ? (
+                    <View style={styles.readerErrorContainer}>
+                      <Text style={styles.readerErrorTitle}>
+                        {readerErrorTitle}
+                      </Text>
+                      <Text style={styles.readerErrorText}>
+                        {readerStatusText}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.readerText}>{readerStatusText}</Text>
+                  )}
+                </>
               ) : (
                 <Text style={styles.readerText}>No Reader Found.</Text>
               )}
@@ -2047,6 +2136,27 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginTop: 20,
+  },
+  readerErrorContainer: {
+    backgroundColor: "#ffebee",
+    borderColor: "#ffcdd2",
+    borderWidth: 1,
+    padding: 10,
+    borderRadius: 5,
+    width: "100%",
+    alignItems: "flex-start",
+  },
+  readerErrorTitle: {
+    color: "#c62828",
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 5,
+  },
+  readerErrorText: {
+    color: "#c62828",
+    fontSize: 16,
+    textAlign: "center",
   },
   readerText: {
     fontSize: 16,
