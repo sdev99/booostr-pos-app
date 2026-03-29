@@ -72,10 +72,10 @@ const CheckoutScreen = ({ navigation, route }) => {
   } = useStripeTerminal({
     onDidRequestReaderInput: (options) => {
       // Placeholder for updating your app's checkout UI
-      Alert.alert(options.join("/"));
+      // Alert.alert(options.join("/"));
     },
     onDidRequestReaderDisplayMessage: (message) => {
-      Alert.alert(message);
+      // Alert.alert(message);
     },
   });
 
@@ -396,22 +396,23 @@ const CheckoutScreen = ({ navigation, route }) => {
                   console.error("Error processing Order:", error);
                 });
             } else {
-              alert(response);
+              Alert.alert("Order Processing Error!", response);
             }
           })
           .catch((error) => {
-            alert(error.toString());
+            Alert.alert("Error!", error.toString());
           })
           .finally(() => {
             setProcessingOrder(false);
           });
       } catch (error) {
-        alert(error.toString());
+        Alert.alert("Error!", error.toString());
         setProcessingOrder(false);
       }
     } else {
-      alert(
-        "Invalid Card Details\nPlease check your card information and try again.",
+      Alert.alert(
+        "Invalid Card Details",
+        "Please check your card information and try again.",
       );
       setProcessingOrder(false);
     }
@@ -517,22 +518,23 @@ const CheckoutScreen = ({ navigation, route }) => {
                   console.error("Error processing Order:", error);
                 });
             } else {
-              alert(response);
+              Alert.alert("Order Processing Error!", response);
             }
           })
           .catch((error) => {
-            alert(error.toString());
+            Alert.alert("Error!", error.toString());
           })
           .finally(() => {
             setProcessingOrder(false);
           });
       } catch (error) {
-        alert(error.toString());
+        Alert.alert("Error!", error.toString());
         setProcessingOrder(false);
       }
     } else {
-      alert(
-        "Invalid Card Details\nPlease check your card information and try again.",
+      Alert.alert(
+        "Invalid Card Details",
+        "Please check your card information and try again.",
       );
       setProcessingOrder(false);
     }
@@ -663,22 +665,23 @@ const CheckoutScreen = ({ navigation, route }) => {
                   console.error("Error processing Order:", error);
                 });
             } else {
-              alert(response);
+              Alert.alert("Order Processing Error!", response);
             }
           })
           .catch((error) => {
-            alert(error.toString());
+            Alert.alert("Error!", error.toString());
           })
           .finally(() => {
             setProcessingOrder(false);
           });
       } catch (error) {
-        alert(error.toString());
+        Alert.alert("Error!", error.toString());
         setProcessingOrder(false);
       }
     } else {
-      alert(
-        "Invalid Card Details\nPlease check your card information and try again.",
+      Alert.alert(
+        "Invalid Card Details",
+        "Please check your card information and try again.",
       );
       setProcessingOrder(false);
     }
@@ -784,7 +787,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                   console.error("Error processing Order:", error);
                 });
             } else {
-              alert(response);
+              Alert.alert("Order Processing Error!", response);
             }
           })
           .catch((error) => {
@@ -794,7 +797,7 @@ const CheckoutScreen = ({ navigation, route }) => {
             setProcessingOrder(false);
           });
       } catch (error) {
-        alert(error.toString());
+        Alert.alert("Error!", error.toString());
         setProcessingOrder(false);
       }
     }
@@ -1163,7 +1166,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                 console.error("Error processing Order:", error);
               });
           } else {
-            alert(response);
+            // alert(response);
           }
         })
         .catch((error) => {
