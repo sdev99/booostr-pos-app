@@ -94,7 +94,7 @@ const AgreementScreen = ({ route, navigation }) => {
     dispatch(eulaAccept({user_id: storedUserId}));
 
     const club = await AsyncStorage.getItem("club");
-    const navigateTo = club ? "Dashboard" : "Club";
+    const navigateTo = club ? "MainApp" : "Club";
     navigation.reset({
       index: 1,
       routes: [{ name: navigateTo }],

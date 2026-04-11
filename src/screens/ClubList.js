@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -6,16 +6,17 @@ import {
   Image,
   TouchableOpacity,
   SectionList,
-  Platform
+  Platform,
+  Alert,
 } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchClubList } from "../store/reducers/clubListSlice";
 import { logout } from "../actions/auth";
 import { memoizedClubList, memoizedUserData } from "../store/selectors";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { fetchStoreData } from "../store/reducers/storeDetailSlice";
+import FullScreenLoader from "./Modal/FullScreenLoader";
 
 const ClubList = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -23,6 +24,7 @@ const ClubList = ({ navigation }) => {
   const clubList = useSelector(memoizedClubList);
   const userDataLoading = useSelector((state) => state.auth.loading);
   const clubListLoading = useSelector((state) => state.clubList.loading);
+  const storeDataLoading = useSelector((state) => state.storeData.loading);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -37,14 +39,21 @@ const ClubList = ({ navigation }) => {
       };
 
       fetchData();
-    }, [userData?.user_id])
+    }, [userData?.user_id]),
   );
 
   const handleClubClick = async (club) => {
     try {
-      await AsyncStorage.setItem("club", JSON.stringify(club));
-      dispatch(fetchStoreData(club));
-      navigation.navigate("Dashboard");
+      const result = await dispatch(fetchStoreData(club));
+      if (result.success) {
+        navigation.reset({
+          index: 1,
+          routes: [{ name: "MainApp" }],
+        });
+      } else {
+        Alert.alert(club.post_title, ` ${result.message}`);
+        console.log("❌ Failed:", result.message);
+      }
     } catch (error) {
       console.error("Unable to set selected Club:", error);
     }
@@ -122,18 +131,20 @@ const ClubList = ({ navigation }) => {
             ) : (
               <View style={styles.notFoundContainer}>
                 <Text style={styles.notFound}>No clubs found.</Text>
-
-                <TouchableOpacity
-                  style={styles.logoutButton}
-                  onPress={handleLogout}
-                >
-                  <Text style={styles.logoutText}>Logout</Text>
-                </TouchableOpacity>
               </View>
             )}
+            <View style={styles.logoutButtonContainer}>
+              <TouchableOpacity
+                style={styles.logoutButton}
+                onPress={handleLogout}
+              >
+                <Text style={styles.logoutText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </>
       )}
+      <FullScreenLoader show={storeDataLoading} transparent={true} />
     </View>
   );
 };
@@ -252,6 +263,7 @@ const styles = StyleSheet.create({
     height: 40,
     paddingVertical: 0,
   },
+
   notFoundContainer: {
     alignItems: "center",
     marginTop: 20,
@@ -264,11 +276,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  logoutButtonContainer: {
+    alignItems: "center",
+    marginVertical: 20,
+  },
   logoutButton: {
     marginTop: 30,
     backgroundColor: "#FF3B30",
     paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingHorizontal: 30,
     borderRadius: 8,
   },
   logoutText: {

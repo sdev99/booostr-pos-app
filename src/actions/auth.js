@@ -9,6 +9,7 @@ import {
 import AuthService from "../api/auth";
 import { fetchUserData } from "../store/reducers/authSlice";
 import { fetchEulaUpdate } from "../store/reducers/eulaSlice";
+import { resetStoreData } from "../store/reducers/storeDetailSlice";
 
 export const login = (user) => (dispatch) => {
   dispatch(loginRequest());
@@ -40,6 +41,7 @@ export const logout = (CurrentUserID) => (dispatch) => {
   dispatch(logoutRequest());
   return AuthService.logOut(CurrentUserID).then((response) => {
     if (response.status === "success") {
+      dispatch(resetStoreData());
       dispatch(resetLogin());
       return response;
     }

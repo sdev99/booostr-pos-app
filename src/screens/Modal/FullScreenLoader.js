@@ -27,9 +27,12 @@ const FullScreenLoader = forwardRef((props, ref) => {
   if (!visible) return null;
 
   return (
-    <View style={styles.overlay} pointerEvents="auto">
+    <View
+      style={[styles.overlay, props.transparent ? styles.transparent : null]}
+      pointerEvents="auto"
+    >
       <View style={styles.loaderBox}>
-        <ActivityIndicator size="large" color="#666" />
+        <ActivityIndicator size="large" color="#00c0ff" />
         {message ? <Text style={styles.text}>{message}</Text> : null}
       </View>
     </View>
@@ -37,6 +40,9 @@ const FullScreenLoader = forwardRef((props, ref) => {
 });
 
 const styles = StyleSheet.create({
+  transparent: {
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
+  },
   overlay: {
     position: "absolute",
     top: 0,

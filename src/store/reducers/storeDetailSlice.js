@@ -50,7 +50,7 @@ export const {
 
 export const fetchStoreData = (club) => async (dispatch) => {
   try {
-    club = club ? club : JSON.parse(AsyncStorage.getItem("club"));
+    club = club ? club : JSON.parse(await AsyncStorage.getItem("club"));
     if (club?.post_slug) {
       dispatch(fetchStoreDataStart());
       const response = await axios.post(
@@ -61,19 +61,23 @@ export const fetchStoreData = (club) => async (dispatch) => {
             Apitoken: POS_API_TOKEN,
             "X-Tenant": club?.post_slug,
           },
-        }
+        },
       );
       if (response?.data?.result) {
+        await AsyncStorage.setItem("club", JSON.stringify(club));
         dispatch(fetchStoreDataSuccess(JSON.stringify(response.data.result)));
+        return { success: true, data: response.data.result }; // ✅
       } else {
-        throw new Error({ message: response?.data?.message });
+        return { success: false, message: response?.data?.message }; // ✅
       }
     }
+    return { success: false, message: "Invalid club" }; // ✅
   } catch (error) {
     dispatch(fetchStoreDataError());
-    console.log(
-      `pos-get-store-details:${error.response?.data?.message ?? error.message}`
-    );
+    const errMessage = error.response?.data?.message ?? error.message;
+
+    console.log(`pos-get-store-details:${errMessage}`);
+    return { success: false, message: errMessage }; // ✅ IMPORTANT (don’t throw)
   }
 };
 

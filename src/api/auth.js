@@ -38,8 +38,8 @@ const logOut = async (CurrentUserID) => {
     //   user_id: CurrentUserID,
     // });
     // AsyncStorage.clear();
-    AsyncStorage.removeItem("user_id");
-    AsyncStorage.removeItem("club");
+    await AsyncStorage.removeItem("user_id");
+    await AsyncStorage.removeItem("club");
     return {
       status: "success",
       message: "You are logged out",

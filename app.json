@@ -20,12 +20,13 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "To scan cards."
-      }
+      },
+      "appleTeamId": "K4742G7QTV"
     },
     "android": {
       "package": "com.booostr.pos",
-      "version": "1.0.1",
-      "versionCode": 6,
+      "version": "1.0.2",
+      "versionCode": 7,
       "enableEdgeToEdge": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",

@@ -5,7 +5,7 @@ import {
   StyleSheet,
   Image,
   TextInput,
-  ImageBackground
+  ImageBackground,
 } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 import { Button as PaperButton } from "react-native-paper";
@@ -16,6 +16,7 @@ import { login } from "../actions/auth";
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const isEula = useSelector((state) => state.eula.eulaConsent);
   const loading = useSelector((state) => state.auth.loading);
   const dispatch = useDispatch();
   const handleLogin = () => {
@@ -44,7 +45,11 @@ const LoginScreen = ({ navigation }) => {
     dispatch(login(user))
       .then((response) => {
         if (response.status == "success") {
-          navigation.navigate("Agrement");
+          if (isEula) {
+            navigation.replace("Club");
+          } else {
+            navigation.replace("Agreement");
+          }
         }
       })
       .catch((error) => {});
@@ -98,14 +103,17 @@ const LoginScreen = ({ navigation }) => {
           </View>
           <View style={styles.BottomText}>
             <Text style={[styles.smallText, styles.ForWidth]}>
-              To access Booostr POS App, you need to have enabled the Store Tool on Booostr for your organization’s Booostr Profile. In order to enable the Store Tool feature in Booostr, you must have a Booostr user account that is a profile manager of an organization with an approved, live profile on Booostr.
-             {/*} <Text
+              To access Booostr POS App, you need to have enabled the Store Tool
+              on Booostr for your organization’s Booostr Profile. In order to
+              enable the Store Tool feature in Booostr, you must have a Booostr
+              user account that is a profile manager of an organization with an
+              approved, live profile on Booostr.
+              {/*} <Text
                 style={styles.BlueText}
                 onPress={() => Linking.openURL("https://example.com")}
               >
                 create a free user account on Booostr.co.
               </Text>*/}
-             
             </Text>
           </View>
         </View>

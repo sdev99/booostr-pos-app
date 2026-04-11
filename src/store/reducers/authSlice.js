@@ -5,7 +5,7 @@ import { POS_API_URL } from "../../config";
 
 const initialState = {
   isLoggedIn: false,
-  userData: '',
+  userData: "",
   loading: false,
   error: false,
 };
@@ -46,10 +46,10 @@ const authSlice = createSlice({
       state.error = true;
     },
     resetLogin: (state, action) => {
-      (state.isLoggedIn = false),
-        (state.userData = null),
-        (state.loading = false),
-        (state.error = false);
+      state.isLoggedIn = false;
+      state.userData = null;
+      state.loading = false;
+      state.error = false;
     },
   },
   extraReducers: (builder) => {
@@ -75,7 +75,7 @@ export const fetchUserData = (userId) => async (dispatch) => {
   try {
     dispatch(CurrentUserRequest());
     const response = await axios.get(
-      `${POS_API_URL}/get-user-info?user_id=${userId}&time=${Date.now()}`
+      `${POS_API_URL}/get-user-info?user_id=${userId}&time=${Date.now()}`,
     );
     dispatch(CurrentUserSuccess(JSON.stringify(response.data)));
   } catch (error) {
