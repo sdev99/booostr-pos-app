@@ -17,6 +17,7 @@ import { memoizedClubList, memoizedUserData } from "../store/selectors";
 import { useFocusEffect } from "@react-navigation/native";
 import { fetchStoreData } from "../store/reducers/storeDetailSlice";
 import FullScreenLoader from "./Modal/FullScreenLoader";
+import { navigate } from "../navigationService";
 
 const ClubList = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -46,6 +47,25 @@ const ClubList = ({ navigation }) => {
     try {
       const result = await dispatch(fetchStoreData(club));
       if (result.success) {
+        if (Platform.OS === "ios") {
+          Alert.alert(
+            "Tap to Pay on iPhone",
+            "Accept Apple Pay, contactless cards, and digital wallets.\n\nGo to Settings to enable Tap to Pay.\n\nCustomers may need to enter their PIN. Accessibility features like VoiceOver are supported.",
+            [
+              {
+                text: "Open Settings",
+                onPress: () => {
+                  navigate("Settings");
+                },
+              },
+              {
+                text: "Later",
+                style: "cancel",
+              },
+            ],
+          );
+        }
+
         navigation.reset({
           index: 1,
           routes: [{ name: "MainApp" }],

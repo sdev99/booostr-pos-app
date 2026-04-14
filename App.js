@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { StyleSheet } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import * as SQLite from "expo-sqlite";
+import { Buffer } from "buffer";
+
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+
 import LoginScreen from "./src/screens/LoginScreen";
-import { Buffer } from "buffer";
 import AppWithStripe from "./src/AppWithStripe";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import AgreementScreen from "./src/screens/Agreement";
@@ -13,7 +16,7 @@ import ClubList from "./src/screens/ClubList";
 import { fetchUserData } from "./src/store/reducers/authSlice";
 import { fetchEulaUpdate } from "./src/store/reducers/eulaSlice";
 import { memoizedStoreData } from "./src/store/selectors";
-import * as SQLite from "expo-sqlite";
+import { navigationRef } from "./src/navigationService";
 
 if (typeof global.Buffer === "undefined") {
   global.Buffer = Buffer;
@@ -89,6 +92,7 @@ const App = () => {
   return (
     <SafeAreaProvider style={styles.container}>
       <NavigationContainer
+        ref={navigationRef}
         key={`nav-${isLoggedIn}${isEula}${club ? club.id : ""}`}
       >
         <Stack.Navigator

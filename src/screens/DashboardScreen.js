@@ -11,6 +11,7 @@ import {
   StyleSheet,
   Dimensions,
   TouchableOpacity,
+  Platform,
 } from "react-native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -26,6 +27,7 @@ import productPlaceholder from "../assets/product-placeholder.png";
 import { memoizedStoreData } from "../store/selectors";
 import * as SQLite from "expo-sqlite";
 import { setupOrderList } from "../store/reducers/orderListSlice";
+import TapToPayBanner from "./TapToPayBanner";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -134,15 +136,15 @@ const DashboardScreen = ({ navigation }) => {
                   (_, { rows: { _array } }) =>
                     dispatch(
                       setupOrderList(
-                        _array.map((item) => JSON.parse(item.data))
-                      )
-                    )
+                        _array.map((item) => JSON.parse(item.data)),
+                      ),
+                    ),
                 );
               });
             },
             (_, error) => {
               console.error("Error creating table:", error);
-            }
+            },
           );
         });
       }
@@ -184,7 +186,7 @@ const DashboardScreen = ({ navigation }) => {
                   Apitoken: POS_API_TOKEN,
                   "X-Tenant": JSON.parse(club).post_slug,
                 },
-              }
+              },
             );
             if (response?.data?.result) {
               setMetrics([
@@ -227,7 +229,7 @@ const DashboardScreen = ({ navigation }) => {
       };
 
       fetchData();
-    }, [])
+    }, []),
   );
 
   // Get Higest Selling Items
@@ -247,7 +249,7 @@ const DashboardScreen = ({ navigation }) => {
                   Apitoken: POS_API_TOKEN,
                   "X-Tenant": JSON.parse(club).post_slug,
                 },
-              }
+              },
             );
             if (response?.data?.heighest_sell_terms?.data) {
               setTopSellingErrorMsg("");
@@ -265,7 +267,7 @@ const DashboardScreen = ({ navigation }) => {
       };
 
       fetchData();
-    }, [])
+    }, []),
   );
 
   // Get Latest Orders
@@ -284,7 +286,7 @@ const DashboardScreen = ({ navigation }) => {
                   Apitoken: POS_API_TOKEN,
                   "X-Tenant": JSON.parse(club).post_slug,
                 },
-              }
+              },
             );
             if (response?.data?.result?.data) {
               setCurrentPage(1);
@@ -306,7 +308,7 @@ const DashboardScreen = ({ navigation }) => {
       };
 
       fetchData();
-    }, [])
+    }, []),
   );
 
   // Get More Latest Orders
@@ -322,7 +324,7 @@ const DashboardScreen = ({ navigation }) => {
               Apitoken: POS_API_TOKEN,
               "X-Tenant": JSON.parse(club).post_slug,
             },
-          }
+          },
         );
         if (response?.data?.result?.data) {
           setLatestOrders(response.data.result.data);
@@ -422,7 +424,7 @@ const DashboardScreen = ({ navigation }) => {
             Apitoken: POS_API_TOKEN,
             "X-Tenant": JSON.parse(club).post_slug,
           },
-        }
+        },
       );
       if (response?.data?.result?.data) {
         setCurrentPage(updatedCurrentPage);
@@ -453,6 +455,9 @@ const DashboardScreen = ({ navigation }) => {
       <View style={styles.titleContainer}>
         <Text style={styles.title}>Dashboard</Text>
       </View>
+
+      {/* {Platform.OS === "ios" && <TapToPayBanner navigation={navigation} />} */}
+
       {screenWidth < 500 ? (
         <View style={{ marginTop: 15, marginBottom: 25 }}>
           <View style={styles.MetRow}>
@@ -562,7 +567,7 @@ const DashboardScreen = ({ navigation }) => {
                   currentPage < totalPages
                 ) {
                   setPreviousLastItemPosition(
-                    nativeEvent.layoutMeasurement.height - 50
+                    nativeEvent.layoutMeasurement.height - 50,
                   );
                   loadMoreContent();
                 }

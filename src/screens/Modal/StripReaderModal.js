@@ -13,6 +13,7 @@ import {
   Modal,
   ScrollView,
   Alert,
+  Platform,
 } from "react-native";
 import FullScreenLoader from "./FullScreenLoader";
 import { useSelector } from "react-redux";
@@ -89,7 +90,11 @@ const StripeReaderModal = forwardRef(
           }
         }
 
-        loaderRef.current?.show( discoveryMethod === "tapToPay" ? "Connecting Tap to Pay, Please wait" : "Connecting Reader, Please wait" );
+        loaderRef.current?.show(
+          discoveryMethod === "tapToPay"
+            ? "Connecting Tap to Pay, Please wait"
+            : "Connecting Reader, Please wait",
+        );
       } catch (error) {
         loaderRef.current?.hide();
         Alert.alert("Error!", `Location error: ${error.message}`);
@@ -108,16 +113,45 @@ const StripeReaderModal = forwardRef(
           loaderRef.current?.hide();
           console.log("connectReader error", error.message);
 
+          if (
+            Platform.OS === "ios" &&
+            (error.code === "osVersionNotSupported" ||
+              error.code === "PaymentCardReaderError.osVersionNotSupported")
+          ) {
+            Alert.alert(
+              "Not Supported!",
+              "Please update your iOS to use Tap to Pay.",
+            );
+            return;
+          }
+
           Alert.alert("Connect Error!", error.message);
           return;
         } else {
           loaderRef.current?.hide();
-          Alert.alert("Success!", discoveryMethod === "tapToPay" ? "Tap to Pay connected successfully." : "Reader connected successfully.");
+          Alert.alert(
+            "Success!",
+            discoveryMethod === "tapToPay"
+              ? "Tap to Pay connected successfully."
+              : "Reader connected successfully.",
+          );
           onRequestClose();
         }
       } catch (error) {
         loaderRef.current?.hide();
         console.error("Error while fetching connected reader:", error);
+
+        if (
+          Platform.OS === "ios" &&
+          (error.code === "osVersionNotSupported" ||
+            error.code === "PaymentCardReaderError.osVersionNotSupported")
+        ) {
+          Alert.alert(
+            "Not Supported!",
+            "Please update your iOS to use Tap to Pay.",
+          );
+          return;
+        }
         Alert.alert("Connect Error!", `Throw: ${error.message}`);
       }
     };

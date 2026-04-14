@@ -8,6 +8,7 @@ import {
   Linking,
   Modal,
   Platform,
+  Alert,
 } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -164,8 +165,25 @@ const SettingsScreen = ({ navigation }) => {
       simulated: STRIPE_TERMINAL_SIMULATE_MODE,
     });
 
-    if (error && error.code !== "Canceled") {
-      setDiscoverReaderErrorMsg(error.message);
+    if (error) {
+      console.log("Stripe Error:", error);
+
+      // ✅ REQUIRED: Handle iOS version not supported
+      if (
+        Platform.OS === "ios" &&
+        (error.code === "osVersionNotSupported" ||
+          error.code === "PaymentCardReaderError.osVersionNotSupported")
+      ) {
+        Alert.alert(
+          "Not Supported!",
+          "Please update your iOS to use Tap to Pay.",
+        );
+        return;
+      }
+
+      if (error.code !== "Canceled") {
+        setDiscoverReaderErrorMsg(error.message);
+      }
     }
   };
 
@@ -196,7 +214,7 @@ const SettingsScreen = ({ navigation }) => {
       connectedReader.deviceType === "appleBuiltIn" ||
       connectedReader.deviceType === "cotsDevice"
     ) {
-      return "cellphone-nfc";
+      return "credit-card-outline";
     }
     return "bluetooth-settings";
   };
@@ -312,14 +330,28 @@ const SettingsScreen = ({ navigation }) => {
                     }}
                   >
                     <Icon
-                      name="cellphone-nfc"
+                      name="credit-card-outline"
                       size={24}
                       color="#000"
                       style={styles.settingIcon}
                     />
-                    <Text style={styles.settingTitle}>
-                      Tap to Pay on Device
-                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.settingTitle}>
+                        Tap to Pay on{" "}
+                        {Platform.OS === "ios" ? "iPhone" : "Android"}
+                      </Text>
+                      {Platform.OS === "ios" && (
+                        <Text
+                          style={{ fontSize: 12, color: "#555", marginTop: 4 }}
+                        >
+                          Accept Apple Pay, contactless cards (tap card on
+                          iPhone), and digital wallets with Tap to Pay on
+                          iPhone. Customers may need to enter their PIN on
+                          iPhone. Accessibility features like VoiceOver are
+                          supported.
+                        </Text>
+                      )}
+                    </View>
                   </TouchableOpacity>
                 )}
 
