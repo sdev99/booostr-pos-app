@@ -12,9 +12,3 @@
 -keep class com.facebook.react.turbomodule.** { *; }
 
 # Add any project specific keep options here:
-
-# Ignore Java Beans annotations not present on Android
--dontwarn java.beans.**
-
-# Ignore SLF4J bindings missing on Android
--dontwarn org.slf4j.impl.**

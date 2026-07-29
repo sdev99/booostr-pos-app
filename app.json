@@ -25,9 +25,8 @@
     },
     "android": {
       "package": "com.booostr.pos",
-      "version": "1.0.2",
-      "versionCode": 7,
-      "enableEdgeToEdge": true,
+      "version": "1.0.3",
+      "versionCode": 8,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#03cb8a"
@@ -59,7 +58,8 @@
             "enableProguardInReleaseBuilds": true,
             "useLegacyPackaging": false,
             "minSdkVersion": 26,
-            "targetSdkVersion": 35,
+            "targetSdkVersion": 36,
+            "compileSdkVersion": 36,
             "enableJetifier": true
           }
         }
@@ -74,7 +74,13 @@
         }
       ],
       "expo-sqlite",
-      "expo-font"
+      "expo-font",
+       [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.booostr.posapp"
+        }
+      ]
     ]
   }
 }

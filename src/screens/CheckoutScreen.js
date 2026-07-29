@@ -1436,6 +1436,10 @@ const CheckoutScreen = ({ navigation, route }) => {
                   <CardField
                     postalCodeEnabled={true}
                     style={{ width: "100%", height: 50 }}
+                    cardStyle={{
+                      textColor: "#000000",
+                      placeholderColor: "#999999",
+                    }}
                     onCardChange={(card) => setStripeCardForm(card)}
                   />
                 </View>

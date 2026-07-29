@@ -7,8 +7,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { resetOrderList } from "../store/reducers/orderListSlice";
 import { resetCart } from "../store/reducers/cartSlice";
 import { memoizedCart } from "../store/selectors";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const Header = ({ clubName }) => {
+  const insets = useSafeAreaInsets();
+
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const [club, setClub] = useState(null);
@@ -51,7 +54,7 @@ const Header = ({ clubName }) => {
   };
 
   return (
-    <View style={styles.headerContainer}>
+    <View style={[styles.headerContainer, { paddingTop: insets.top }]}>
       <View style={styles.leftContainer}>
         {/*<Image source={require("../assets/logo.png")} style={styles.clubImage} />*/}
         <Text style={styles.clubName} onPress={handleLogout}>
