@@ -19,7 +19,7 @@
     "@react-navigation/stack": "^6.3.20",
     "@reduxjs/toolkit": "^2.1.0",
     "@stripe/stripe-react-native": "0.63.0",
-    "@stripe/stripe-terminal-react-native": "^0.0.1-beta.29",
+    "@stripe/stripe-terminal-react-native": "^0.0.1-beta.32",
     "axios": "^1.6.7",
     "buffer": "^6.0.3",
     "expo": "~55.0.28",
