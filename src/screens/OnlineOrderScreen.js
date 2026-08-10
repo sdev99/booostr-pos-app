@@ -46,8 +46,7 @@ const OnlineOrderScreen = ({ navigation }) => {
     // Add more items as needed
   ]);
   const [club, setClub] = useState([]);
-  const [isLoadingCompletedOrders, setIsLoadingCompletedOrders] =
-    useState(true);
+  const [isLoadingCompletedOrders, setIsLoadingCompletedOrders] = useState(true);
   const isLoadingOrderList = useSelector((state) => state.orderList.loading);
   const [completedOrders, setCompletedOrders] = useState([]);
   const storeData = useSelector(memoizedStoreData);
@@ -73,7 +72,7 @@ const OnlineOrderScreen = ({ navigation }) => {
                   Apitoken: POS_API_TOKEN,
                   "X-Tenant": JSON.parse(club).post_slug,
                 },
-              }
+              },
             );
             if (response?.data?.result?.data) {
               setCompletedOrdersErrorMsg("");
@@ -92,7 +91,7 @@ const OnlineOrderScreen = ({ navigation }) => {
       };
 
       fetchData();
-    }, [])
+    }, []),
   );
 
   const handleLogout = () => {
@@ -116,12 +115,7 @@ const OnlineOrderScreen = ({ navigation }) => {
   const getOrderTotalPrice = (items) => {
     return (
       "$" +
-      items
-        ?.reduce(
-          (total, item) => total + getItemPrice(item) * item.cart_quantity,
-          0
-        )
-        .toFixed(2)
+      items?.reduce((total, item) => total + getItemPrice(item) * item.cart_quantity, 0).toFixed(2)
     );
   };
 
@@ -135,9 +129,7 @@ const OnlineOrderScreen = ({ navigation }) => {
 
   const renderOrderedItem = (order) => {
     return (
-      <TouchableOpacity
-        onPress={() => handleItemPress(orderList.indexOf(order))}
-      >
+      <TouchableOpacity onPress={() => handleItemPress(orderList.indexOf(order))}>
         <View style={styles.orderedItemContainer}>
           <View style={styles.orderedItem}>
             {/* <View style={[styles.imageAndNameContainer, styles.pdBottom]}>
@@ -145,9 +137,7 @@ const OnlineOrderScreen = ({ navigation }) => {
               <Text style={styles.orderedItemText}>{item.name}</Text>
             </View>*/}
             {/* <Text style={[styles.orderedItemText, styles.pdBottom]}>{item.name}</Text> */}
-            <Text style={[styles.orderedItemText, styles.pdBottom]}>
-              {getOnHoldOrderId(order)}
-            </Text>
+            <Text style={[styles.orderedItemText, styles.pdBottom]}>{getOnHoldOrderId(order)}</Text>
             <Text
               style={[
                 styles.orderedItemStatus,
@@ -164,19 +154,10 @@ const OnlineOrderScreen = ({ navigation }) => {
               <Text style={[styles.orderedItemText, styles.quantText]}>
                 Number of items: {getOrderTotalItems(order.items)}
               </Text>
-              <Text style={styles.orderedItemText}>
-                {order?.created_at?.substring(11)}
-              </Text>
-              <Text style={styles.orderedItemText}>
-                {order?.created_at?.substring(0, 10)}
-              </Text>
+              <Text style={styles.orderedItemText}>{order?.created_at?.substring(11)}</Text>
+              <Text style={styles.orderedItemText}>{order?.created_at?.substring(0, 10)}</Text>
             </View>
-            <View
-              style={[
-                styles.tmRow,
-                order.status === "on-hold" && styles.flexEnd,
-              ]}
-            >
+            <View style={[styles.tmRow, order.status === "on-hold" && styles.flexEnd]}>
               {/* <Text style={[styles.CustomerText,styles.pdBottom]}>Customer: {item.Customer}</Text> */}
               {order.status === "on-hold" && (
                 <TouchableOpacity
@@ -205,16 +186,8 @@ const OnlineOrderScreen = ({ navigation }) => {
       <TouchableOpacity onPress={() => handleCompletedOrderPress(order)}>
         <View style={styles.orderedItemContainer}>
           <View style={styles.orderedItem}>
-            <Text style={[styles.orderedItemText, styles.pdBottom]}>
-              #{order.invoice_no}
-            </Text>
-            <Text
-              style={[
-                styles.orderedItemStatus,
-                styles.pdBottom,
-                { color: "green" },
-              ]}
-            >
+            <Text style={[styles.orderedItemText, styles.pdBottom]}>#{order.invoice_no}</Text>
+            <Text style={[styles.orderedItemStatus, styles.pdBottom, { color: "green" }]}>
               Completed
             </Text>
             <Text style={[styles.orderedItemText, styles.pdBottom]}>
@@ -225,19 +198,10 @@ const OnlineOrderScreen = ({ navigation }) => {
               <Text style={[styles.orderedItemText, styles.quantText]}>
                 Number of items: {getCompletedOrderTotalItems(order.orderitems)}
               </Text>
-              <Text style={styles.orderedItemText}>
-                {order?.created_at?.substring(11, 19)}
-              </Text>
-              <Text style={styles.orderedItemText}>
-                {order?.created_at?.substring(0, 10)}
-              </Text>
+              <Text style={styles.orderedItemText}>{order?.created_at?.substring(11, 19)}</Text>
+              <Text style={styles.orderedItemText}>{order?.created_at?.substring(0, 10)}</Text>
             </View>
-            <View
-              style={[
-                styles.tmRow,
-                order.status === "on-hold" && styles.flexEnd,
-              ]}
-            >
+            <View style={[styles.tmRow, order.status === "on-hold" && styles.flexEnd]}>
               {/* <Text style={[styles.CustomerText,styles.pdBottom]}>Customer: {item.Customer}</Text> */}
               {order.status === "on-hold" && (
                 <TouchableOpacity
@@ -281,7 +245,7 @@ const OnlineOrderScreen = ({ navigation }) => {
                 },
                 (_, error) => {
                   console.error("Error deleting row:", error);
-                }
+                },
               );
             });
           } catch (error) {}
@@ -321,12 +285,7 @@ const OnlineOrderScreen = ({ navigation }) => {
                 style={[styles.tabButton, isFocused ? styles.activeTab : null]}
                 onPress={onPress}
               >
-                <Text
-                  style={[
-                    styles.tabButtonText,
-                    isFocused ? styles.activeTabText : null,
-                  ]}
-                >
+                <Text style={[styles.tabButtonText, isFocused ? styles.activeTabText : null]}>
                   {route.name}
                 </Text>
               </TouchableOpacity>
@@ -338,9 +297,7 @@ const OnlineOrderScreen = ({ navigation }) => {
   };
 
   const PendingOrdersScreen = () => {
-    const holdedOrdersList = orderList.filter(
-      (item) => item.status === "on-hold"
-    );
+    const holdedOrdersList = orderList.filter((item) => item.status === "on-hold");
     return isLoadingOrderList ? (
       <View style={styles.containerLoaderTop}>
         <ActivityIndicator size="medium" color="#00c0ff" />
@@ -405,7 +362,7 @@ const OnlineOrderScreen = ({ navigation }) => {
       };
 
       checkOrders();
-    }, [])
+    }, []),
   );
 
   return (
@@ -432,10 +389,7 @@ const OnlineOrderScreen = ({ navigation }) => {
             onPress={() => setSelectedCol("onHold")}
           >
             <Text
-              style={[
-                styles.tabButtonText,
-                { color: selectedCol === "onHold" ? "#fff" : "#000" },
-              ]}
+              style={[styles.tabButtonText, { color: selectedCol === "onHold" ? "#fff" : "#000" }]}
             >
               On Hold
             </Text>
@@ -445,8 +399,7 @@ const OnlineOrderScreen = ({ navigation }) => {
               styles.tabButton,
               styles.tabClickNavBtn,
               {
-                backgroundColor:
-                  selectedCol === "completed" ? "#00c0ff" : "#fff",
+                backgroundColor: selectedCol === "completed" ? "#00c0ff" : "#fff",
               },
             ]}
             onPress={() => setSelectedCol("completed")}
@@ -465,11 +418,7 @@ const OnlineOrderScreen = ({ navigation }) => {
           <Tab.Screen name="On Hold" component={PendingOrdersScreen} />
           <Tab.Screen name="Completed" component={CompletedOrdersScreen} />
         </Tab.Navigator> */}
-        {selectedCol === "onHold" ? (
-          <PendingOrdersScreen />
-        ) : (
-          <CompletedOrdersScreen />
-        )}
+        {selectedCol === "onHold" ? <PendingOrdersScreen /> : <CompletedOrdersScreen />}
       </View>
       <View style={styles.bottomBar}>
         <BottomBar />
@@ -484,16 +433,12 @@ const OnlineOrderScreen = ({ navigation }) => {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalText}>
-              You have chosen to CANCEL an order in progress. If you wish to
-              CANCEL this current order, please click CONFIRM CANCELLATION
-              below. If you chose this by error, please click CANCEL
-              CANCELLATION.
+              You have chosen to CANCEL an order in progress. If you wish to CANCEL this current
+              order, please click CONFIRM CANCELLATION below. If you chose this by error, please
+              click CANCEL CANCELLATION.
             </Text>
             <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.confirmButton}
-                onPress={handleCancelOrder}
-              >
+              <TouchableOpacity style={styles.confirmButton} onPress={handleCancelOrder}>
                 <Text style={styles.modalButtonText}>CONFIRM CANCELLATION</Text>
               </TouchableOpacity>
               <TouchableOpacity
