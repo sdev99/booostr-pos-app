@@ -65,8 +65,8 @@ const OnlineOrderScreen = ({ navigation }) => {
           if (JSON.parse(club)?.post_slug) {
             setClub(JSON.parse(club));
             const response = await axios.post(
-              `${POS_STORE_API_URL}/pos-order-list`,
-              { key: "latest" },
+              `${POS_STORE_API_URL}/pos-order-list?page=1`,
+              {},
               {
                 headers: {
                   Apitoken: POS_API_TOKEN,
@@ -74,6 +74,7 @@ const OnlineOrderScreen = ({ navigation }) => {
                 },
               },
             );
+            console.log("response?.data?.result?::", response?.data?.result);
             if (response?.data?.result?.data) {
               setCompletedOrdersErrorMsg("");
               setCompletedOrders(response.data.result.data);
@@ -356,7 +357,9 @@ const OnlineOrderScreen = ({ navigation }) => {
       const checkOrders = () => {
         setInterval(() => {
           orderList.forEach((order) => {
-            checkOrderCreatedDate(order);
+            if(order.status === "on-hold") {
+              checkOrderCreatedDate(order);
+            }
           });
         }, 1000); // Run every second
       };
@@ -364,6 +367,7 @@ const OnlineOrderScreen = ({ navigation }) => {
       checkOrders();
     }, []),
   );
+  
 
   return (
     <View style={styles.container}>
