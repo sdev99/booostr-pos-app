@@ -1,5 +1,10 @@
 // FullScreenLoader.js
-import React, { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import React, {
+  forwardRef,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import {
   View,
   TouchableOpacity,
@@ -14,7 +19,6 @@ import FullScreenLoader from "./FullScreenLoader";
 import { useSelector } from "react-redux";
 import { memoizedStoreData } from "../../store/selectors";
 import { createStripeLocation } from "../../api/stripe";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const StripeReaderModal = forwardRef(
   (
@@ -59,7 +63,8 @@ const StripeReaderModal = forwardRef(
         if (response.locations?.length > 0) {
           const locationData = response.locations.find(
             (location) =>
-              location.displayName.toLowerCase() === clubAddress.store_legal_name.toLowerCase(),
+              location.displayName.toLowerCase() ===
+              clubAddress.store_legal_name.toLowerCase(),
           );
           if (locationData) {
             locationId = locationData.id;
@@ -113,7 +118,10 @@ const StripeReaderModal = forwardRef(
             (error.code === "osVersionNotSupported" ||
               error.code === "PaymentCardReaderError.osVersionNotSupported")
           ) {
-            Alert.alert("Not Supported!", "Please update your iOS to use Tap to Pay.");
+            Alert.alert(
+              "Not Supported!",
+              "Please update your iOS to use Tap to Pay.",
+            );
             return;
           }
 
@@ -138,44 +146,14 @@ const StripeReaderModal = forwardRef(
           (error.code === "osVersionNotSupported" ||
             error.code === "PaymentCardReaderError.osVersionNotSupported")
         ) {
-          Alert.alert("Not Supported!", "Please update your iOS to use Tap to Pay.");
+          Alert.alert(
+            "Not Supported!",
+            "Please update your iOS to use Tap to Pay.",
+          );
           return;
         }
         Alert.alert("Connect Error!", `Throw: ${error.message}`);
       }
-    };
-
-    const Batteries = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
-
-    const getBatteryIcon = (battery) => {
-      if (battery <= 10) return "battery-10";
-      if (battery <= 20) return "battery-20";
-      if (battery <= 30) return "battery-30";
-      if (battery <= 40) return "battery-40";
-      if (battery <= 50) return "battery-50";
-      if (battery <= 60) return "battery-60";
-      if (battery <= 70) return "battery-70";
-      if (battery <= 80) return "battery-80";
-      if (battery <= 90) return "battery-90";
-
-      return "battery";
-    };
-
-    const getBatteryColor = (battery) => {
-      if (battery < 20) return "red";
-      if (battery < 50) return "orange";
-
-      return "green";
-    };
-
-    const checkBatteryBeforeConnect = (battery) => {
-      if (battery < 20) {
-        Alert.alert("Low Battery", `Reader battery is ${battery}%. Please charge the reader.`);
-
-        return false;
-      }
-
-      return true;
     };
 
     return (
@@ -189,10 +167,16 @@ const StripeReaderModal = forwardRef(
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
               {discoveredReaders?.length > 0 ? (
-                <>{discoveryMethod == "tapToPay" ? "Connect Tap to Pay" : "Found Stripe Reader"}</>
+                <>
+                  {discoveryMethod == "tapToPay"
+                    ? "Connect Tap to Pay"
+                    : "Found Stripe Reader"}
+                </>
               ) : (
                 <>
-                  {discoveryMethod == "tapToPay" ? "Tap to Pay Discover" : "Stripe Reader Discover"}
+                  {discoveryMethod == "tapToPay"
+                    ? "Tap to Pay Discover"
+                    : "Stripe Reader Discover"}
                 </>
               )}
             </Text>
@@ -203,36 +187,21 @@ const StripeReaderModal = forwardRef(
                 ) : (
                   <>
                     {discoveredReaders.map((reader, index) => {
-                      const battery = Batteries[index];
-
                       return (
                         <View key={index} style={styles.reader}>
                           <Text style={styles.readerText}>
-                            <Text style={styles.readerLabel}>Reference ID:</Text>
+                            <Text style={styles.readerLabel}>
+                              Reference ID:
+                            </Text>{" "}
                             {reader.serialNumber}
-                            <MaterialCommunityIcons
-                              name={getBatteryIcon(battery)}
-                              size={20}
-                              color={getBatteryColor(battery)}
-                            />
-
-                            <Text>{battery}%</Text>
                           </Text>
-
                           <TouchableOpacity
                             style={styles.readerConnect}
-                            onPress={() => {
-                              //Batteries Change
-                              const canConnect = checkBatteryBeforeConnect(battery);
-
-                              if (!canConnect) {
-                                return;
-                              }
-
-                              handleConnectBluetoothReader(reader);
-                            }}
+                            onPress={() => handleConnectBluetoothReader(reader)}
                           >
-                            <Text style={styles.readerConnectText}>Connect</Text>
+                            <Text style={styles.readerConnectText}>
+                              Connect
+                            </Text>
                           </TouchableOpacity>
                         </View>
                       );
@@ -246,7 +215,10 @@ const StripeReaderModal = forwardRef(
               <FullScreenLoader ref={loaderRef} />
             </View>
 
-            <TouchableOpacity style={styles.modalCloseButton} onPress={onRequestClose}>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={onRequestClose}
+            >
               <Text style={styles.modalCloseButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
