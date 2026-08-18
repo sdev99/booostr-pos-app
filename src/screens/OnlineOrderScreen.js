@@ -357,7 +357,7 @@ const OnlineOrderScreen = ({ navigation }) => {
       const checkOrders = () => {
         setInterval(() => {
           orderList.forEach((order) => {
-            if(order.status === "on-hold") {
+            if (order.status === "on-hold") {
               checkOrderCreatedDate(order);
             }
           });
@@ -367,7 +367,6 @@ const OnlineOrderScreen = ({ navigation }) => {
       checkOrders();
     }, []),
   );
-  
 
   return (
     <View style={styles.container}>

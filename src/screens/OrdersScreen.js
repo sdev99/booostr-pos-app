@@ -39,27 +39,14 @@ const OrdersScreen = ({ navigation, route }) => {
   const [club, setClub] = useState([]);
   const [isClubLoading, setIsClubLoading] = useState(true);
   const storeData = useSelector(memoizedStoreData);
-  const productCategoryListWithoutAll = useSelector(
-    memoizedProductCategoryList
-  );
-  const productCategoryList = [
-    { id: 0, name: "All" },
-    ...productCategoryListWithoutAll,
-  ];
-  const isProductCategoryLoading = useSelector(
-    (state) => state.productCategoryList.loading
-  );
+  const productCategoryListWithoutAll = useSelector(memoizedProductCategoryList);
+  const productCategoryList = [{ id: 0, name: "All" }, ...productCategoryListWithoutAll];
+  const isProductCategoryLoading = useSelector((state) => state.productCategoryList.loading);
   const [selectedCategory, setSelectedCategory] = useState(0);
   const productList = useSelector(memoizedProductList);
-  const filteredProducts = productList[selectedCategory]
-    ? productList[selectedCategory]
-    : {};
-  const categoryCurrentPage = JSON.parse(
-    useSelector((state) => state.productList.currentPage)
-  );
-  const categoryTotalPages = JSON.parse(
-    useSelector((state) => state.productList.totalPages)
-  );
+  const filteredProducts = productList[selectedCategory] ? productList[selectedCategory] : {};
+  const categoryCurrentPage = JSON.parse(useSelector((state) => state.productList.currentPage));
+  const categoryTotalPages = JSON.parse(useSelector((state) => state.productList.totalPages));
   const [isMoreProductLoading, setIsMoreProductLoading] = useState(false);
   const [isCancelModalVisible, setCancelModalVisible] = useState(false);
   const cart = useSelector(memoizedCart);
@@ -88,13 +75,7 @@ const OrdersScreen = ({ navigation, route }) => {
             .then(() => {
               setSelectedCategory(productCategoryList[0].id);
               dispatch(
-                fetchProductList(
-                  JSON.parse(club).post_slug,
-                  0,
-                  { 0: [] },
-                  { 0: 1 },
-                  { 0: 1 }
-                )
+                fetchProductList(JSON.parse(club).post_slug, 0, { 0: [] }, { 0: 1 }, { 0: 1 }),
               ).catch((error) => {
                 console.error("Error fetching product list:", error);
               });
@@ -133,11 +114,10 @@ const OrdersScreen = ({ navigation, route }) => {
     try {
       let order = {};
       const d = new Date();
-      order["created_at"] = `${d.getFullYear()}-${(
-        d.getMonth() +
-        1 +
-        ""
-      ).padStart(2, "0")}-${(d.getDate() + "").padStart(2, "0")} ${d
+      order["created_at"] = `${d.getFullYear()}-${(d.getMonth() + 1 + "").padStart(
+        2,
+        "0",
+      )}-${(d.getDate() + "").padStart(2, "0")} ${d
         .getHours()
         .toString()
         .padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}:${d
@@ -188,14 +168,40 @@ const OrdersScreen = ({ navigation, route }) => {
         <Text style={styles.totalPrice}>Total: ${getTotalPrice()}</Text>
         <View style={styles.checkoutContent}>
           <Text style={styles.checkoutText}>Checkout</Text>
-          <Icon
-            style={styles.rightIcon}
-            name="chevron-right"
-            size={24}
-            color="#FFF"
-          />
+          <Icon style={styles.rightIcon} name="chevron-right" size={24} color="#FFF" />
         </View>
       </TouchableOpacity>
+    </View>
+  );
+
+  const renderQuickSaleCard = () => (
+    <View style={styles.quickSaleCard}>
+      <Text style={styles.quickSaleTitle}>Create a Quick Sale to:</Text>
+
+      <View style={styles.quickSalePoints}>
+        <Text style={styles.quickSaleBullet}>-</Text>
+        <Text style={styles.quickSaleText}>
+          Custom item with custom pricing to quickly charge a customer
+        </Text>
+      </View>
+
+      <View style={styles.quickSalePoints}>
+        <Text style={styles.quickSaleBullet}>-</Text>
+        <Text style={styles.quickSaleText}>
+          Custom item with custom pricing as part of an itemized sales order.
+        </Text>
+      </View>
+
+      <View style={{ flex: 1 }} />
+
+      <PaperButton
+        style={styles.quickSaleButton}
+        onPress={() => {
+          navigation.navigate("AddQuickSale", {});
+        }}
+      >
+        <Text style={styles.quickSaleButtonText}>Quick Sale</Text>
+      </PaperButton>
     </View>
   );
 
@@ -216,11 +222,7 @@ const OrdersScreen = ({ navigation, route }) => {
     >
       <View style={styles.productInfoView}>
         <Image
-          source={
-            item?.media?.value
-              ? { uri: item?.media?.value }
-              : productPlaceholder
-          }
+          source={item?.media?.value ? { uri: item?.media?.value } : productPlaceholder}
           style={styles.productImage}
         />
         <Text style={styles.productPrice}>${getItemPrice(item).toFixed(2)}</Text>
@@ -235,10 +237,7 @@ const OrdersScreen = ({ navigation, route }) => {
   // Render Category Items
   const renderCategoryItem = ({ item }) => (
     <TouchableOpacity
-      style={[
-        styles.categoryItem,
-        selectedCategory === item.id && styles.selectedCategory,
-      ]}
+      style={[styles.categoryItem, selectedCategory === item.id && styles.selectedCategory]}
       onPress={() => {
         setSelectedCategory(item.id);
         scrollToCategory(item.id);
@@ -252,11 +251,7 @@ const OrdersScreen = ({ navigation, route }) => {
                 ]}
             /> */}
       <Text
-        style={
-          selectedCategory === item.id
-            ? styles.selectedCategoryText
-            : styles.categoryName
-        }
+        style={selectedCategory === item.id ? styles.selectedCategoryText : styles.categoryName}
       >
         {item.name}
       </Text>
@@ -266,29 +261,20 @@ const OrdersScreen = ({ navigation, route }) => {
   // Group Products in twos
   const groupedProducts = [];
   for (let i = 0; i < filteredProducts?.length; i += 2) {
-    groupedProducts.push([
-      filteredProducts[i] || null,
-      filteredProducts[i + 1] || null,
-    ]);
+    groupedProducts.push([filteredProducts[i] || null, filteredProducts[i + 1] || null]);
   }
 
   // Render the grouped products
   const renderTwoProductsInRow = (item, index) => (
     <View style={styles.twoProductsContainer} key={index}>
-      <View style={styles.productCard}>
-        {item[0] && renderProductItem({ item: item[0] })}
-      </View>
-      <View style={styles.productCard}>
-        {item[1] && renderProductItem({ item: item[1] })}
-      </View>
+      <View style={styles.productCard}>{item[0] && renderProductItem({ item: item[0] })}</View>
+      <View style={styles.productCard}>{item[1] && renderProductItem({ item: item[1] })}</View>
     </View>
   );
 
   // On click Scroll to Category
   const scrollToCategory = (categoryId) => {
-    const index = productCategoryList.findIndex(
-      (category) => category.id === categoryId
-    );
+    const index = productCategoryList.findIndex((category) => category.id === categoryId);
     flatListRef.current.scrollToIndex({
       animated: true,
       index,
@@ -305,8 +291,8 @@ const OrdersScreen = ({ navigation, route }) => {
               categoryId,
               productList,
               categoryCurrentPage,
-              categoryTotalPages
-            )
+              categoryTotalPages,
+            ),
           ).catch((error) => {
             console.error("Error fetching products:", error);
           });
@@ -322,16 +308,15 @@ const OrdersScreen = ({ navigation, route }) => {
   // Load more products
   const loadMoreContent = async () => {
     let updatedCategoryCurrentPage = categoryCurrentPage;
-    updatedCategoryCurrentPage[selectedCategory] =
-      categoryCurrentPage[selectedCategory] + 1;
+    updatedCategoryCurrentPage[selectedCategory] = categoryCurrentPage[selectedCategory] + 1;
     dispatch(
       fetchProductList(
         club.post_slug,
         selectedCategory,
         productList,
         updatedCategoryCurrentPage,
-        categoryTotalPages
-      )
+        categoryTotalPages,
+      ),
     ).catch((error) => {
       console.error("Error fetching products:", error);
     });
@@ -394,41 +379,41 @@ const OrdersScreen = ({ navigation, route }) => {
           showsHorizontalScrollIndicator={false}
         />
       </View>
-      <View
-        style={[
-          styles.productContainer,
-          { paddingBottom: cart.length > 0 ? 90 : 0 },
-        ]}
-      >
+      <View style={[styles.productContainer, { paddingBottom: cart.length > 0 ? 90 : 0 }]}>
         {groupedProducts?.length > 0 ? (
           <ScrollView
             ref={scrollViewRef}
             onScroll={({ nativeEvent }) => {
               const isCloseToBottom =
-                nativeEvent.layoutMeasurement.height +
-                  nativeEvent.contentOffset.y >=
+                nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
                 nativeEvent.contentSize.height - 10;
               if (
                 isCloseToBottom &&
                 !isMoreProductLoading &&
-                categoryCurrentPage[selectedCategory] <
-                  categoryTotalPages[selectedCategory]
+                categoryCurrentPage[selectedCategory] < categoryTotalPages[selectedCategory]
               ) {
-                setPreviousLastItemPosition(
-                  nativeEvent.layoutMeasurement.height - 50
-                );
+                setPreviousLastItemPosition(nativeEvent.layoutMeasurement.height - 50);
                 setIsMoreProductLoading(true);
                 loadMoreContent();
               }
             }}
             scrollEventThrottle={16}
           >
-            {groupedProducts.map((item, index) => {
+            {/* First row: Quick Sale + First Product */}
+            <View style={styles.twoProductsContainer}>
+              <View style={styles.productCard}>{renderQuickSaleCard()}</View>
+
+              <View style={styles.productCard}>
+                {groupedProducts[0]?.[0] && renderProductItem({ item: groupedProducts[0][0] })}
+              </View>
+            </View>
+
+            {/* Remaining products */}
+            {groupedProducts.slice(1).map((item, index) => {
               return renderTwoProductsInRow(item, index);
             })}
             {(categoryCurrentPage[selectedCategory] == undefined ||
-              categoryCurrentPage[selectedCategory] <
-                categoryTotalPages[selectedCategory]) && (
+              categoryCurrentPage[selectedCategory] < categoryTotalPages[selectedCategory]) && (
               <View style={styles.loadMoreContainer}>
                 <View style={styles.loader}>
                   <ActivityIndicator size="medium" color="#00c0ff" />
@@ -451,16 +436,12 @@ const OrdersScreen = ({ navigation, route }) => {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalText}>
-              You have chosen to CANCEL an order in progress. If you wish to
-              CANCEL this current order, please click CONFIRM CANCELLATION
-              below. If you chose this by error, please click CANCEL
-              CANCELLATION.
+              You have chosen to CANCEL an order in progress. If you wish to CANCEL this current
+              order, please click CONFIRM CANCELLATION below. If you chose this by error, please
+              click CANCEL CANCELLATION.
             </Text>
             <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.confirmButton}
-                onPress={handleCancelOrder}
-              >
+              <TouchableOpacity style={styles.confirmButton} onPress={handleCancelOrder}>
                 <Text style={styles.modalButtonText}>CONFIRM CANCELLATION</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -745,6 +726,57 @@ const styles = StyleSheet.create({
     color: "#444",
     width: "100%",
     textAlign: "center",
+  },
+  quickSaleCard: {
+    borderColor: "#00D5A0",
+    justifyContent: "space-between",
+    padding: 15,
+    margin: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    flex: 1,
+  },
+
+  quickSaleTitle: {
+    fontSize: 10,
+    color: "#222",
+    textAlign: "center",
+    marginBottom: 12,
+    fontWeight: "bold",
+  },
+
+  quickSalePoints: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginTop: 4,
+  },
+
+  quickSaleBullet: {
+    fontSize: 16,
+    color: "#222",
+    marginRight: 8,
+    lineHeight: 18,
+  },
+
+  quickSaleText: {
+    flex: 1,
+    lineHeight: 12,
+    fontSize: 10,
+    // fontWeight: "bold",
+
+    color: "#222",
+  },
+
+  quickSaleButton: {
+    backgroundColor: "#00D5A0",
+    borderRadius: 50,
+    minHeight: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  quickSaleButtonText: {
+    color: "#FFF",
+    fontSize: 18,
   },
 });
 

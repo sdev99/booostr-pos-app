@@ -40,9 +40,7 @@ const LatestOrdersScreen = ({ orderedItems }) => {
         <Text style={styles.orderedItemText}>{item?.orderitems[0]?.term?.title}</Text>
       </View> */}
       <Text style={styles.orderedItemText}>#{item?.invoice_no}</Text>
-      <Text style={styles.orderedItemStatus}>
-        {item?.created_at?.substring(0, 10)}
-      </Text>
+      <Text style={styles.orderedItemStatus}>{item?.created_at?.substring(0, 10)}</Text>
       <Text style={styles.orderedItemText}>
         {storeData?.currency_info?.currency_icon}
         {item?.total?.toFixed(2)}
@@ -67,11 +65,7 @@ const TopSellingScreen = ({ orderedItems }) => {
     <View style={styles.orderedItem}>
       <View style={styles.imageAndNameContainer}>
         <Image
-          source={
-            item?.media?.value
-              ? { uri: item?.media?.value }
-              : productPlaceholder
-          }
+          source={item?.media?.value ? { uri: item?.media?.value } : productPlaceholder}
           style={[styles.cartItemImage, { width: 70, aspectRatio: 1 }]}
         />
         <Text style={styles.orderedItemText}>{item.title}</Text>
@@ -109,8 +103,7 @@ const DashboardScreen = ({ navigation }) => {
   const [totalPages, setTotalPages] = useState(2);
   const [isMoreOrderLoading, setIsMoreOrderLoading] = useState(false);
   const [isLatestOrdersLoading, setIsLatestOrdersLoading] = useState(false);
-  const [isTopSellingOrdersLoading, setIsTopSellingOrdersLoading] =
-    useState(false);
+  const [isTopSellingOrdersLoading, setIsTopSellingOrdersLoading] = useState(false);
   const db = SQLite.openDatabaseSync("pos.db");
 
   const [latestOrderErrorMsg, setLatestOrderErrorMsg] = useState("");
@@ -134,11 +127,7 @@ const DashboardScreen = ({ navigation }) => {
                   `select * from onHoldOrders WHERE club = ?;`,
                   [club.post_slug],
                   (_, { rows: { _array } }) =>
-                    dispatch(
-                      setupOrderList(
-                        _array.map((item) => JSON.parse(item.data)),
-                      ),
-                    ),
+                    dispatch(setupOrderList(_array.map((item) => JSON.parse(item.data)))),
                 );
               });
             },
@@ -194,8 +183,7 @@ const DashboardScreen = ({ navigation }) => {
                   id: 1,
                   name: "Revenue",
                   icon: "cash",
-                  totalRev:
-                    response?.data?.result?.pos_order_revenue.toFixed(2),
+                  totalRev: response?.data?.result?.pos_order_revenue.toFixed(2),
                 },
                 {
                   id: 2,
@@ -382,9 +370,7 @@ const DashboardScreen = ({ navigation }) => {
         <Text style={[styles.metricRev, { color: textColor }]}>
           {item.name === "Revenue" ? `$${item.totalRev}` : item.totalRev}
         </Text>
-        <Text style={[styles.metricName, { color: textColor }]}>
-          {item.name}
-        </Text>
+        <Text style={[styles.metricName, { color: textColor }]}>{item.name}</Text>
       </View>
     );
   };
@@ -398,9 +384,7 @@ const DashboardScreen = ({ navigation }) => {
         <Text style={styles.orderedItemText}>{item?.orderitems[0]?.term?.title}</Text>
       </View> */}
       <Text style={styles.orderedItemText}>#{item?.invoice_no}</Text>
-      <Text style={styles.orderedItemStatus}>
-        {item?.created_at?.substring(0, 10)}
-      </Text>
+      <Text style={styles.orderedItemStatus}>{item?.created_at?.substring(0, 10)}</Text>
       <Text style={styles.orderedItemText}>
         {storeData?.currency_info?.currency_icon}
         {item?.total?.toFixed(2)}
@@ -439,6 +423,10 @@ const DashboardScreen = ({ navigation }) => {
       }
     }
   };
+  const handleNewOrder = () => {
+    // Navigate to the OrderScreen when the "New Order" button is pressed
+    navigation.navigate("Orders");
+  };
 
   return isClubLoading ? (
     <View style={styles.loaderContainer}>
@@ -459,7 +447,7 @@ const DashboardScreen = ({ navigation }) => {
       {/* {Platform.OS === "ios" && <TapToPayBanner navigation={navigation} />} */}
 
       {screenWidth < 500 ? (
-        <View style={{ marginTop: 15, marginBottom: 25 }}>
+        <View style={{ marginTop: 15 }}>
           <View style={styles.MetRow}>
             <View style={styles.metricItem}>
               <View style={[styles.metricTitle]}>
@@ -511,14 +499,31 @@ const DashboardScreen = ({ navigation }) => {
           />
         </View>
       )}
+      <View style={styles.ButtonRow}>
+        <TouchableOpacity
+          style={[styles.actionButton, styles.quickSaleButton]}
+          onPress={() => {
+            navigation.navigate("AddQuickSale", {});
+          }}
+        >
+          <Text style={styles.actionButtonText}>Quick Sale</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.actionButton, styles.newOrderButton]}
+          onPress={handleNewOrder}
+        >
+          <Text style={styles.actionButtonText}>New Order</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.tabContainer}>
         <View style={styles.tabClickNav}>
           <TouchableOpacity
             style={[
               styles.tabClickNavBtn,
               {
-                borderColor:
-                  selectedCol === "latestOrders" ? "#00c0ff" : "#fff",
+                borderColor: selectedCol === "latestOrders" ? "#00c0ff" : "#fff",
               },
             ]}
             onPress={() => setSelectedCol("latestOrders")}
@@ -558,17 +563,10 @@ const DashboardScreen = ({ navigation }) => {
               ref={scrollViewRef}
               onScroll={({ nativeEvent }) => {
                 const isCloseToBottom =
-                  nativeEvent.layoutMeasurement.height +
-                    nativeEvent.contentOffset.y >=
+                  nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
                   nativeEvent.contentSize.height - 10;
-                if (
-                  isCloseToBottom &&
-                  !isMoreOrderLoading &&
-                  currentPage < totalPages
-                ) {
-                  setPreviousLastItemPosition(
-                    nativeEvent.layoutMeasurement.height - 50,
-                  );
+                if (isCloseToBottom && !isMoreOrderLoading && currentPage < totalPages) {
+                  setPreviousLastItemPosition(nativeEvent.layoutMeasurement.height - 50);
                   loadMoreContent();
                 }
               }}
@@ -580,17 +578,14 @@ const DashboardScreen = ({ navigation }) => {
                 })
               ) : (
                 <>
-                  {(isMoreOrderLoading || isLatestOrdersLoading) &&
-                  currentPage < totalPages ? (
+                  {(isMoreOrderLoading || isLatestOrdersLoading) && currentPage < totalPages ? (
                     <View style={styles.loadMoreContainer}>
                       <View style={styles.loader}>
                         <ActivityIndicator size="medium" color="#00c0ff" />
                       </View>
                     </View>
                   ) : (
-                    <Text style={styles.errorMessage}>
-                      {latestOrderErrorMsg}
-                    </Text>
+                    <Text style={styles.errorMessage}>{latestOrderErrorMsg}</Text>
                   )}
                 </>
               )}
@@ -795,6 +790,37 @@ const styles = StyleSheet.create({
     color: "#444",
     width: "100%",
     textAlign: "center",
+  },
+
+  quickSaleButton: {
+    backgroundColor: "#39dd99",
+  },
+
+  newOrderButton: {
+    backgroundColor: "#00c0ff",
+  },
+
+  ButtonRow: {
+    padding: screenWidth < 500 ? "4%" : 15,
+    paddingHorizontal: screenWidth < 500 ? 15 : 0,
+    justifyContent: "space-between",
+    flexDirection: "row",
+  },
+  actionButton: {
+    width: screenWidth < 500 ? "48%" : "100%",
+    // padding: 15,
+    // marginBottom: screenWidth < 500 ? 0 : 15,
+    borderRadius: 6,
+    justifyContent: "center",
+    alignItems: "center",
+    height: 60,
+  },
+  actionButtonText: {
+    fontSize: screenWidth < 500 ? 16 : 15,
+    fontWeight: screenWidth < 500 ? "bold" : "normal",
+    // marginTop: screenWidth < 500 ? 0 : 5,
+    alignSelf: screenWidth < 500 ? "center" : "auto",
+    color: "#fff",
   },
 });
 

@@ -14,6 +14,7 @@ import CompletedOrderDetailScreen from "./screens/CompletedOrderDetailScreen";
 import BottomBar from "./screens/BottomBar";
 import { useStripeTerminal } from "@stripe/stripe-terminal-react-native";
 import { useEffect } from "react";
+import AddQuickSaleScreen from "./screens/AddQuickSaleScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -31,6 +32,7 @@ const MainStack = () => {
       <Stack.Screen name="Orders" component={OrdersScreen} />
       <Stack.Screen name="Cart" component={CartScreen} />
       <Stack.Screen name="Checkout" component={CheckoutScreen} />
+      <Stack.Screen name="AddQuickSale" component={AddQuickSaleScreen} />
       <Stack.Screen name="Cash" component={CashScreen} />
       <Stack.Screen name="CashReceipt" component={CashReceiptScreen} />
       <Stack.Screen name="PaymentSuccess" component={PaymentSuccessScreen} />
