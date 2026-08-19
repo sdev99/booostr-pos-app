@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Modal, FlatList } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
+  FlatList,
+  ScrollView,
+} from "react-native";
 import { useDispatch } from "react-redux";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -128,21 +136,11 @@ const AddQuickSaleScreen = ({ navigation }) => {
   // ADD TO CART
   // ========================================
   const handleAddToCart = () => {
-    const itemAmount = parseFloat(rawAmount || "0");
-
-    if (itemAmount <= 0) {
-      return;
+    if (cart.length > 0) {
+      navigation.navigate("Cart");
+    } else {
+      alert("Your cart is empty. Add items to your cart before checkout.");
     }
-
-    const quickSaleItem = {
-      id: `quick_sale_${Date.now()}`,
-      name: selectedDescriptor,
-      price: itemAmount,
-      cart_quantity: 1,
-      isQuickSale: true,
-    };
-
-    dispatch(addToCart(quickSaleItem));
 
     // Reset amount after adding
     setRawAmount("0");
@@ -190,137 +188,139 @@ const AddQuickSaleScreen = ({ navigation }) => {
       {/* ==================================
           CONTENT
       ================================== */}
-      <View style={styles.contentContainer}>
-        <View style={styles.card}>
-          {/* ==================================
+      <ScrollView>
+        <View style={styles.contentContainer}>
+          <View style={styles.card}>
+            {/* ==================================
               DESCRIPTOR
           ================================== */}
-          <Text style={styles.fieldLabel}>Select Item Descriptor*</Text>
+            <Text style={styles.fieldLabel}>Select Item Descriptor*</Text>
 
-          <TouchableOpacity
-            style={styles.dropdown}
-            onPress={() => setIsDropdownVisible(true)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.dropdownText}>{selectedDescriptor}</Text>
+            <TouchableOpacity
+              style={styles.dropdown}
+              onPress={() => setIsDropdownVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.dropdownText}>{selectedDescriptor}</Text>
 
-            <Icon name="chevron-down" size={24} color="#666" />
-          </TouchableOpacity>
+              <Icon name="chevron-down" size={24} color="#666" />
+            </TouchableOpacity>
 
-          {/* ==================================
+            {/* ==================================
               ITEM AMOUNT
           ================================== */}
-          <View style={styles.amountRow}>
-            <Text style={styles.amountLabel}>Item{"\n"}Amount</Text>
+            <View style={styles.amountRow}>
+              <Text style={styles.amountLabel}>Item{"\n"}Amount</Text>
 
-            <View style={styles.amountDisplayBox}>
-              <Text style={styles.amountDisplayText}>{getFormattedAmount()}</Text>
+              <View style={styles.amountDisplayBox}>
+                <Text style={styles.amountDisplayText}>{getFormattedAmount()}</Text>
+              </View>
             </View>
-          </View>
 
-          {/* ==================================
+            {/* ==================================
               KEYPAD
           ================================== */}
-          <View style={styles.keypadGrid}>
-            {/* ==================================
+            <View style={styles.keypadGrid}>
+              {/* ==================================
                 $5 $10 $20
             ================================== */}
-            <View style={styles.gridRow}>
-              <TouchableOpacity
-                style={[styles.gridCell, styles.presetCell]}
-                onPress={() => handlePresetPress(5)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.presetText}>$5.00</Text>
-              </TouchableOpacity>
+              <View style={styles.gridRow}>
+                <TouchableOpacity
+                  style={[styles.gridCell, styles.presetCell]}
+                  onPress={() => handlePresetPress(5)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.presetText}>$5.00</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.gridCell, styles.presetCell]}
-                onPress={() => handlePresetPress(10)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.presetText}>$10.00</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.gridCell, styles.presetCell]}
+                  onPress={() => handlePresetPress(10)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.presetText}>$10.00</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.gridCell, styles.presetCell]}
-                onPress={() => handlePresetPress(20)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.presetText}>$20.00</Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  style={[styles.gridCell, styles.presetCell]}
+                  onPress={() => handlePresetPress(20)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.presetText}>$20.00</Text>
+                </TouchableOpacity>
+              </View>
 
-            {/* ==================================
+              {/* ==================================
                 1 2 3
             ================================== */}
-            <View style={styles.gridRow}>
-              <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("1")}>
-                <Text style={styles.keypadText}>1</Text>
-              </TouchableOpacity>
+              <View style={styles.gridRow}>
+                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("1")}>
+                  <Text style={styles.keypadText}>1</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("2")}>
-                <Text style={styles.keypadText}>2</Text>
-              </TouchableOpacity>
+                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("2")}>
+                  <Text style={styles.keypadText}>2</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("3")}>
-                <Text style={styles.keypadText}>3</Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("3")}>
+                  <Text style={styles.keypadText}>3</Text>
+                </TouchableOpacity>
+              </View>
 
-            {/* ==================================
+              {/* ==================================
                 4 5 6
             ================================== */}
-            <View style={styles.gridRow}>
-              <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("4")}>
-                <Text style={styles.keypadText}>4</Text>
-              </TouchableOpacity>
+              <View style={styles.gridRow}>
+                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("4")}>
+                  <Text style={styles.keypadText}>4</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("5")}>
-                <Text style={styles.keypadText}>5</Text>
-              </TouchableOpacity>
+                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("5")}>
+                  <Text style={styles.keypadText}>5</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("6")}>
-                <Text style={styles.keypadText}>6</Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("6")}>
+                  <Text style={styles.keypadText}>6</Text>
+                </TouchableOpacity>
+              </View>
 
-            {/* ==================================
+              {/* ==================================
                 7 8 9
             ================================== */}
-            <View style={styles.gridRow}>
-              <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("7")}>
-                <Text style={styles.keypadText}>7</Text>
-              </TouchableOpacity>
+              <View style={styles.gridRow}>
+                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("7")}>
+                  <Text style={styles.keypadText}>7</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("8")}>
-                <Text style={styles.keypadText}>8</Text>
-              </TouchableOpacity>
+                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("8")}>
+                  <Text style={styles.keypadText}>8</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("9")}>
-                <Text style={styles.keypadText}>9</Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("9")}>
+                  <Text style={styles.keypadText}>9</Text>
+                </TouchableOpacity>
+              </View>
 
-            {/* ==================================
+              {/* ==================================
                 0 00 BACKSPACE
             ================================== */}
-            <View style={styles.gridRow}>
-              <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("0")}>
-                <Text style={styles.keypadText}>0</Text>
-              </TouchableOpacity>
+              <View style={styles.gridRow}>
+                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("0")}>
+                  <Text style={styles.keypadText}>0</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("00")}>
-                <Text style={styles.keypadText}>00</Text>
-              </TouchableOpacity>
+                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("00")}>
+                  <Text style={styles.keypadText}>00</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity style={styles.gridCell} onPress={handleBackspace}>
-                <Icon name="close-box" size={28} color="#000" />
-              </TouchableOpacity>
+                <TouchableOpacity style={styles.gridCell} onPress={handleBackspace}>
+                  <Icon name="close-box" size={28} color="#000" />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
-      </View>
+      </ScrollView>
 
       {/* ==================================
           FOOTER BUTTONS
@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
   addToCartBtn: {
     flex: 1,
     minHeight: 78,
-    backgroundColor: "#00E676",
+    backgroundColor: "#39dd99",
     borderRadius: 6,
     flexDirection: "row",
     alignItems: "center",

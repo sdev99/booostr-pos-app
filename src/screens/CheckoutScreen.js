@@ -1217,6 +1217,7 @@ const CheckoutScreen = ({ navigation, route }) => {
             <Text style={styles.titleCancel}>Cancel Order</Text>
           </TouchableOpacity>
         </View>
+        
       </View>
       <ScrollView>
         <View style={styles.totalContainerMain}>
