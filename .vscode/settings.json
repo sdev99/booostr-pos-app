@@ -1,0 +1,29 @@
+{
+  "files.autoSave": "afterDelay",
+  "chat.editor.fontSize": 20,
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "explorer.confirmPasteNative": false,
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "terminal.integrated.scrollback": 100000000,
+  "terminal.integrated.shellIntegration.history": 1000,
+  "workbench.colorTheme": "Visual Studio Light",
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "editor.fontSize": 14,
+  "[swift]": {
+    "editor.defaultFormatter": "sweetpad.sweetpad"
+  },
+  "explorer.confirmDragAndDrop": false,
+  "explorer.confirmDelete": false,
+  "diffEditor.ignoreTrimWhitespace": false,
+  "editor.fontLigatures": false,
+  "editor.defaultFormatter": "esbenp.prettier-vscode"
+}
