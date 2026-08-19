@@ -9,6 +9,7 @@ import {
   Modal,
   Platform,
   Alert,
+  TextInput,
 } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -95,6 +96,52 @@ const SettingsScreen = ({ navigation }) => {
   const toggleAccountModal = () => {
     setAccountModalVisible(!isAccountModalVisible);
   };
+
+  const handleQuickSaleSettings = () => {
+    setQuickSaleModalVisible(true);
+  };
+
+  //////=========================/////////////////////
+
+  // Quick Sale Modal States
+  const [isQuickSaleModalVisible, setQuickSaleModalVisible] = useState(false);
+  const [descriptors, setDescriptors] = useState([
+    { id: 1, text: "Miscellaneous Item", isDefault: true, isFixed: true },
+  ]);
+  const qsScrollViewRef = useRef(null);
+
+  // Modal Handlers
+
+  const handleAddDescriptor = () => {
+    setDescriptors((prev) => [
+      ...prev,
+      { id: Date.now(), text: "Concession Item", isDefault: false, isFixed: false },
+    ]);
+  };
+
+  const handleSelectDefault = (id) => {
+    setDescriptors((prev) => prev.map((item) => ({ ...item, isDefault: item.id === id })));
+  };
+
+  const handleTextChange = (id, newText) => {
+    setDescriptors((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, text: newText } : item)),
+    );
+  };
+
+  const handleDeleteDescriptor = (id) => {
+    setDescriptors((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleScrollDown = () => {
+    qsScrollViewRef.current?.scrollToEnd({ animated: true });
+  };
+
+  const handleScrollUp = () => {
+    qsScrollViewRef.current?.scrollTo({ y: 0, animated: true });
+  };
+
+  //////////////////--------------------------//////////////////
 
   const toggleReadersModal = () => {
     if (isReadersModalVisible) cancelDiscoveringReader();
@@ -269,6 +316,12 @@ const SettingsScreen = ({ navigation }) => {
                 <Text style={styles.settingTitle}>Account</Text>
               </TouchableOpacity>
 
+              {/* Quick Sale Settings */}
+              <TouchableOpacity style={styles.settingItem} onPress={handleQuickSaleSettings}>
+                <Icon name="flash" size={24} color="#000" style={styles.settingIcon} />
+                <Text style={styles.settingTitle}>Quick Sale Settings</Text>
+              </TouchableOpacity>
+
               {/* Reader Connections */}
               {connectedReader && (
                 <TouchableOpacity
@@ -433,6 +486,100 @@ const SettingsScreen = ({ navigation }) => {
         </ScrollView>
       )}
 
+      {/*============================================*/}
+      {/* Quick Sale Settings Modal */}
+      <Modal
+        transparent={true}
+        animationType="fade"
+        visible={isQuickSaleModalVisible}
+        onRequestClose={() => setQuickSaleModalVisible(false)}
+      >
+        <View style={styles.qsModalOverlay}>
+          <View style={styles.qsModalCard}>
+            <View style={styles.qsModalTopContent}>
+              <Text style={styles.qsTitle}>Quick Sale Settings</Text>
+              <Text style={styles.qsSubtitle}>
+                Add custom item descriptors to identify your quick sale items.
+              </Text>
+
+              {/* Table Header */}
+              <View style={styles.qsHeaderRow}>
+                <Text style={styles.qsHeaderLabelText}>Descriptor</Text>
+                <Text style={[styles.qsHeaderLabelText, { textAlign: "center" }]}>
+                  Default{"\n"}Choice
+                </Text>
+              </View>
+
+              {/* Input List ScrollView */}
+              <ScrollView ref={qsScrollViewRef} style={{ maxHeight: 50 * descriptors.length }}>
+                {descriptors.map((item) => (
+                  <View key={item.id} style={styles.qsInputRow}>
+                    {/* Input Box */}
+                    <TextInput
+                      style={[styles.qsTextInput, item.isFixed && styles.qsDisabledInput]}
+                      value={item.text}
+                      editable={!item.isFixed}
+                      onChangeText={(text) => handleTextChange(item.id, text)}
+                    />
+
+                    {/* Checkbox */}
+                    <TouchableOpacity
+                      style={[styles.qsCheckbox, item.isDefault && styles.qsCheckboxChecked]}
+                      onPress={() => handleSelectDefault(item.id)}
+                    >
+                      {item.isDefault && <Icon name="check" size={20} color="#FFF" />}
+                    </TouchableOpacity>
+
+                    {/* Delete Button (Fixed item ke liye hidden) */}
+                    {!item.isFixed ? (
+                      <TouchableOpacity
+                        style={styles.qsDeleteBtn}
+                        onPress={() => handleDeleteDescriptor(item.id)}
+                      >
+                        <Icon name="trash-can-outline" size={20} color="#E53935" />
+                      </TouchableOpacity>
+                    ) : (
+                      /* 👈 Alignment sahi rakhne ke liye invisible box */
+                      <View style={{ width: 38, height: 38 }} />
+                    )}
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+            {/* Controls Row (+Add & Arrows) */}
+            <View style={styles.qsControlsRow}>
+              <View style={styles.qsArrowGroup}>
+                <TouchableOpacity style={styles.qsArrowBtn} onPress={handleScrollDown}>
+                  <Icon name="chevron-down" size={24} color="#00B0FF" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.qsArrowBtn} onPress={handleScrollUp}>
+                  <Icon name="chevron-up" size={24} color="#00B0FF" />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity style={styles.qsAddBtn} onPress={handleAddDescriptor}>
+                <Text style={styles.qsAddBtnText}>+Add</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Footer Actions */}
+            <View style={styles.qsFooterRow}>
+              <TouchableOpacity onPress={() => setQuickSaleModalVisible(false)}>
+                <Text style={styles.qsCloseText}>Close</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.qsSaveBtn}
+                onPress={() => setQuickSaleModalVisible(false)}
+              >
+                <Text style={styles.qsSaveBtnText}>Save & Update</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      {/*============================================*/}
+
       {/* Account Modal */}
       <CustomModal
         isVisible={isAccountModalVisible}
@@ -568,6 +715,152 @@ const styles = StyleSheet.create({
     padding: 6,
     paddingHorizontal: 10,
     color: "white",
+  },
+  /* Quick Sale Modal Styles */
+  qsModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 35,
+  },
+  qsModalCard: {
+    width: "100%",
+    backgroundColor: "#FFF",
+    borderRadius: 16,
+  },
+  qsModalTopContent: {
+    paddingHorizontal: 12,
+    marginTop: 20,
+    maxHeight: 220,
+  },
+  qsTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#000",
+    marginBottom: 4,
+  },
+  qsSubtitle: {
+    fontSize: 14,
+    color: "#666",
+  },
+  qsHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    marginBottom: 6,
+  },
+  qsHeaderLabelText: {
+    flex: 1,
+
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#000",
+  },
+  qsInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 5,
+    gap: 8,
+  },
+  qsTextInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#D3D3D3",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 42,
+    fontSize: 14,
+    color: "#333",
+  },
+  qsDisabledInput: {
+    backgroundColor: "#E5E5E5",
+    color: "#666",
+  },
+  qsCheckbox: {
+    width: 38,
+    height: 38,
+
+    borderWidth: 1,
+    borderColor: "#D3D3D3",
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  qsCheckboxChecked: {
+    backgroundColor: "#00B0FF",
+
+    borderColor: "#00B0FF",
+  },
+  qsDeleteBtn: {
+    width: 38,
+    height: 38,
+    backgroundColor: "#FFEBEE",
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  qsControlsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#ddd",
+    paddingHorizontal: 10,
+  },
+  qsArrowGroup: {
+    flexDirection: "row",
+    gap: 8,
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  qsArrowBtn: {
+    width: 80,
+    height: 30,
+    borderWidth: 2,
+    borderColor: "#D3D3D3",
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  qsAddBtn: {
+    backgroundColor: "#00B0FF",
+    borderRadius: 8,
+    height: 30,
+    width: 80,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  qsAddBtnText: {
+    color: "#FFF",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  qsFooterRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  qsCloseText: {
+    fontSize: 15,
+    color: "#000",
+  },
+  qsSaveBtn: {
+    backgroundColor: "#00B0FF",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    marginVertical: 12,
+  },
+  qsSaveBtnText: {
+    color: "#FFF",
+    fontWeight: "bold",
+    fontSize: 14,
   },
 });
 
