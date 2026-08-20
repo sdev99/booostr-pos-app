@@ -394,6 +394,7 @@ const SettingsScreen = ({ navigation }) => {
       {/* Quick Sale Settings Modal */}
 
       <QuickSaleSettingModal
+        club={club}
         visible={isQuickSaleModalVisible}
         onRequestClose={() => {
           setQuickSaleModalVisible(false);

@@ -1,6 +1,6 @@
 // FullScreenLoader.js
 import React, { forwardRef, useImperativeHandle, useRef, useState } from "react";
-import { addDescriptors } from "../../api/descriptors";
+import { addDescriptors, deleteDescriptors } from "../../api/descriptors";
 import {
   View,
   TouchableOpacity,
@@ -12,6 +12,7 @@ import {
   Platform,
   TextInput,
 } from "react-native";
+
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 import FullScreenLoader from "./FullScreenLoader";
@@ -19,7 +20,7 @@ import { useSelector } from "react-redux";
 import { memoizedStoreData } from "../../store/selectors";
 import { createStripeLocation } from "../../api/stripe";
 
-const QuickSaleSettingModal = forwardRef(({ visible, onRequestClose }, ref) => {
+const QuickSaleSettingModal = forwardRef(({ visible, club, onRequestClose }, ref) => {
   const loaderRef = useRef();
   const storeData = useSelector(memoizedStoreData);
   const [descriptors, setDescriptors] = useState([
@@ -36,48 +37,90 @@ const QuickSaleSettingModal = forwardRef(({ visible, onRequestClose }, ref) => {
   if (!visible) return null;
 
   const handleSaveAndUpdate = async () => {
-    const club = storeData?.club || storeData?.id;
-
-    // 1. Array Formatting (Price = 0, is_default = boolean)
     const itemsToSend = descriptors
-      .filter((item) => item.text && item.text.trim() !== "")
+      .filter((item) => !item.isFixed && item.text && item.text.trim() !== "")
       .map((item, index) => ({
         name: item.text.trim(),
-        price: Number(item.price) || 0,
+        price: 0,
         is_default: Boolean(item.isDefault),
-        sort_order: index + 1,
+        sort_order: index + 2,
       }));
 
     if (itemsToSend.length === 0) {
-      Alert.alert("Notice", "Please enter at least one descriptor name.");
+      Alert.alert("Notice", "Please add at least one new descriptor name.");
       return;
     }
-
-    const payload = {
-      descriptors: itemsToSend,
-    };
-
+    const payload = { descriptors: itemsToSend };
     try {
-      console.log("SENDING PAYLOAD:", JSON.stringify(payload, null, 2));
+      console.log("SENDING ADD PAYLOAD:", payload);
+      const response = await addDescriptors(payload, club);
+      console.log("ADD RESPONSE:", response);
 
-      // 2. Safe API Call (Club fallback ke saath)
-      const response = club ? await addDescriptors(club, payload) : await addDescriptors(payload);
-
-      console.log("API RESPONSE:", response);
-
-      if (response?.status === "success") {
-        Alert.alert("Success", "Descriptors updated successfully.");
+      if (response?.status === "success" ) {
+        Alert.alert("Success", response?.message || "Descriptors updated successfully.");
         onRequestClose();
       } else {
         Alert.alert(
           "Error",
-          response?.message || response?.error || "Failed to update descriptors.",
+          typeof response === "string" ? response : response?.message || "Failed to update.",
         );
       }
     } catch (error) {
-      console.log("BULK ADD ERROR:", error);
+      console.log("ADD ERROR:", error);
       Alert.alert("Error", "Unable to save descriptors.");
     }
+  };
+
+  const handleDeleteDescriptor = (id) => {
+    const club = storeData?.club || storeData?.id;
+
+    // Safety Rule: Kam se kam 1 descriptor hamesha hona chahiye
+    if (descriptors.length <= 1) {
+      Alert.alert("Notice", "At least one descriptor must always remain.");
+      return;
+    }
+
+    // 1. Agar temporary UI-only item hai (+Add button wala unsaved item)
+    if (typeof id === "number" && id > 1000000000000) {
+      setDescriptors((prev) => prev.filter((item) => item.id !== id));
+      return;
+    }
+
+    // 2. Saved Item ke liye API call ({ "id": id } payload ke saath)
+    Alert.alert("Delete Descriptor", "Kya aap is descriptor ko delete karna chahte hain?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const deletePayload = { id }; // Request body: { "id": 2 }
+
+            console.log("SENDING DELETE PAYLOAD:", deletePayload);
+
+            const response = club
+              ? await deleteDescriptors(club, deletePayload)
+              : await deleteDescriptors(deletePayload);
+
+            console.log("DELETE RESPONSE:", response);
+
+            // Response check according to endpoint spec
+            if (response?.error === false || response?.status === "success") {
+              setDescriptors((prev) => prev.filter((item) => item.id !== id));
+              Alert.alert(
+                "Success",
+                response?.message || "Quick Sale descriptor deleted successfully.",
+              );
+            } else {
+              Alert.alert("Error", response?.message || "Failed to delete descriptor.");
+            }
+          } catch (error) {
+            console.log("DELETE ERROR:", error);
+            Alert.alert("Error", "Unable to delete descriptor.");
+          }
+        },
+      },
+    ]);
   };
 
   const handleSelectDefault = (id) => {
@@ -88,10 +131,6 @@ const QuickSaleSettingModal = forwardRef(({ visible, onRequestClose }, ref) => {
     setDescriptors((prev) =>
       prev.map((item) => (item.id === id ? { ...item, text: newText } : item)),
     );
-  };
-
-  const handleDeleteDescriptor = (id) => {
-    setDescriptors((prev) => prev.filter((item) => item.id !== id));
   };
 
   const handleAddDescriptor = () => {

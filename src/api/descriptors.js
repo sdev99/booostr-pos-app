@@ -28,11 +28,11 @@ export const getDescriptors = async (club) => {
     return error.toString();
   }
 };
-export const addDescriptors = async (club, data) => {
+export const addDescriptors = async (payload, club) => {
   try {
     const response = await axios.post(
       `${POS_STORE_API_URL}/pos-quick-sale-add-descriptor`,
-      data,
+      payload,
       {
         headers: {
           Apitoken: POS_API_TOKEN,
@@ -40,7 +40,8 @@ export const addDescriptors = async (club, data) => {
         },
       },
     );
-    if (response?.data?.status) {
+    console.log("response::",response.data);
+    if (response?.data?.descriptors) {
       return {
         ...response?.data,
         status: "success",
@@ -51,6 +52,8 @@ export const addDescriptors = async (club, data) => {
       return "kindly try after some time.";
     }
   } catch (error) {
+        console.log("response::",error?.response?.data);
+
     if (error?.response?.data?.message) return error.response.data.message;
     return error.toString();
   }
