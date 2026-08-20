@@ -11,7 +11,7 @@ export const getProductVariations = async (productId, club) => {
           Apitoken: POS_API_TOKEN,
           "X-Tenant": club.post_slug,
         },
-      }
+      },
     );
     if (response?.data?.status) {
       return {
@@ -29,12 +29,27 @@ export const getProductVariations = async (productId, club) => {
   }
 };
 
+export const getCartTotalPrice = (cart) => {
+  return cart
+    .reduce((total, item) => total + getItemPrice(item) * item.cart_quantity, 0)
+    .toFixed(2);
+};
+
 export const getItemPrice = (item) => {
-  let price = item.max_price;
+  // For quick sale items, use the amount field
+  let price = item.type === "quick_sale" ? item.amount : item.max_price;
   if (item.is_variation === 1 && item?.variation_price_object) {
     price = item?.variation_price_object.price;
   }
   return price;
+};
+
+export const getItemDisplayName = (item) => {
+  // For quick sale items, use the amount field
+  if (item.type === "quick_sale") {
+    return `Quick Sale Item - ${item.descriptor}`;
+  }
+  return item.title;
 };
 
 export const getVariationsNames = (item) => {
@@ -42,12 +57,12 @@ export const getVariationsNames = (item) => {
   if (item.variation_price_object) {
     options = item.variation_price_object; // this is for cart items
   } else {
-    options = item; // this is for info object from api 
+    options = item; // this is for info object from api
   }
 
   return options.varition_options?.map((option) => {
     const matchingVariation = options.varitions.find(
-      (v) => v.pivot.productoption_id === option.id
+      (v) => v.pivot.productoption_id === option.id,
     );
 
     return `${option.category.name}: ${matchingVariation?.name}`;

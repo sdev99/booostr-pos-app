@@ -45,6 +45,7 @@ import {
   PlatformPay,
   confirmPlatformPayPayment,
 } from "@stripe/stripe-react-native";
+import NumericKeyboard from "./Components/NumericKeyboard";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -228,9 +229,12 @@ const CheckoutScreen = ({ navigation, route }) => {
   const handleNumericButtonPress = (value) => {
     if (value === "00") {
       setQuickAmtBtn(0);
-      setAmountTendered((prevAmount) =>
-        (parseFloat(prevAmount) * 100).toFixed(2),
-      );
+      if (amountTendered) {
+        setAmountTendered((prevAmount) =>
+          (parseFloat(prevAmount) * 100).toFixed(2),
+        );
+      }
+
       return;
     }
     if (quickAmtBtn > 0) setQuickAmtBtn(quickAmtBtn - 1);
@@ -348,7 +352,6 @@ const CheckoutScreen = ({ navigation, route }) => {
         order["club_name"] = club?.post_title;
         order["wpuid"] = userData.user_id;
         order["timezone"] = storeData.club_info.timezone;
-        console.log("order::", JSON.stringify(order));
 
         dispatch(processOrder(order, club))
           .then((response) => {
@@ -470,7 +473,6 @@ const CheckoutScreen = ({ navigation, route }) => {
         order["club_name"] = club?.post_title;
         order["wpuid"] = userData.user_id;
         order["timezone"] = storeData.club_info.timezone;
-        console.log("order::", JSON.stringify(order));
 
         dispatch(processOrder(order, club))
           .then((response) => {
@@ -811,42 +813,6 @@ const CheckoutScreen = ({ navigation, route }) => {
       console.error("Error cancelling order:", error);
     }
   };
-  const renderSelectionButton = (label, value) => (
-    <TouchableOpacity
-      key={label}
-      style={[styles.selectionButton, label === "Exact" && styles.exactButton]}
-      onPress={() => {
-        if (value == "10.00" || value == "20.00") {
-          setQuickAmtBtn(4);
-        }
-        handleKeypadPress(value.toString());
-      }}
-    >
-      <Text
-        style={label === "Exact" ? styles.exactButtonText : styles.SelectText}
-      >
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-  const renderClearButton = () => (
-    <TouchableOpacity
-      key="clear"
-      style={[styles.keypadButton, styles.keypadButtonCut]}
-      onPress={() => handleClearPress()}
-    >
-      <Icon name="backspace" size={24} color="#000" />
-    </TouchableOpacity>
-  );
-  const renderNumericButton = (value) => (
-    <TouchableOpacity
-      key={value}
-      style={styles.keypadButton}
-      onPress={() => handleNumericButtonPress(value)}
-    >
-      <Text style={styles.keypadButtonText}>{value}</Text>
-    </TouchableOpacity>
-  );
 
   const holdOrder = async () => {
     if (typeof route?.params?.orderIndex == "number") {
@@ -1217,7 +1183,6 @@ const CheckoutScreen = ({ navigation, route }) => {
             <Text style={styles.titleCancel}>Cancel Order</Text>
           </TouchableOpacity>
         </View>
-        
       </View>
       <ScrollView>
         <View style={styles.totalContainerMain}>
@@ -1508,29 +1473,30 @@ const CheckoutScreen = ({ navigation, route }) => {
                             </View>
                           </View>
 
-                          <View style={styles.amountContainer}>
-                            <View style={styles.selectionRow}>
-                              {renderSelectionButton("Exact", totalAmount)}
-                              {renderSelectionButton("$10.00", "10.00")}
-                              {renderSelectionButton("$20.00", "20.00")}
-                            </View>
-                          </View>
-
-                          <View style={styles.keypadContainer}>
-                            <View style={styles.keypadRow}>
-                              {[1, 2, 3].map(renderNumericButton)}
-                            </View>
-                            <View style={styles.keypadRow}>
-                              {[4, 5, 6].map(renderNumericButton)}
-                            </View>
-                            <View style={styles.keypadRow}>
-                              {[7, 8, 9].map(renderNumericButton)}
-                            </View>
-                            <View style={styles.keypadRow}>
-                              {[0, "00"].map(renderNumericButton)}
-                              {renderClearButton()}
-                            </View>
-                          </View>
+                          <NumericKeyboard
+                            selectionButtons={[
+                              {
+                                label: "Exact",
+                                value: totalAmount,
+                              },
+                              {
+                                label: "$10.00",
+                                value: "10.00",
+                              },
+                              {
+                                label: "$20.00",
+                                value: "20.00",
+                              },
+                            ]}
+                            handleNumericButtonPress={handleNumericButtonPress}
+                            handleClearPress={handleClearPress}
+                            handleSelectionButtonPress={(value) => {
+                              if (value == "10.00" || value == "20.00") {
+                                setQuickAmtBtn(4);
+                              }
+                              handleKeypadPress(value.toString());
+                            }}
+                          />
 
                           {processingOrder && <FullScreenLoader show />}
                         </KeyboardAwareScrollView>
@@ -2023,10 +1989,7 @@ const styles = StyleSheet.create({
   amountField: {
     flex: 1,
   },
-  amountContainer: {
-    flex: 1,
-    justifyContent: "center",
-  },
+
   amountRow: {
     marginBottom: 20,
   },
@@ -2047,10 +2010,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
   },
-  exactButtonText: {
-    color: "#1a8bb0",
-    fontSize: screenWidth < 500 ? 14 : 16,
-  },
+
   amountInput: {
     borderWidth: 2,
     borderColor: "#00c0ff",
@@ -2062,41 +2022,7 @@ const styles = StyleSheet.create({
     color: "#515151",
     padding: 15,
   },
-  selectionRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  selectionButton: {
-    backgroundColor: "#e7effc",
-    padding: 20,
-    alignItems: "center",
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#ddd",
-  },
 
-  keypadContainer: {
-    flexDirection: "column",
-  },
-  keypadRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
-  },
-  keypadButton: {
-    flex: 1,
-    backgroundColor: "#fff",
-    padding: 20,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderBottomWidth: 0,
-    borderTopWidth: 0,
-  },
-  keypadButtonText: {
-    fontSize: 18,
-  },
   checkoutContent: {
     flexDirection: "row",
     alignItems: "center",

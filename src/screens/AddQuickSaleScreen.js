@@ -4,27 +4,22 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Modal,
   FlatList,
   ScrollView,
 } from "react-native";
 import { useDispatch } from "react-redux";
+import DropDownPicker from "react-native-dropdown-picker";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { memoizedCart } from "../store/selectors";
-import { addToCart } from "../store/reducers/cartSlice";
+import { getDescriptors } from "../api/descriptors";
+import { addProductToCart, addToCart } from "../store/reducers/cartSlice";
 import { useSelector } from "react-redux";
 
 import Header from "./Header";
-
-const DESCRIPTOR_OPTIONS = [
-  "Concession Item",
-  "Fundraiser",
-  "Membership",
-  "Donation",
-  "Merchandise",
-];
+import { getCartTotalPrice } from "../api/product";
+import NumericKeyboard from "./Components/NumericKeyboard";
 
 const AddQuickSaleScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -39,7 +34,8 @@ const AddQuickSaleScreen = ({ navigation }) => {
   // ========================================
   // DESCRIPTOR
   // ========================================
-  const [selectedDescriptor, setSelectedDescriptor] = useState("Concession Item");
+  const [descriptors, setDescriptors] = useState([]);
+  const [selectedDescriptor, setSelectedDescriptor] = useState(null);
 
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
 
@@ -72,6 +68,37 @@ const AddQuickSaleScreen = ({ navigation }) => {
     fetchClub();
   }, []);
 
+  useEffect(() => {
+    const getDescriptorsData = async () => {
+      if (club) {
+        try {
+          const descriptorsData = await getDescriptors(club);
+          if (descriptorsData?.descriptors) {
+            const defaultDescriptor = descriptorsData.descriptors.find(
+              (d) => d.is_default,
+            );
+            setSelectedDescriptor(
+              defaultDescriptor.id || descriptorsData.descriptors[0].id,
+            );
+
+            setDescriptors(
+              descriptorsData.descriptors.map((descriptor) => ({
+                ...descriptor,
+                value: descriptor.id,
+                label: descriptor.name,
+              })),
+            );
+          }
+          console.log("Descriptors Data:", descriptorsData);
+        } catch (error) {
+          console.error("Error fetching descriptors:", error);
+        }
+      }
+    };
+
+    getDescriptorsData();
+  }, [club]);
+
   // ========================================
   // FORMAT AMOUNT
   // ========================================
@@ -87,7 +114,6 @@ const AddQuickSaleScreen = ({ navigation }) => {
   const isAmountValid = parseFloat(rawAmount || "0") > 0;
 
   const canAddToCart = isAmountValid;
-  const canCheckout = isAmountValid;
 
   // ========================================
   // KEYPAD
@@ -136,25 +162,36 @@ const AddQuickSaleScreen = ({ navigation }) => {
   // ADD TO CART
   // ========================================
   const handleAddToCart = () => {
-    if (cart.length > 0) {
-      navigation.navigate("Cart");
-    } else {
-      alert("Your cart is empty. Add items to your cart before checkout.");
+    try {
+      const product = {
+        type: "quick_sale",
+        descriptor_id: selectedDescriptor,
+        descriptor: descriptors.find((d) => d.id === selectedDescriptor)?.name,
+        amount: parseFloat(rawAmount),
+        cart_quantity: 1,
+      };
+      console.log("Adding product to cart:", product);
+      dispatch(addProductToCart(product, 1)).catch((error) => {
+        console.error("Error adding product to cart:", error);
+      });
+      setRawAmount("0");
+      setSelectedDescriptor(
+        descriptors.find((d) => d.is_default)?.id || descriptors[0]?.id,
+      );
+    } catch (error) {
+      console.error("Error adding product to cart:", error);
     }
-
-    // Reset amount after adding
-    setRawAmount("0");
   };
 
   // ========================================
   // CHECKOUT
   // ========================================
   const handleCheckout = () => {
-    if (!canCheckout) {
-      return;
+    if (cart.length > 0) {
+      navigation.navigate("Cart");
+    } else {
+      alert("Your cart is empty. Add items to your cart before checkout.");
     }
-
-    navigation.navigate("Checkout");
   };
 
   return (
@@ -169,7 +206,10 @@ const AddQuickSaleScreen = ({ navigation }) => {
       ================================== */}
       <View style={styles.titleContainer}>
         <View style={styles.titleLeft}>
-          <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
             <Icon name="arrow-left" size={30} color="#000" />
           </TouchableOpacity>
 
@@ -188,24 +228,23 @@ const AddQuickSaleScreen = ({ navigation }) => {
       {/* ==================================
           CONTENT
       ================================== */}
-      <ScrollView>
-        <View style={styles.contentContainer}>
-          <View style={styles.card}>
-            {/* ==================================
+      <View style={styles.contentContainer}>
+        <View style={styles.card}>
+          {/* ==================================
               DESCRIPTOR
           ================================== */}
-            <Text style={styles.fieldLabel}>Select Item Descriptor*</Text>
+          <Text style={styles.fieldLabel}>Select Item Descriptor*</Text>
 
-            <TouchableOpacity
-              style={styles.dropdown}
-              onPress={() => setIsDropdownVisible(true)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.dropdownText}>{selectedDescriptor}</Text>
+          <DropDownPicker
+            open={isDropdownVisible}
+            value={selectedDescriptor}
+            items={descriptors}
+            setOpen={setIsDropdownVisible}
+            setValue={setSelectedDescriptor}
+            setItems={setDescriptors}
+          />
 
-              <Icon name="chevron-down" size={24} color="#666" />
-            </TouchableOpacity>
-
+          <ScrollView>
             {/* ==================================
               ITEM AMOUNT
           ================================== */}
@@ -213,114 +252,29 @@ const AddQuickSaleScreen = ({ navigation }) => {
               <Text style={styles.amountLabel}>Item{"\n"}Amount</Text>
 
               <View style={styles.amountDisplayBox}>
-                <Text style={styles.amountDisplayText}>{getFormattedAmount()}</Text>
+                <Text style={styles.amountDisplayText}>
+                  {getFormattedAmount()}
+                </Text>
               </View>
             </View>
 
-            {/* ==================================
-              KEYPAD
-          ================================== */}
-            <View style={styles.keypadGrid}>
-              {/* ==================================
-                $5 $10 $20
-            ================================== */}
-              <View style={styles.gridRow}>
-                <TouchableOpacity
-                  style={[styles.gridCell, styles.presetCell]}
-                  onPress={() => handlePresetPress(5)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.presetText}>$5.00</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.gridCell, styles.presetCell]}
-                  onPress={() => handlePresetPress(10)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.presetText}>$10.00</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.gridCell, styles.presetCell]}
-                  onPress={() => handlePresetPress(20)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.presetText}>$20.00</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* ==================================
-                1 2 3
-            ================================== */}
-              <View style={styles.gridRow}>
-                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("1")}>
-                  <Text style={styles.keypadText}>1</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("2")}>
-                  <Text style={styles.keypadText}>2</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("3")}>
-                  <Text style={styles.keypadText}>3</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* ==================================
-                4 5 6
-            ================================== */}
-              <View style={styles.gridRow}>
-                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("4")}>
-                  <Text style={styles.keypadText}>4</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("5")}>
-                  <Text style={styles.keypadText}>5</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("6")}>
-                  <Text style={styles.keypadText}>6</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* ==================================
-                7 8 9
-            ================================== */}
-              <View style={styles.gridRow}>
-                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("7")}>
-                  <Text style={styles.keypadText}>7</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("8")}>
-                  <Text style={styles.keypadText}>8</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("9")}>
-                  <Text style={styles.keypadText}>9</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* ==================================
-                0 00 BACKSPACE
-            ================================== */}
-              <View style={styles.gridRow}>
-                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("0")}>
-                  <Text style={styles.keypadText}>0</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.gridCell} onPress={() => handleNumericPress("00")}>
-                  <Text style={styles.keypadText}>00</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.gridCell} onPress={handleBackspace}>
-                  <Icon name="close-box" size={28} color="#000" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
+            <NumericKeyboard
+              selectionButtons={[
+                { label: "$5", value: "5" },
+                { label: "$10", value: "10" },
+                { label: "$20", value: "20" },
+              ]}
+              handleNumericButtonPress={(value) =>
+                handleNumericPress(value.toString())
+              }
+              handleClearPress={handleBackspace}
+              handleSelectionButtonPress={(value) =>
+                handlePresetPress(parseFloat(value))
+              }
+            />
+          </ScrollView>
         </View>
-      </ScrollView>
+      </View>
 
       {/* ==================================
           FOOTER BUTTONS
@@ -344,13 +298,15 @@ const AddQuickSaleScreen = ({ navigation }) => {
             CHECKOUT
         ================================== */}
         <TouchableOpacity
-          style={[styles.checkoutBtn, !canCheckout && styles.disabledBtn]}
+          style={[styles.checkoutBtn, cart.length === 0 && styles.disabledBtn]}
           onPress={handleCheckout}
-          disabled={!canCheckout}
+          disabled={cart.length === 0}
           activeOpacity={0.8}
         >
           <View style={styles.checkoutTextContainer}>
-            <Text style={styles.checkoutTotalText}>Total: {getFormattedAmount()}</Text>
+            <Text style={styles.checkoutTotalText}>
+              Total: ${getCartTotalPrice(cart)}
+            </Text>
 
             <View style={styles.checkoutSubRow}>
               <Text style={styles.checkoutTitleText}>Checkout</Text>
@@ -360,40 +316,6 @@ const AddQuickSaleScreen = ({ navigation }) => {
           </View>
         </TouchableOpacity>
       </View>
-
-      {/* ==================================
-          DESCRIPTOR MODAL
-      ================================== */}
-      <Modal
-        visible={isDropdownVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setIsDropdownVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setIsDropdownVisible(false)}
-        >
-          <View style={styles.modalContent}>
-            <FlatList
-              data={DESCRIPTOR_OPTIONS}
-              keyExtractor={(item) => item}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.modalItem}
-                  onPress={() => {
-                    setSelectedDescriptor(item);
-                    setIsDropdownVisible(false);
-                  }}
-                >
-                  <Text style={styles.modalItemText}>{item}</Text>
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        </TouchableOpacity>
-      </Modal>
     </View>
   );
 };
@@ -507,7 +429,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 20,
+    marginVertical: 20,
   },
 
   amountLabel: {
@@ -535,51 +457,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     // fontWeight: "500",
     color: "#333",
-  },
-
-  // ========================================
-  // KEYPAD
-  // ========================================
-  keypadGrid: {
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-
-  gridRow: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-  },
-
-  gridCell: {
-    flex: 1,
-    height: 70,
-
-    justifyContent: "center",
-    alignItems: "center",
-
-    borderRightWidth: 1,
-    borderRightColor: "#E0E0E0",
-
-    backgroundColor: "#FFF",
-  },
-
-  presetCell: {
-    backgroundColor: "#EDF5FF",
-  },
-
-  presetText: {
-    fontSize: 17,
-    fontWeight: "500",
-    color: "#00B0FF",
-  },
-
-  keypadText: {
-    fontSize: 20,
-    fontWeight: "400",
-    color: "#000",
   },
 
   // ========================================
@@ -656,42 +533,6 @@ const styles = StyleSheet.create({
   // ========================================
   disabledBtn: {
     backgroundColor: "#E5E5E5",
-  },
-
-  // ========================================
-  // MODAL
-  // ========================================
-  modalOverlay: {
-    flex: 1,
-
-    backgroundColor: "rgba(0,0,0,0.3)",
-
-    justifyContent: "center",
-    alignItems: "center",
-
-    paddingHorizontal: 30,
-  },
-
-  modalContent: {
-    backgroundColor: "#FFF",
-
-    width: "100%",
-
-    borderRadius: 8,
-
-    maxHeight: 250,
-  },
-
-  modalItem: {
-    padding: 16,
-
-    borderBottomWidth: 1,
-    borderBottomColor: "#EEE",
-  },
-
-  modalItemText: {
-    fontSize: 16,
-    color: "#333",
   },
 });
 

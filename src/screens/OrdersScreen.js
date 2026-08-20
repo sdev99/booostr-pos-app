@@ -30,7 +30,7 @@ import productPlaceholder from "../assets/product-placeholder.png";
 import Header from "./Header";
 import * as SQLite from "expo-sqlite";
 import { ProductVariantModal } from "./Modal/ProductVariantModal";
-import { getItemPrice } from "../api/product";
+import { getCartTotalPrice, getItemPrice } from "../api/product";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -104,11 +104,7 @@ const OrdersScreen = ({ navigation, route }) => {
     }
   };
 
-  const getTotalPrice = () => {
-    return cart
-      .reduce((total, item) => total + getItemPrice(item) * item.cart_quantity, 0)
-      .toFixed(2);
-  };
+  
 
   const holdOrder = async () => {
     try {
@@ -165,7 +161,7 @@ const OrdersScreen = ({ navigation, route }) => {
         </View>
       </TouchableOpacity>
       <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
-        <Text style={styles.totalPrice}>Total: ${getTotalPrice()}</Text>
+        <Text style={styles.totalPrice}>Total: ${getCartTotalPrice(cart)}</Text>
         <View style={styles.checkoutContent}>
           <Text style={styles.checkoutText}>Checkout</Text>
           <Icon style={styles.rightIcon} name="chevron-right" size={24} color="#FFF" />

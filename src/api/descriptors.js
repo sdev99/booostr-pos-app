@@ -13,12 +13,13 @@ export const getDescriptors = async (club) => {
         },
       },
     );
-    if (response?.data?.status) {
+    console.log("response", response.data);
+    if (response?.data?.descriptors) {
       return {
         ...response?.data,
         status: "success",
       };
-    } else if (response?.data?.message) {
+    } else if (response?.data?.error) {
       return response?.data?.message;
     } else {
       return "kindly try after some time.";
