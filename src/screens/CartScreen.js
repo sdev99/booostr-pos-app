@@ -21,7 +21,11 @@ import {
   resetCart,
 } from "../store/reducers/cartSlice";
 import { addToOrderList } from "../store/reducers/orderListSlice";
-import { getItemPrice, getVariationsNames } from "../api/product";
+import {
+  getItemDisplayName,
+  getItemPrice,
+  getVariationsNames,
+} from "../api/product";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -35,7 +39,7 @@ const CartScreen = ({ navigation }) => {
     // Calculate total of all items without tax
     const subtotal = cart?.reduce(
       (total, item) => total + getItemPrice(item) * item.cart_quantity,
-      0
+      0,
     );
 
     // Calculate total with 10% tax
@@ -143,7 +147,7 @@ const CartScreen = ({ navigation }) => {
           style={styles.cartItemImage}
         />
         <View style={styles.cartItemDetails}>
-          <Text style={styles.cartItemName}>{item.title}</Text>
+          <Text style={styles.cartItemName}>{getItemDisplayName(item)}</Text>
 
           {/* Size and Color display */}
           {item.is_variation === 1 && item?.variation_price_object && (
