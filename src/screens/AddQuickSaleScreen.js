@@ -89,7 +89,6 @@ const AddQuickSaleScreen = ({ navigation }) => {
               })),
             );
           }
-          console.log("Descriptors Data:", descriptorsData);
         } catch (error) {
           console.error("Error fetching descriptors:", error);
         }

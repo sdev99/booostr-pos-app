@@ -46,6 +46,8 @@ const QuickSaleSettingModal = forwardRef(
   ({ visible, club, onRequestClose }, ref) => {
     const loaderRef = useRef();
     const scrollViewRef = useRef(null);
+    const inputRefs = useRef({});
+
     const storeData = useSelector(memoizedStoreData);
 
     const [isLoading, setIsLoading] = useState(false);
@@ -295,17 +297,19 @@ const QuickSaleSettingModal = forwardRef(
     };
 
     const handleAddDescriptor = () => {
+      const newTextInputId = uniqueId();
       setDescriptors((prev) => [
         ...prev,
         {
           name: "",
           is_default: false,
           sort_order: prev.length + 1,
-          text_input_id: uniqueId(),
+          text_input_id: newTextInputId,
         },
       ]);
       setTimeout(() => {
         scrollViewRef.current.scrollToEnd({ animated: true });
+        inputRefs.current[newTextInputId]?.focus();
       }, 300);
     };
     if (!visible) return null;
@@ -348,6 +352,9 @@ const QuickSaleSettingModal = forwardRef(
                           styles.qsTextInput,
                           item.isFixed && styles.qsDisabledInput,
                         ]}
+                        ref={(ref) => {
+                          inputRefs.current[item.text_input_id] = ref;
+                        }}
                         value={item.name}
                         editable={!item.isFixed}
                         onChangeText={(text) =>

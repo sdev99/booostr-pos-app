@@ -143,6 +143,9 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
           totalItems: order?.orderitems?.length || 0,
         });
 
+
+        setFullRefundModalVisible(false);
+
         Alert.alert(
           "Refund Successful",
           `Refund of $${refundAmount.toFixed(2)} has been successfully processed.`,
