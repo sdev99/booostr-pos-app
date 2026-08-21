@@ -1,6 +1,17 @@
 // FullScreenLoader.js
-import React, { forwardRef, useImperativeHandle, useRef, useState, useEffect } from "react";
-import { addDescriptors, deleteDescriptors, getDescriptors } from "../../api/descriptors";
+import React, {
+  forwardRef,
+  useImperativeHandle,
+  useRef,
+  useState,
+  useEffect,
+} from "react";
+import {
+  addDescriptors,
+  deleteDescriptors,
+  getDescriptors,
+  updateDescriptors,
+} from "../../api/descriptors";
 import {
   View,
   TouchableOpacity,
@@ -20,209 +31,397 @@ import { useSelector } from "react-redux";
 import { memoizedStoreData } from "../../store/selectors";
 import { createStripeLocation } from "../../api/stripe";
 
-const uniqueId = () => Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+const uniqueId = () =>
+  Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
 
 const fixedDescriptorItem = {
   name: "Miscellaneous Item",
   is_default: false,
   isFixed: true,
   sort_order: 1,
-  id: uniqueId,
+  text_input_id: uniqueId(), // it is for local use only, not for API
 };
 
-const QuickSaleSettingModal = forwardRef(({ visible, club, onRequestClose }, ref) => {
-  const loaderRef = useRef();
-  const scrollViewRef = useRef(null);
-  const storeData = useSelector(memoizedStoreData);
+const QuickSaleSettingModal = forwardRef(
+  ({ visible, club, onRequestClose }, ref) => {
+    const loaderRef = useRef();
+    const scrollViewRef = useRef(null);
+    const storeData = useSelector(memoizedStoreData);
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [descriptors, setDescriptors] = useState([fixedDescriptorItem]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [descriptorsFromApi, setDescriptorsFromApi] = useState(false);
 
-  useImperativeHandle(ref, () => ({
-    // show: () => {},
-    // hide: () => {},
-  }));
+    const [descriptors, setDescriptors] = useState([fixedDescriptorItem]);
 
-  useEffect(() => {
-    if (visible && club) {
-      getDescriptorsData();
-    }
-  }, [visible, club]);
+    useImperativeHandle(ref, () => ({
+      // show: () => {},
+      // hide: () => {},
+    }));
 
-  const getDescriptorsData = async () => {
-    setIsLoading(true);
-    try {
-      const response = await getDescriptors(club);
-      if (response?.status === "success" && Array.isArray(response.descriptors)) {
-        // Map API response keys to component state keys
-        const getedItems = response.descriptors;
-
-        const fixedItem = getedItems.find((item) => item.name === fixedDescriptorItem.name);
-
-        console.log("fixedItem", fixedItem);
-
-        if (fixedItem) {
-          fixedItem.isFixed = true;
-        }
-        // Default Fixed item fallback checks
-        if (!fixedItem) {
-          setDescriptors([fixedDescriptorItem, ...getedItems]);
-        } else {
-          setDescriptors(getedItems);
-        }
-      } else if (typeof response === "string") {
-        Alert.alert("Notice", response);
+    useEffect(() => {
+      if (visible && club) {
+        getDescriptorsData();
       }
-    } catch (error) {
-      console.log("FETCH ERROR:", error);
-      Alert.alert("Error", "Failed to fetch descriptors.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    }, [visible, club]);
 
-  const handleSaveAndUpdate = async () => {
-    const itemsToSend = descriptors
-      .filter((item) => !item.isFixed && item.name && item.name.trim() !== "")
-      .map((item, index) => ({
-        ...item,
-        name: item.name.trim(),
-      }));
+    const getDescriptorsData = async () => {
+      setIsLoading(true);
+      try {
+        const response = await getDescriptors(club);
+        if (
+          response?.status === "success" &&
+          Array.isArray(response.descriptors)
+        ) {
+          // Map API response keys to component state keys
+          const descriptorsFromApi = response.descriptors;
+          // Keep original API response for diffing
+          setDescriptorsFromApi(descriptorsFromApi);
 
-    if (itemsToSend.length === 0) {
-      Alert.alert("Notice", "Please add at least one new descriptor name.");
-      return;
-    }
-    const payload = { descriptors: itemsToSend };
-    try {
-      console.log("SENDING ADD PAYLOAD:", payload);
-      const response = await addDescriptors(payload, club);
-      console.log("ADD RESPONSE:", response);
+          // Add local-only ID for UI
+          const getedItems = descriptorsFromApi.map((item, index) => ({
+            ...item,
+            text_input_id: uniqueId(),
+          }));
 
-      if (response?.status === "success") {
-        Alert.alert("Success", response?.message || "Descriptors updated successfully.");
-        onRequestClose();
-      } else {
-        Alert.alert(
-          "Error",
-          typeof response === "string" ? response : response?.message || "Failed to update.",
+          const fixedItem = getedItems.find(
+            (item) => item.name === fixedDescriptorItem.name,
+          );
+
+          if (fixedItem) {
+            fixedItem.isFixed = true;
+          }
+          // Default Fixed item fallback checks
+          if (!fixedItem) {
+            setDescriptors([fixedDescriptorItem, ...getedItems]);
+          } else {
+            setDescriptors(getedItems);
+          }
+        } else if (typeof response === "string") {
+          Alert.alert("Notice", response);
+        }
+      } catch (error) {
+        console.log("FETCH ERROR:", error);
+        Alert.alert("Error", "Failed to fetch descriptors.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const getDescriptorChanges = () => {
+      // Ignore fixed/local-only descriptor
+      const originalItems = descriptorsFromApi.filter(
+        (item) => item.name !== fixedDescriptorItem.name,
+      );
+
+      const currentItems = descriptors.filter(
+        (item) => !item.isFixed && item.name && item.name.trim() !== "",
+      );
+
+      // -------------------------
+      // ADD
+      // -------------------------
+      const added = currentItems.filter(
+        (currentItem) =>
+          !currentItem.id ||
+          !originalItems.some(
+            (originalItem) => originalItem.id === currentItem.id,
+          ),
+      );
+
+      // -------------------------
+      // UPDATE
+      // -------------------------
+      const updated = currentItems.filter((currentItem) => {
+        if (!currentItem.id) {
+          return false;
+        }
+
+        const originalItem = originalItems.find(
+          (item) => item.id === currentItem.id,
         );
+
+        if (!originalItem) {
+          return false;
+        }
+
+        return (
+          originalItem.name !== currentItem.name.trim() ||
+          Boolean(originalItem.is_default) !==
+            Boolean(currentItem.is_default) ||
+          originalItem.sort_order !== currentItem.sort_order
+        );
+      });
+
+      // -------------------------
+      // DELETE
+      // -------------------------
+      const deleted = originalItems.filter(
+        (originalItem) =>
+          !currentItems.some(
+            (currentItem) => currentItem.id === originalItem.id,
+          ),
+      );
+
+      return {
+        added,
+        updated,
+        deleted,
+      };
+    };
+
+    const handleSaveAndUpdate = async () => {
+      const { added, updated, deleted } = getDescriptorChanges();
+
+      if (added.length === 0 && updated.length === 0 && deleted.length === 0) {
+        Alert.alert("Notice", "No changes detected.");
+        return;
       }
-    } catch (error) {
-      console.log("ADD ERROR:", error);
-      Alert.alert("Error", "Unable to save descriptors.");
-    }
-  };
 
-  const handleSelectDefault = (name) => {
-    setDescriptors((prev) => prev.map((item) => ({ ...item, is_default: item.name === name })));
-  };
+      try {
+        setIsLoading(true);
+        // -------------------------
+        // ADD
+        // -------------------------
+        if (added.length > 0) {
+          const addPayload = {
+            descriptors: added.map((item, index) => ({
+              name: item.name.trim(),
+              is_default: item.is_default,
+              sort_order: item.sort_order ?? index + 1,
+            })),
+          };
 
-  const handleDeleteDescriptor = (name) => {
-    if (descriptors.length <= 1) {
-      Alert.alert("Notice", "At least one descriptor must always remain.");
-      return;
-    }
-    setDescriptors((prev) => prev.filter((item) => item.name !== name));
-  };
+          console.log("ADD PAYLOAD:", addPayload);
 
-  const handleTextChange = (preName, newText) => {
-    setDescriptors((prev) =>
-      prev.map((item) => (item.name === preName ? { ...item, name: newText } : item)),
-    );
-  };
+          const addResponse = await addDescriptors(addPayload, club);
 
-  const handleAddDescriptor = () => {
-    setDescriptors((prev) => [
-      ...prev,
-      { name: "", is_default: false, isFixed: false, sort_order: prev.length + 1 },
-    ]);
-    setTimeout(() => {
-      scrollViewRef.current.scrollToEnd({ animated: true });
-    }, 300);
-  };
-  if (!visible) return null;
-  return (
-    <Modal
-      transparent={true}
-      animationType="fade"
-      visible={visible}
-      onRequestClose={onRequestClose}
-    >
-      <View style={styles.qsModalOverlay}>
-        <View style={styles.qsModalCard}>
-          <View style={styles.qsModalTopContent}>
-            <Text style={styles.qsTitle}>Quick Sale Settings</Text>
-            <Text style={styles.qsSubtitle}>
-              Add custom item descriptors to identify your quick sale items.
-            </Text>
+          console.log("ADD RESPONSE:", addResponse);
 
-            {/* Table Header */}
-            <View style={styles.qsHeaderRow}>
-              <Text style={styles.qsHeaderLabelText}>Descriptor</Text>
-              <Text style={[styles.qsHeaderLabelText, { textAlign: "center" }]}>
-                Default{"\n"}Choice
+          if (addResponse?.status !== "success") {
+            throw new Error(
+              addResponse?.message || "Failed to add descriptors.",
+            );
+          }
+        }
+
+        // -------------------------
+        // UPDATE
+        // -------------------------
+        if (updated.length > 0) {
+          const updatePayload = {
+            descriptors: updated.map((item) => ({
+              id: item.id,
+              name: item.name.trim(),
+              is_default: item.is_default,
+              sort_order: item.sort_order,
+            })),
+          };
+
+          console.log("UPDATE PAYLOAD:", updatePayload);
+
+          const updateResponse = await updateDescriptors(updatePayload, club);
+
+          console.log("UPDATE RESPONSE:", updateResponse);
+
+          if (updateResponse?.status !== "success") {
+            throw new Error(
+              updateResponse?.message || "Failed to update descriptors.",
+            );
+          }
+        }
+
+        // -------------------------
+        // DELETE
+        // -------------------------
+        if (deleted.length > 0) {
+          const deletePayload = {
+            ids: deleted.map((item) => item.id),
+          };
+
+          console.log("DELETE PAYLOAD:", deletePayload);
+
+          const deleteResponse = await deleteDescriptors(deletePayload, club);
+
+          console.log("DELETE RESPONSE:", deleteResponse);
+
+          if (deleteResponse?.status !== "success") {
+            throw new Error(
+              deleteResponse?.message || "Failed to delete descriptors.",
+            );
+          }
+        }
+
+        // Refresh original/current state after successful save
+        await getDescriptorsData();
+        Alert.alert("Success", "Descriptors updated successfully.");
+
+        onRequestClose();
+      } catch (error) {
+        console.log("SAVE DESCRIPTORS ERROR:", error);
+
+        Alert.alert("Error", error?.message || "Unable to update descriptors.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const handleSelectDefault = (text_input_id) => {
+      setDescriptors((prev) =>
+        prev.map((item) => ({
+          ...item,
+          is_default: item.text_input_id === text_input_id,
+        })),
+      );
+    };
+
+    const handleDeleteDescriptor = (text_input_id) => {
+      if (descriptors.length <= 1) {
+        Alert.alert("Alert!", "At least one descriptor must always remain.");
+        return;
+      }
+      setDescriptors((prev) =>
+        prev.filter((item) => item.text_input_id !== text_input_id),
+      );
+    };
+
+    const handleTextChange = (text_input_id, newText) => {
+      setDescriptors((prev) =>
+        prev.map((item) =>
+          item.text_input_id === text_input_id
+            ? { ...item, name: newText }
+            : item,
+        ),
+      );
+    };
+
+    const handleAddDescriptor = () => {
+      setDescriptors((prev) => [
+        ...prev,
+        {
+          name: "",
+          is_default: false,
+          sort_order: prev.length + 1,
+          text_input_id: uniqueId(),
+        },
+      ]);
+      setTimeout(() => {
+        scrollViewRef.current.scrollToEnd({ animated: true });
+      }, 300);
+    };
+    if (!visible) return null;
+    return (
+      <Modal
+        transparent={true}
+        animationType="fade"
+        visible={visible}
+        onRequestClose={onRequestClose}
+      >
+        <View style={styles.qsModalOverlay}>
+          <View style={styles.qsModalCard}>
+            <View style={styles.qsModalTopContent}>
+              <Text style={styles.qsTitle}>Quick Sale Settings</Text>
+              <Text style={styles.qsSubtitle}>
+                Add custom item descriptors to identify your quick sale items.
               </Text>
+
+              {/* Table Header */}
+              <View style={styles.qsHeaderRow}>
+                <Text style={styles.qsHeaderLabelText}>Descriptor</Text>
+                <Text
+                  style={[styles.qsHeaderLabelText, { textAlign: "center" }]}
+                >
+                  Default{"\n"}Choice
+                </Text>
+              </View>
+
+              {/* Input List ScrollView */}
+              <ScrollView
+                ref={scrollViewRef}
+                style={{ maxHeight: 60 * descriptors.length }}
+              >
+                <View style={{ opacity: isLoading ? 0.1 : 1 }}>
+                  {descriptors.map((item) => (
+                    <View key={item.text_input_id} style={styles.qsInputRow}>
+                      {/* Input Box */}
+                      <TextInput
+                        style={[
+                          styles.qsTextInput,
+                          item.isFixed && styles.qsDisabledInput,
+                        ]}
+                        value={item.name}
+                        editable={!item.isFixed}
+                        onChangeText={(text) =>
+                          handleTextChange(item.text_input_id, text)
+                        }
+                      />
+
+                      {/* Checkbox */}
+                      <TouchableOpacity
+                        style={[
+                          styles.qsCheckbox,
+                          item.is_default && styles.qsCheckboxChecked,
+                        ]}
+                        onPress={() => handleSelectDefault(item.text_input_id)}
+                      >
+                        {item.is_default && (
+                          <Icon name="check" size={20} color="#FFF" />
+                        )}
+                      </TouchableOpacity>
+
+                      {/* Delete Button (Fixed item ke liye hidden) */}
+                      {!item.isFixed ? (
+                        <TouchableOpacity
+                          style={styles.qsDeleteBtn}
+                          onPress={() =>
+                            handleDeleteDescriptor(item.text_input_id)
+                          }
+                        >
+                          <Icon
+                            name="trash-can-outline"
+                            size={20}
+                            color="#E53935"
+                          />
+                        </TouchableOpacity>
+                      ) : (
+                        /* 👈 Alignment sahi rakhne ke liye invisible box */
+                        <View style={{ width: 38, height: 38 }} />
+                      )}
+                    </View>
+                  ))}
+                </View>
+
+                {isLoading && <FullScreenLoader show />}
+              </ScrollView>
             </View>
 
-            {/* Input List ScrollView */}
-            <ScrollView ref={scrollViewRef} style={{ maxHeight: 60 * descriptors.length }}>
-              {descriptors.map((item) => (
-                <View key={item.name} style={styles.qsInputRow}>
-                  {/* Input Box */}
-                  <TextInput
-                    style={[styles.qsTextInput, item.isFixed && styles.qsDisabledInput]}
-                    value={item.name}
-                    editable={!item.isFixed}
-                    onChangeText={(text) => handleTextChange(item.name, text)}
-                  />
+            {/* Footer Actions */}
+            <View style={styles.qsFooterRow}>
+              <TouchableOpacity onPress={onRequestClose}>
+                <Text style={styles.qsCloseText}>Close</Text>
+              </TouchableOpacity>
 
-                  {/* Checkbox */}
-                  <TouchableOpacity
-                    style={[styles.qsCheckbox, item.is_default && styles.qsCheckboxChecked]}
-                    onPress={() => handleSelectDefault(item.name)}
-                  >
-                    {item.is_default && <Icon name="check" size={20} color="#FFF" />}
-                  </TouchableOpacity>
+              <View style={{ flex: 1 }} />
 
-                  {/* Delete Button (Fixed item ke liye hidden) */}
-                  {!item.isFixed ? (
-                    <TouchableOpacity
-                      style={styles.qsDeleteBtn}
-                      onPress={() => handleDeleteDescriptor(item.name)}
-                    >
-                      <Icon name="trash-can-outline" size={20} color="#E53935" />
-                    </TouchableOpacity>
-                  ) : (
-                    /* 👈 Alignment sahi rakhne ke liye invisible box */
-                    <View style={{ width: 38, height: 38 }} />
-                  )}
-                </View>
-              ))}
-            </ScrollView>
-          </View>
+              <TouchableOpacity
+                style={styles.qsAddBtn}
+                onPress={handleAddDescriptor}
+              >
+                <Text style={styles.qsAddBtnText}>+Add</Text>
+              </TouchableOpacity>
 
-          {/* Footer Actions */}
-          <View style={styles.qsFooterRow}>
-            <TouchableOpacity onPress={onRequestClose}>
-              <Text style={styles.qsCloseText}>Close</Text>
-            </TouchableOpacity>
-
-            <View style={{ flex: 1 }} />
-
-            <TouchableOpacity style={styles.qsAddBtn} onPress={handleAddDescriptor}>
-              <Text style={styles.qsAddBtnText}>+Add</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.qsSaveBtn} onPress={handleSaveAndUpdate}>
-              <Text style={styles.qsSaveBtnText}>Save & Update</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.qsSaveBtn}
+                onPress={handleSaveAndUpdate}
+              >
+                <Text style={styles.qsSaveBtnText}>Save & Update</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
-    </Modal>
-  );
-});
+      </Modal>
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   /* Quick Sale Modal Styles */
@@ -242,6 +441,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginTop: 20,
     maxHeight: 260,
+    overflow: "hidden",
   },
   qsTitle: {
     fontSize: 20,

@@ -41,7 +41,7 @@ export const addDescriptors = async (payload, club) => {
         },
       },
     );
-    console.log("response::",response.data);
+    console.log("response::", response.data);
     if (response?.data?.descriptors) {
       return {
         ...response?.data,
@@ -53,17 +53,18 @@ export const addDescriptors = async (payload, club) => {
       return "kindly try after some time.";
     }
   } catch (error) {
-        console.log("response::",error?.response?.data);
+    console.log("response::", error?.response?.data);
 
     if (error?.response?.data?.message) return error.response.data.message;
     return error.toString();
   }
 };
-export const deleteDescriptors = async (club) => {
+
+export const updateDescriptors = async (payload, club) => {
   try {
     const response = await axios.post(
-      `${POS_STORE_API_URL}/pos-quick-sale-delete-descriptor`,
-      {},
+      `${POS_STORE_API_URL}/pos-quick-sale-update-descriptor`,
+      payload,
       {
         headers: {
           Apitoken: POS_API_TOKEN,
@@ -71,7 +72,8 @@ export const deleteDescriptors = async (club) => {
         },
       },
     );
-    if (response?.data?.status) {
+    console.log("response::", response.data);
+    if (response?.data?.descriptors) {
       return {
         ...response?.data,
         status: "success",
@@ -82,15 +84,18 @@ export const deleteDescriptors = async (club) => {
       return "kindly try after some time.";
     }
   } catch (error) {
+    console.log("response::", error?.response?.data);
+
     if (error?.response?.data?.message) return error.response.data.message;
     return error.toString();
   }
 };
-export const updateDescriptors = async (club) => {
+
+export const deleteDescriptors = async (deletePayload, club) => {
   try {
     const response = await axios.post(
-      `${POS_STORE_API_URL}/pos-quick-sale-update-descriptor`,
-      {},
+      `${POS_STORE_API_URL}/pos-quick-sale-delete-descriptor`,
+      deletePayload,
       {
         headers: {
           Apitoken: POS_API_TOKEN,
@@ -98,7 +103,7 @@ export const updateDescriptors = async (club) => {
         },
       },
     );
-    if (response?.data?.status) {
+    if (response?.data?.deleted_ids) {
       return {
         ...response?.data,
         status: "success",

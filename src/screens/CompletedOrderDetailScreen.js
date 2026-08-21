@@ -352,19 +352,20 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
       <View style={styles.itemsMain}>
         <View style={styles.itemsMainWrap}>
           <FlatList
-            data={order?.orderitems}
+            data={[...order?.orderitems, ...order?.quick_sale_items]}
             keyExtractor={(item) => String(item.id)}
             renderItem={({ item }) => {
               let variations;
               let price = item.amount;
+              const quantiy = item.qty || item.quantity;
               const refunded = refundedItems[item.id];
 
               const refundedQuantity = refunded?.quantity || 0;
 
-              const remainingQuantity = Math.max(Number(item.qty) - refundedQuantity, 0);
+              const remainingQuantity = Math.max(Number(quantiy) - refundedQuantity, 0);
               console.log("ITEM:", item.id);
               console.log("REFUNDED RECORD:", refunded);
-              if (item.term.is_variation === 1) {
+              if (item.term?.is_variation === 1) {
                 const info = JSON.parse(item.info);
                 const options = info.options;
                 if (typeof options === "object" && options.price) {
@@ -385,7 +386,7 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
                       style={styles.cartItemImage}
                     />
                     <View style={styles.cartItemDetails}>
-                      <Text style={styles.cartItemName}>{item?.term?.title}</Text>
+                      <Text style={styles.cartItemName}>{item?.term?.title || item?.title}</Text>
                       {variations?.length > 0 && (
                         <View style={styles.variantContainer}>
                           {variations.map((option, index) => (
@@ -396,7 +397,7 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
                         </View>
                       )}
                       <View style={styles.quantityContainer}>
-                        <Text style={styles.quantityText}>{item?.qty}</Text>
+                        <Text style={styles.quantityText}>{quantiy}</Text>
                       </View>
                     </View>
                     <View style={styles.cartItemPriceContainer}>
