@@ -18,6 +18,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { fetchStoreData } from "../store/reducers/storeDetailSlice";
 import FullScreenLoader from "./Modal/FullScreenLoader";
 import { navigate } from "../navigationService";
+import { resetProductList } from "../store/reducers/productSlice";
 
 const ClubList = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -44,6 +45,7 @@ const ClubList = ({ navigation }) => {
   );
 
   const handleClubClick = async (club) => {
+    dispatch(resetProductList());
     try {
       const result = await dispatch(fetchStoreData(club));
       if (result.success) {
@@ -91,18 +93,11 @@ const ClubList = ({ navigation }) => {
   };
 
   const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.clubItem}
-      onPress={() => handleClubClick(item)}
-    >
+    <TouchableOpacity style={styles.clubItem} onPress={() => handleClubClick(item)}>
       <View style={styles.clubImageContainer}>
         {/* Add your image component here */}
         <Image
-          source={
-            item?.user_photo
-              ? { uri: item?.user_photo }
-              : require("../assets/club_demo.png")
-          }
+          source={item?.user_photo ? { uri: item?.user_photo } : require("../assets/club_demo.png")}
           style={styles.clubImage}
         />
       </View>
@@ -130,9 +125,9 @@ const ClubList = ({ navigation }) => {
                 <Text style={styles.userName}>
                   {userData?.first_name} {userData?.last_name}
                 </Text>{" "}
-                ! You are logged into Booostr POS, but it seems you are a
-                profile manager for multiple clubs. Please choose the club POS
-                system below that you would like to access.
+                ! You are logged into Booostr POS, but it seems you are a profile manager for
+                multiple clubs. Please choose the club POS system below that you would like to
+                access.
               </Text>
             </View>
             <View style={styles.headerRight}></View>
@@ -154,10 +149,7 @@ const ClubList = ({ navigation }) => {
               </View>
             )}
             <View style={styles.logoutButtonContainer}>
-              <TouchableOpacity
-                style={styles.logoutButton}
-                onPress={handleLogout}
-              >
+              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                 <Text style={styles.logoutText}>Logout</Text>
               </TouchableOpacity>
             </View>
