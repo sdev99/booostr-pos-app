@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  FlatList,
-  ScrollView,
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, ScrollView } from "react-native";
 import { useDispatch } from "react-redux";
 import DropDownPicker from "react-native-dropdown-picker";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -74,12 +67,8 @@ const AddQuickSaleScreen = ({ navigation }) => {
         try {
           const descriptorsData = await getDescriptors(club);
           if (descriptorsData?.descriptors) {
-            const defaultDescriptor = descriptorsData.descriptors.find(
-              (d) => d.is_default,
-            );
-            setSelectedDescriptor(
-              defaultDescriptor.id || descriptorsData.descriptors[0].id,
-            );
+            const defaultDescriptor = descriptorsData.descriptors.find((d) => d.is_default);
+            setSelectedDescriptor(defaultDescriptor.id || descriptorsData.descriptors[0].id);
 
             setDescriptors(
               descriptorsData.descriptors.map((descriptor) => ({
@@ -174,9 +163,7 @@ const AddQuickSaleScreen = ({ navigation }) => {
         console.error("Error adding product to cart:", error);
       });
       setRawAmount("0");
-      setSelectedDescriptor(
-        descriptors.find((d) => d.is_default)?.id || descriptors[0]?.id,
-      );
+      setSelectedDescriptor(descriptors.find((d) => d.is_default)?.id || descriptors[0]?.id);
     } catch (error) {
       console.error("Error adding product to cart:", error);
     }
@@ -205,10 +192,7 @@ const AddQuickSaleScreen = ({ navigation }) => {
       ================================== */}
       <View style={styles.titleContainer}>
         <View style={styles.titleLeft}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7}>
             <Icon name="arrow-left" size={30} color="#000" />
           </TouchableOpacity>
 
@@ -251,9 +235,7 @@ const AddQuickSaleScreen = ({ navigation }) => {
               <Text style={styles.amountLabel}>Item{"\n"}Amount</Text>
 
               <View style={styles.amountDisplayBox}>
-                <Text style={styles.amountDisplayText}>
-                  {getFormattedAmount()}
-                </Text>
+                <Text style={styles.amountDisplayText}>{getFormattedAmount()}</Text>
               </View>
             </View>
 
@@ -263,13 +245,9 @@ const AddQuickSaleScreen = ({ navigation }) => {
                 { label: "$10", value: "10" },
                 { label: "$20", value: "20" },
               ]}
-              handleNumericButtonPress={(value) =>
-                handleNumericPress(value.toString())
-              }
+              handleNumericButtonPress={(value) => handleNumericPress(value.toString())}
               handleClearPress={handleBackspace}
-              handleSelectionButtonPress={(value) =>
-                handlePresetPress(parseFloat(value))
-              }
+              handleSelectionButtonPress={(value) => handlePresetPress(parseFloat(value))}
             />
           </ScrollView>
         </View>
@@ -303,9 +281,7 @@ const AddQuickSaleScreen = ({ navigation }) => {
           activeOpacity={0.8}
         >
           <View style={styles.checkoutTextContainer}>
-            <Text style={styles.checkoutTotalText}>
-              Total: ${getCartTotalPrice(cart)}
-            </Text>
+            <Text style={styles.checkoutTotalText}>Total: ${getCartTotalPrice(cart)}</Text>
 
             <View style={styles.checkoutSubRow}>
               <Text style={styles.checkoutTitleText}>Checkout</Text>

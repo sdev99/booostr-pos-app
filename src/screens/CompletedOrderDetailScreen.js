@@ -27,7 +27,6 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
   console.log("Order Detail:", JSON.stringify(order));
 
   // REFUND STATE
-  // ====================
   const [refundQuantity, setRefundQuantity] = useState(1);
   const [selectedItem, setSelectedItem] = useState(null);
   const [refundModalVisible, setRefundModalVisible] = useState(false);
@@ -35,25 +34,21 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
   const [refundedItems, setRefundedItems] = useState({});
   const [fullRefundRecord, setFullRefundRecord] = useState(null);
 
-  // COMMON STATE
-  // ====================
+
   const [loading, setLoading] = useState(false);
   const [club, setClub] = useState(null);
   const [fullRefundModalVisible, setFullRefundModalVisible] = useState(false);
 
-  // EMAIL / RECEIPT STATE
-  // ====================
+ 
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
 
-  // LOGOUT
-  // ====================
+
   const handleLogout = () => {
     navigation.navigate("Login");
   };
 
   // LOAD CLUB DATA
-  // ====================
   useEffect(() => {
     const fetchClub = async () => {
       try {
@@ -99,7 +94,6 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
   }, [order]);
 
   // FULL REFUND
-  // ====================
   const handleFullRefund = async () => {
     try {
       if (!email || !email.trim()) {
@@ -110,7 +104,6 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
 
       let paymentId = null;
 
-      // 4 = card POS; 5 = cash POS
       if (Number(order.order_from) === 4) {
         paymentId = order.transaction_id;
       } else if (Number(order.order_from) === 5) {
@@ -165,7 +158,6 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
   };
 
   // ITEM REFUND
-  // ====================
   const handleRefundItem = async (item) => {
     try {
       if (!email || !email.trim()) {
@@ -215,7 +207,7 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
       console.log("REFUND CLUB:", club);
       setLoading(true);
 
-      const response = await orderApi.refundItem(refundData, club); // api backend request
+      const response = await orderApi.refundItem(refundData, club);
 
       console.log("ITEM REFUND RESPONSE:", response);
       console.log("REFUND DETAILS ITEMS:", JSON.stringify(response?.refundDetails?.items, null, 2));

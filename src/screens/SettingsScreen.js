@@ -35,12 +35,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const CustomModal = ({ isVisible, onClose, title, content }) => {
   return (
-    <Modal
-      transparent={true}
-      animationType="slide"
-      visible={isVisible}
-      onRequestClose={onClose}
-    >
+    <Modal transparent={true} animationType="slide" visible={isVisible} onRequestClose={onClose}>
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>{title}</Text>
@@ -131,8 +126,6 @@ const SettingsScreen = ({ navigation }) => {
     setQuickSaleModalVisible(true);
   };
 
-  //////////////////--------------------------//////////////////
-
   const toggleReadersModal = () => {
     if (isReadersModalVisible) cancelDiscoveringReader();
     setReadersModalVisible(!isReadersModalVisible);
@@ -184,9 +177,7 @@ const SettingsScreen = ({ navigation }) => {
           },
         });
         if (!granted) {
-          console.error(
-            "Location and BT services are required to connect to a reader.",
-          );
+          console.error("Location and BT services are required to connect to a reader.");
           return;
         }
       } catch (e) {
@@ -211,10 +202,7 @@ const SettingsScreen = ({ navigation }) => {
         (error.code === "osVersionNotSupported" ||
           error.code === "PaymentCardReaderError.osVersionNotSupported")
       ) {
-        Alert.alert(
-          "Not Supported!",
-          "Please update your iOS to use Tap to Pay.",
-        );
+        Alert.alert("Not Supported!", "Please update your iOS to use Tap to Pay.");
         return;
       }
 
@@ -293,39 +281,20 @@ const SettingsScreen = ({ navigation }) => {
           <View style={styles.settingsWrap}>
             <View style={styles.allItems}>
               {/* Account */}
-              <TouchableOpacity
-                style={styles.settingItem}
-                onPress={toggleAccountModal}
-              >
-                <Icon
-                  name="account"
-                  size={24}
-                  color="#000"
-                  style={styles.settingIcon}
-                />
+              <TouchableOpacity style={styles.settingItem} onPress={toggleAccountModal}>
+                <Icon name="account" size={24} color="#000" style={styles.settingIcon} />
                 <Text style={styles.settingTitle}>Account</Text>
               </TouchableOpacity>
 
               {/* Quick Sale Settings */}
-              <TouchableOpacity
-                style={styles.settingItem}
-                onPress={handleQuickSaleSettings}
-              >
-                <Icon
-                  name="flash"
-                  size={24}
-                  color="#000"
-                  style={styles.settingIcon}
-                />
+              <TouchableOpacity style={styles.settingItem} onPress={handleQuickSaleSettings}>
+                <Icon name="flash" size={24} color="#000" style={styles.settingIcon} />
                 <Text style={styles.settingTitle}>Quick Sale Settings</Text>
               </TouchableOpacity>
 
               {/* Reader Connections */}
               {connectedReader && (
-                <TouchableOpacity
-                  style={styles.settingItem}
-                  onPress={disconnectFromReader}
-                >
+                <TouchableOpacity style={styles.settingItem} onPress={disconnectFromReader}>
                   <Icon
                     name={getConnectedReaderIcon()}
                     size={24}
@@ -337,15 +306,11 @@ const SettingsScreen = ({ navigation }) => {
                     connectedReader.deviceType === "appleBuiltIn" ||
                     connectedReader.deviceType === "cotsDevice" ? (
                       <>
-                        <Text style={styles.settingTitle}>
-                          Tap to Pay Connected
-                        </Text>
+                        <Text style={styles.settingTitle}>Tap to Pay Connected</Text>
                         <View style={styles.deviceIdDetailContainer}>
                           <Text style={styles.deviceIdLabel}>ID: </Text>
                           <Text style={styles.deviceIdText}>
-                            {connectedReader.serialNumber ||
-                              connectedReader.deviceId ||
-                              "N/A"}
+                            {connectedReader.serialNumber || connectedReader.deviceId || "N/A"}
                           </Text>
                         </View>
                       </>
@@ -357,9 +322,7 @@ const SettingsScreen = ({ navigation }) => {
                   </View>
                   <View style={styles.disconnectReader}>
                     <View style={styles.disconnectReaderTextWrap}>
-                      <Text style={styles.disconnectReaderText}>
-                        Disconnect
-                      </Text>
+                      <Text style={styles.disconnectReaderText}>Disconnect</Text>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -368,10 +331,7 @@ const SettingsScreen = ({ navigation }) => {
                 {/* Option 1: Tap to Pay (Local Phone) */}
                 {(!connectedReader || !isTapToPayConnected()) && (
                   <TouchableOpacity
-                    style={[
-                      styles.settingItem,
-                      isBluetoothReaderConnected() && { opacity: 0.4 },
-                    ]}
+                    style={[styles.settingItem, isBluetoothReaderConnected() && { opacity: 0.4 }]}
                     onPress={() => {
                       if (isBluetoothReaderConnected()) {
                         alert("Disconnect reader first to use Tap to Pay");
@@ -388,18 +348,13 @@ const SettingsScreen = ({ navigation }) => {
                     />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.settingTitle}>
-                        Tap to Pay on{" "}
-                        {Platform.OS === "ios" ? "iPhone" : "Android"}
+                        Tap to Pay on {Platform.OS === "ios" ? "iPhone" : "Android"}
                       </Text>
                       {Platform.OS === "ios" && (
-                        <Text
-                          style={{ fontSize: 12, color: "#555", marginTop: 4 }}
-                        >
-                          Accept Apple Pay, contactless cards (tap card on
-                          iPhone), and digital wallets with Tap to Pay on
-                          iPhone. Customers may need to enter their PIN on
-                          iPhone. Accessibility features like VoiceOver are
-                          supported.
+                        <Text style={{ fontSize: 12, color: "#555", marginTop: 4 }}>
+                          Accept Apple Pay, contactless cards (tap card on iPhone), and digital
+                          wallets with Tap to Pay on iPhone. Customers may need to enter their PIN
+                          on iPhone. Accessibility features like VoiceOver are supported.
                         </Text>
                       )}
                     </View>
@@ -409,10 +364,7 @@ const SettingsScreen = ({ navigation }) => {
                 {/* Option 2: External Bluetooth Reader */}
                 {(!connectedReader || isTapToPayConnected) && (
                   <TouchableOpacity
-                    style={[
-                      styles.settingItem,
-                      isTapToPayConnected() && { opacity: 0.4 },
-                    ]}
+                    style={[styles.settingItem, isTapToPayConnected() && { opacity: 0.4 }]}
                     onPress={() => {
                       if (isTapToPayConnected()) {
                         alert("Disconnect Tap to Pay first to use Reader");
@@ -421,63 +373,33 @@ const SettingsScreen = ({ navigation }) => {
                       handleConnectBluetoothReader();
                     }}
                   >
-                    <Icon
-                      name="bluetooth"
-                      size={24}
-                      color="#000"
-                      style={styles.settingIcon}
-                    />
-                    <Text style={styles.settingTitle}>
-                      Connect Bluetooth Reader
-                    </Text>
+                    <Icon name="bluetooth" size={24} color="#000" style={styles.settingIcon} />
+                    <Text style={styles.settingTitle}>Connect Bluetooth Reader</Text>
                   </TouchableOpacity>
                 )}
               </>
 
               {/* Help & Support */}
-              <TouchableOpacity
-                style={styles.settingItem}
-                onPress={handleHelpAndSupport}
-              >
-                <Icon
-                  name="help-circle"
-                  size={24}
-                  color="#000"
-                  style={styles.settingIcon}
-                />
+              <TouchableOpacity style={styles.settingItem} onPress={handleHelpAndSupport}>
+                <Icon name="help-circle" size={24} color="#000" style={styles.settingIcon} />
                 <Text style={styles.settingTitle}>Help and Support</Text>
               </TouchableOpacity>
 
               {/* EULA */}
-              <TouchableOpacity
-                style={styles.settingItem}
-                onPress={handleAgreementSupport}
-              >
+              <TouchableOpacity style={styles.settingItem} onPress={handleAgreementSupport}>
                 <Icon
                   name="file-document-outline"
                   size={24}
                   color="#000"
                   style={styles.settingIcon}
                 />
-                <Text style={styles.settingTitle}>
-                  End-user License Agreement
-                </Text>
+                <Text style={styles.settingTitle}>End-user License Agreement</Text>
               </TouchableOpacity>
 
               {/* Logout */}
-              <TouchableOpacity
-                style={styles.settingItem}
-                onPress={handleLogout}
-              >
-                <Icon
-                  name="logout"
-                  size={24}
-                  color="red"
-                  style={styles.settingIcon}
-                />
-                <Text style={[styles.settingTitle, { color: "red" }]}>
-                  Logout
-                </Text>
+              <TouchableOpacity style={styles.settingItem} onPress={handleLogout}>
+                <Icon name="logout" size={24} color="red" style={styles.settingIcon} />
+                <Text style={[styles.settingTitle, { color: "red" }]}>Logout</Text>
               </TouchableOpacity>
             </View>
           </View>
