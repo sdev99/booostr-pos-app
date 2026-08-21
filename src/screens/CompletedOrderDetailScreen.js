@@ -93,7 +93,7 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
         status: "Completed",
         amount: order.total,
         refundedAt: new Date(order.refunded_at.replace(" ", "T")),
-        totalItems: order?.orderitems?.length || 0,
+        totalItems: order?.orderitems?.length + order?.quick_sale_items?.length || 0,
       });
     }
   }, [order]);
@@ -142,7 +142,6 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
           refundedAt: new Date(),
           totalItems: order?.orderitems?.length || 0,
         });
-
 
         setFullRefundModalVisible(false);
 
@@ -247,14 +246,12 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
 
         setRefundedItems(updatedRefundedItems);
 
-        // Check: kya saare items completely refund ho gaye?
         const allItemsRefunded = order?.orderitems?.every((orderItem) => {
           const refundedQty = updatedRefundedItems[orderItem.id]?.quantity || 0;
 
           return Number(refundedQty) >= Number(orderItem.qty);
         });
 
-        // Agar saare items refund ho gaye
         if (allItemsRefunded) {
           const totalRefundAmount = Object.values(updatedRefundedItems).reduce(
             (total, refund) => total + Number(refund.amount || 0),
@@ -289,7 +286,6 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
         error?.response?.data?.message || error?.message || "Something went wrong.",
       );
     } finally {
-      // Success y  a error — dono cases me loader OFF
       setLoading(false);
     }
   };
