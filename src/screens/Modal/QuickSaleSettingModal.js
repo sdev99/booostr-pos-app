@@ -1,6 +1,6 @@
 // FullScreenLoader.js
-import React, { forwardRef, useImperativeHandle, useRef, useState } from "react";
-import { addDescriptors, deleteDescriptors } from "../../api/descriptors";
+import React, { forwardRef, useImperativeHandle, useRef, useState, useEffect } from "react";
+import { addDescriptors, deleteDescriptors, getDescriptors } from "../../api/descriptors";
 import {
   View,
   TouchableOpacity,
@@ -11,39 +11,82 @@ import {
   Alert,
   Platform,
   TextInput,
+  ActivityIndicator,
 } from "react-native";
 
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-
 import FullScreenLoader from "./FullScreenLoader";
 import { useSelector } from "react-redux";
 import { memoizedStoreData } from "../../store/selectors";
 import { createStripeLocation } from "../../api/stripe";
 
+const uniqueId = () => Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+
+const fixedDescriptorItem = {
+  name: "Miscellaneous Item",
+  is_default: false,
+  isFixed: true,
+  sort_order: 1,
+  id: uniqueId,
+};
+
 const QuickSaleSettingModal = forwardRef(({ visible, club, onRequestClose }, ref) => {
   const loaderRef = useRef();
+  const scrollViewRef = useRef(null);
   const storeData = useSelector(memoizedStoreData);
-  const [descriptors, setDescriptors] = useState([
-    { id: 1, text: "Miscellaneous Item", isDefault: true, isFixed: true },
-  ]);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [descriptors, setDescriptors] = useState([fixedDescriptorItem]);
 
   useImperativeHandle(ref, () => ({
     // show: () => {},
     // hide: () => {},
   }));
 
-  const scrollViewRef = useRef(null);
+  useEffect(() => {
+    if (visible && club) {
+      getDescriptorsData();
+    }
+  }, [visible, club]);
 
-  if (!visible) return null;
+  const getDescriptorsData = async () => {
+    setIsLoading(true);
+    try {
+      const response = await getDescriptors(club);
+      if (response?.status === "success" && Array.isArray(response.descriptors)) {
+        // Map API response keys to component state keys
+        const getedItems = response.descriptors;
+
+        const fixedItem = getedItems.find((item) => item.name === fixedDescriptorItem.name);
+
+        console.log("fixedItem", fixedItem);
+
+        if (fixedItem) {
+          fixedItem.isFixed = true;
+        }
+        // Default Fixed item fallback checks
+        if (!fixedItem) {
+          setDescriptors([fixedDescriptorItem, ...getedItems]);
+        } else {
+          setDescriptors(getedItems);
+        }
+      } else if (typeof response === "string") {
+        Alert.alert("Notice", response);
+      }
+    } catch (error) {
+      console.log("FETCH ERROR:", error);
+      Alert.alert("Error", "Failed to fetch descriptors.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSaveAndUpdate = async () => {
     const itemsToSend = descriptors
-      .filter((item) => !item.isFixed && item.text && item.text.trim() !== "")
+      .filter((item) => !item.isFixed && item.name && item.name.trim() !== "")
       .map((item, index) => ({
-        name: item.text.trim(),
-        price: 0,
-        is_default: Boolean(item.isDefault),
-        sort_order: index + 2,
+        ...item,
+        name: item.name.trim(),
       }));
 
     if (itemsToSend.length === 0) {
@@ -56,7 +99,7 @@ const QuickSaleSettingModal = forwardRef(({ visible, club, onRequestClose }, ref
       const response = await addDescriptors(payload, club);
       console.log("ADD RESPONSE:", response);
 
-      if (response?.status === "success" ) {
+      if (response?.status === "success") {
         Alert.alert("Success", response?.message || "Descriptors updated successfully.");
         onRequestClose();
       } else {
@@ -71,78 +114,34 @@ const QuickSaleSettingModal = forwardRef(({ visible, club, onRequestClose }, ref
     }
   };
 
-  const handleDeleteDescriptor = (id) => {
-    const club = storeData?.club || storeData?.id;
+  const handleSelectDefault = (name) => {
+    setDescriptors((prev) => prev.map((item) => ({ ...item, is_default: item.name === name })));
+  };
 
-    // Safety Rule: Kam se kam 1 descriptor hamesha hona chahiye
+  const handleDeleteDescriptor = (name) => {
     if (descriptors.length <= 1) {
       Alert.alert("Notice", "At least one descriptor must always remain.");
       return;
     }
-
-    // 1. Agar temporary UI-only item hai (+Add button wala unsaved item)
-    if (typeof id === "number" && id > 1000000000000) {
-      setDescriptors((prev) => prev.filter((item) => item.id !== id));
-      return;
-    }
-
-    // 2. Saved Item ke liye API call ({ "id": id } payload ke saath)
-    Alert.alert("Delete Descriptor", "Kya aap is descriptor ko delete karna chahte hain?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const deletePayload = { id }; // Request body: { "id": 2 }
-
-            console.log("SENDING DELETE PAYLOAD:", deletePayload);
-
-            const response = club
-              ? await deleteDescriptors(club, deletePayload)
-              : await deleteDescriptors(deletePayload);
-
-            console.log("DELETE RESPONSE:", response);
-
-            // Response check according to endpoint spec
-            if (response?.error === false || response?.status === "success") {
-              setDescriptors((prev) => prev.filter((item) => item.id !== id));
-              Alert.alert(
-                "Success",
-                response?.message || "Quick Sale descriptor deleted successfully.",
-              );
-            } else {
-              Alert.alert("Error", response?.message || "Failed to delete descriptor.");
-            }
-          } catch (error) {
-            console.log("DELETE ERROR:", error);
-            Alert.alert("Error", "Unable to delete descriptor.");
-          }
-        },
-      },
-    ]);
+    setDescriptors((prev) => prev.filter((item) => item.name !== name));
   };
 
-  const handleSelectDefault = (id) => {
-    setDescriptors((prev) => prev.map((item) => ({ ...item, isDefault: item.id === id })));
-  };
-
-  const handleTextChange = (id, newText) => {
+  const handleTextChange = (preName, newText) => {
     setDescriptors((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, text: newText } : item)),
+      prev.map((item) => (item.name === preName ? { ...item, name: newText } : item)),
     );
   };
 
   const handleAddDescriptor = () => {
     setDescriptors((prev) => [
       ...prev,
-      { id: Date.now(), text: "", isDefault: false, isFixed: false },
+      { name: "", is_default: false, isFixed: false, sort_order: prev.length + 1 },
     ]);
     setTimeout(() => {
       scrollViewRef.current.scrollToEnd({ animated: true });
     }, 300);
   };
-
+  if (!visible) return null;
   return (
     <Modal
       transparent={true}
@@ -169,28 +168,28 @@ const QuickSaleSettingModal = forwardRef(({ visible, club, onRequestClose }, ref
             {/* Input List ScrollView */}
             <ScrollView ref={scrollViewRef} style={{ maxHeight: 60 * descriptors.length }}>
               {descriptors.map((item) => (
-                <View key={item.id} style={styles.qsInputRow}>
+                <View key={item.name} style={styles.qsInputRow}>
                   {/* Input Box */}
                   <TextInput
                     style={[styles.qsTextInput, item.isFixed && styles.qsDisabledInput]}
-                    value={item.text}
+                    value={item.name}
                     editable={!item.isFixed}
-                    onChangeText={(text) => handleTextChange(item.id, text)}
+                    onChangeText={(text) => handleTextChange(item.name, text)}
                   />
 
                   {/* Checkbox */}
                   <TouchableOpacity
-                    style={[styles.qsCheckbox, item.isDefault && styles.qsCheckboxChecked]}
-                    onPress={() => handleSelectDefault(item.id)}
+                    style={[styles.qsCheckbox, item.is_default && styles.qsCheckboxChecked]}
+                    onPress={() => handleSelectDefault(item.name)}
                   >
-                    {item.isDefault && <Icon name="check" size={20} color="#FFF" />}
+                    {item.is_default && <Icon name="check" size={20} color="#FFF" />}
                   </TouchableOpacity>
 
                   {/* Delete Button (Fixed item ke liye hidden) */}
                   {!item.isFixed ? (
                     <TouchableOpacity
                       style={styles.qsDeleteBtn}
-                      onPress={() => handleDeleteDescriptor(item.id)}
+                      onPress={() => handleDeleteDescriptor(item.name)}
                     >
                       <Icon name="trash-can-outline" size={20} color="#E53935" />
                     </TouchableOpacity>

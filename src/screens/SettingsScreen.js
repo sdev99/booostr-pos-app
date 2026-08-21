@@ -64,7 +64,6 @@ const SettingsScreen = ({ navigation }) => {
 
   const loading = useSelector((state) => state.auth.loading);
   const userData = useSelector(memoizedUserData);
-  console.log("-----USER DATA:", userData);
   const {
     getLocations,
     discoverReaders,
