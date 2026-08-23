@@ -178,11 +178,33 @@ const OnlineOrderScreen = ({ navigation }) => {
     );
   };
 
+  const getRefundedAmount = (order) => {
+    // Full refund
+    if (Number(order?.payment_status) === 5) {
+      return Number(order?.total || 0);
+    }
+
+    // Partial / item refunds
+    const refundLogs = order?.orderlasttrans?.partial_refund_logs || [];
+
+    const totalRefunded = refundLogs.reduce((total, refund) => {
+      const refundAmount = refund?.items?.reduce((itemTotal, item) => {
+        return itemTotal + Number(item?.amount || 0) + Number(item?.tax || 0);
+      }, 0);
+
+      return total + refundAmount;
+    }, 0);
+
+    return totalRefunded;
+  };
+
   const getCompletedOrderTotalItems = (items) => {
     return items.reduce((total, item) => total + (item.qty || item.quantity), 0);
   };
 
   const renderCompletedOrderedItem = (order) => {
+    const refundAmount = getRefundedAmount(order);
+
     return (
       <TouchableOpacity onPress={() => handleCompletedOrderPress(order)}>
         <View style={styles.orderedItemContainer}>
@@ -204,6 +226,16 @@ const OnlineOrderScreen = ({ navigation }) => {
               <Text style={styles.orderedItemText}>{order?.created_at?.substring(11, 19)}</Text>
               <Text style={styles.orderedItemText}>{order?.created_at?.substring(0, 10)}</Text>
             </View>
+
+            {/* Refunded Line */}
+            {refundAmount > 0 && (
+              <View style={styles.refundContainer}>
+                <Text style={styles.refundText}>
+                  Refunded: {storeData?.currency_info?.currency_icon || "$"}
+                  {refundAmount.toFixed(2)}
+                </Text>
+              </View>
+            )}
             <View style={[styles.tmRow, order.status === "on-hold" && styles.flexEnd]}>
               {/* <Text style={[styles.CustomerText,styles.pdBottom]}>Customer: {item.Customer}</Text> */}
               {order.status === "on-hold" && (
@@ -700,6 +732,17 @@ const styles = StyleSheet.create({
     color: "#444",
     width: "100%",
     textAlign: "center",
+  },
+  refundContainer: {
+    width: "100%",
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+
+  refundText: {
+    color: "#ff4d4d",
+    fontSize: 13,
+    fontWeight: "600",
   },
 });
 

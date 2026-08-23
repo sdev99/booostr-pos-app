@@ -34,15 +34,12 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
   const [refundedItems, setRefundedItems] = useState({});
   const [fullRefundRecord, setFullRefundRecord] = useState(null);
 
-
   const [loading, setLoading] = useState(false);
   const [club, setClub] = useState(null);
   const [fullRefundModalVisible, setFullRefundModalVisible] = useState(false);
 
- 
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
-
 
   const handleLogout = () => {
     navigation.navigate("Login");
@@ -98,6 +95,12 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
     try {
       if (!email || !email.trim()) {
         setEmailError("Required");
+        return;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (!emailRegex.test(email)) {
+        setEmailError("Enter valid email");
         return;
       }
       setLoading(true);
@@ -162,6 +165,12 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
     try {
       if (!email || !email.trim()) {
         setEmailError("Required");
+        return;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (!emailRegex.test(email)) {
+        setEmailError("Enter valid email");
         return;
       }
       if (!item) {
