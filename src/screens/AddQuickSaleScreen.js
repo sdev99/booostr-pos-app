@@ -91,8 +91,7 @@ const AddQuickSaleScreen = ({ navigation }) => {
   // FORMAT AMOUNT
   // ========================================
   const getFormattedAmount = () => {
-    const amount = parseFloat(rawAmount || "0");
-
+    const amount = parseInt(rawAmount || "0", 10) / 100;
     return `$${amount.toFixed(2)}`;
   };
 
@@ -108,21 +107,10 @@ const AddQuickSaleScreen = ({ navigation }) => {
   // ========================================
   const handleNumericPress = (digit) => {
     setRawAmount((prev) => {
-      // Current amount is 0
-      if (prev === "0") {
-        if (digit === "00") {
-          return "0";
-        }
-
-        return digit;
-      }
-
-      // Maximum 7 characters
-      if (prev.length >= 7) {
-        return prev;
-      }
-
-      return prev + digit;
+      const currentAmount = parseInt(prev || "0", 10);
+      const numericDigit = parseInt(digit, 10);
+      const multiplyBy = digit === "00" ? 100 : 10;
+      return String(currentAmount * multiplyBy + numericDigit);
     });
   };
 
@@ -143,7 +131,12 @@ const AddQuickSaleScreen = ({ navigation }) => {
   // PRESET AMOUNT
   // ========================================
   const handlePresetPress = (amount) => {
-    setRawAmount(amount.toString());
+    setRawAmount((prev) => {
+      const currentCents = parseInt(prev || "0", 10);
+      const presetCents = Number(amount) * 100;
+
+      return String(currentCents + presetCents);
+    });
   };
 
   // ========================================
