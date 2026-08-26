@@ -211,7 +211,7 @@ const OnlineOrderScreen = ({ navigation }) => {
           <View style={styles.orderedItem}>
             <Text style={[styles.orderedItemText, styles.pdBottom]}>#{order.invoice_no}</Text>
             <Text style={[styles.orderedItemStatus, styles.pdBottom, { color: "green" }]}>
-              Completedd
+              Completed
             </Text>
             <Text style={[styles.orderedItemText, styles.pdBottom]}>
               {storeData?.currency_info?.currency_icon}
