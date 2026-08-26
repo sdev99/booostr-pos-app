@@ -82,72 +82,69 @@ const ignoreCartQuantity = (a, b) => {
   return JSON.stringify(restA) === JSON.stringify(restB);
 };
 
-export const addProductToCart =
-  (product, quantity) => async (dispatch, getState) => {
-    try {
-      dispatch(addProductToCartStart());
+export const addProductToCart = (product, quantity) => async (dispatch, getState) => {
+  try {
+    dispatch(addProductToCartStart());
 
-      const cart = JSON.parse(getState().cart.cart);
-      const index = cart.findIndex((obj) => ignoreCartQuantity(obj, product));
+    const cart = JSON.parse(getState().cart.cart);
+    const index = cart.findIndex((obj) => ignoreCartQuantity(obj, product));
 
-      if (index !== -1) {
-        let updatedCart = [...cart];
-        // when variant product selected cart_quantity value should be there
-        if (quantity) {
-          updatedCart[index].cart_quantity += quantity;
-        } else {
-          updatedCart[index].cart_quantity += 1;
-        }
-
-        dispatch(addProductToCartSuccess(JSON.stringify(updatedCart)));
+    if (index !== -1) {
+      let updatedCart = [...cart];
+      // when variant product selected cart_quantity value should be there
+      if (quantity) {
+        updatedCart[index].cart_quantity += quantity;
       } else {
-        if (!product.cart_quantity) {
-          product["cart_quantity"] = quantity ?? 1;
-        }
-        dispatch(addProductToCartSuccess(JSON.stringify([...cart, product])));
-      }
-    } catch (error) {
-      dispatch(addProductToCartError());
-      console.log(error);
-    }
-  };
-
-export const decreaseProductFromCart =
-  (productIndex) => async (dispatch, getState) => {
-    try {
-      dispatch(decreaseProductFromCartStart());
-
-      const cart = JSON.parse(getState().cart.cart);
-      let updatedCart = "[]";
-      if (cart[productIndex].cart_quantity > 1) {
-        updatedCart = [...cart];
-        updatedCart[productIndex].cart_quantity -= 1;
-      } else {
-        updatedCart = cart.filter((item, index) => index != productIndex);
+        updatedCart[index].cart_quantity += 1;
       }
 
-      dispatch(decreaseProductFromCartSuccess(JSON.stringify(updatedCart)));
-
-      return updatedCart.length;
-    } catch (error) {
-      dispatch(decreaseProductFromCartError());
-      console.log(error);
+      dispatch(addProductToCartSuccess(JSON.stringify(updatedCart)));
+    } else {
+      if (!product.cart_quantity) {
+        product["cart_quantity"] = quantity ?? 1;
+      }
+      dispatch(addProductToCartSuccess(JSON.stringify([...cart, product])));
     }
-  };
+  } catch (error) {
+    dispatch(addProductToCartError());
+    console.log(error);
+  }
+};
 
-export const removeProductFromCart =
-  (productIndex) => async (dispatch, getState) => {
-    try {
-      dispatch(removeProductFromCartStart());
+export const decreaseProductFromCart = (productIndex) => async (dispatch, getState) => {
+  try {
+    dispatch(decreaseProductFromCartStart());
 
-      const cart = JSON.parse(getState().cart.cart);
+    const cart = JSON.parse(getState().cart.cart);
+    let updatedCart = "[]";
+    if (cart[productIndex].cart_quantity > 1) {
+      updatedCart = [...cart];
+      updatedCart[productIndex].cart_quantity -= 1;
+    } else {
       updatedCart = cart.filter((item, index) => index != productIndex);
-
-      dispatch(removeProductFromCartSuccess(JSON.stringify(updatedCart)));
-    } catch (error) {
-      dispatch(removeProductFromCartError());
-      console.log(error);
     }
-  };
+
+    dispatch(decreaseProductFromCartSuccess(JSON.stringify(updatedCart)));
+
+    return updatedCart.length;
+  } catch (error) {
+    dispatch(decreaseProductFromCartError());
+    console.log(error);
+  }
+};
+
+export const removeProductFromCart = (productIndex) => async (dispatch, getState) => {
+  try {
+    dispatch(removeProductFromCartStart());
+
+    const cart = JSON.parse(getState().cart.cart);
+    const updatedCart = cart.filter((item, index) => index != productIndex);
+
+    dispatch(removeProductFromCartSuccess(JSON.stringify(updatedCart)));
+  } catch (error) {
+    dispatch(removeProductFromCartError());
+    console.log(error);
+  }
+};
 
 export default cartSlice.reducer;

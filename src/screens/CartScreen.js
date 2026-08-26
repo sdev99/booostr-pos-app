@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   FlatList,
   Image,
-  Modal,
   Dimensions,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -21,11 +20,8 @@ import {
   resetCart,
 } from "../store/reducers/cartSlice";
 import { addToOrderList } from "../store/reducers/orderListSlice";
-import {
-  getItemDisplayName,
-  getItemPrice,
-  getVariationsNames,
-} from "../api/product";
+import { getItemDisplayName, getItemPrice, getVariationsNames } from "../api/product";
+import CancelOrderConfirmationModal from "./Modal/CancelOrderConfirmationModal";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -60,6 +56,7 @@ const CartScreen = ({ navigation }) => {
   const handleCancelOrder = async () => {
     try {
       dispatch(resetCart());
+      setCancelModalVisible(false);
       navigation.navigate("Orders");
     } catch (error) {
       console.error("Error cancelling order:", error);
@@ -108,11 +105,10 @@ const CartScreen = ({ navigation }) => {
     try {
       let order = {};
       const d = new Date();
-      order["created_at"] = `${d.getFullYear()}-${(
-        d.getMonth() +
-        1 +
-        ""
-      ).padStart(2, "0")}-${(d.getDate() + "").padStart(2, "0")} ${d
+      order["created_at"] = `${d.getFullYear()}-${(d.getMonth() + 1 + "").padStart(
+        2,
+        "0",
+      )}-${(d.getDate() + "").padStart(2, "0")} ${d
         .getHours()
         .toString()
         .padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}:${d
@@ -139,11 +135,7 @@ const CartScreen = ({ navigation }) => {
     return (
       <View style={styles.cartItem}>
         <Image
-          source={
-            item?.media?.value
-              ? { uri: item?.media?.value }
-              : productPlaceholder
-          }
+          source={item?.media?.value ? { uri: item?.media?.value } : productPlaceholder}
           style={styles.cartItemImage}
         />
         <View style={styles.cartItemDetails}>
@@ -210,9 +202,7 @@ const CartScreen = ({ navigation }) => {
           <View style={styles.totalContainerMain}>
             <View style={styles.totalContainer}>
               <View style={styles.totalFlexDirCol}>
-                <Text style={[styles.totalText, styles.totalTextTop]}>
-                  Subtotal:
-                </Text>
+                <Text style={[styles.totalText, styles.totalTextTop]}>Subtotal:</Text>
                 <Text style={[styles.totalText, styles.totalTextbottom]}>
                   ${getTotalPrice().subtotal.toFixed(2)}
                 </Text>
@@ -226,22 +216,10 @@ const CartScreen = ({ navigation }) => {
                 </Text>
               </View>
               <View style={styles.totalFlexDirCol}>
-                <Text
-                  style={[
-                    styles.totalText,
-                    styles.totalAmount,
-                    styles.totalTextTop,
-                  ]}
-                >
+                <Text style={[styles.totalText, styles.totalAmount, styles.totalTextTop]}>
                   Total Due:
                 </Text>
-                <Text
-                  style={[
-                    styles.totalText,
-                    styles.totalAmount,
-                    styles.totalTextbottom,
-                  ]}
-                >
+                <Text style={[styles.totalText, styles.totalAmount, styles.totalTextbottom]}>
                   ${getTotalPrice().totalDue.toFixed(2)}
                 </Text>
               </View>
@@ -250,9 +228,7 @@ const CartScreen = ({ navigation }) => {
         ) : (
           <View style={styles.totalContainerMain}>
             <View style={styles.totalContainer}>
-              <Text style={styles.totalText}>
-                Subtotal: ${getTotalPrice().subtotal.toFixed(2)}
-              </Text>
+              <Text style={styles.totalText}>Subtotal: ${getTotalPrice().subtotal.toFixed(2)}</Text>
               <Text style={styles.totalText}>
                 Tax ({storeData?.tax}%): ${getTotalPrice().tax.toFixed(2)}
               </Text>
@@ -277,56 +253,21 @@ const CartScreen = ({ navigation }) => {
             <Text style={styles.holdText}>Hold Order</Text>
           </View>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.checkoutButton}
-          onPress={handleCheckout}
-        >
-          <Text style={styles.totalPrice}>
-            Total: ${getTotalPrice().totalDue.toFixed(2)}
-          </Text>
+        <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
+          <Text style={styles.totalPrice}>Total: ${getTotalPrice().totalDue.toFixed(2)}</Text>
           <View style={styles.checkoutContent}>
             <Text style={styles.checkoutText}>Checkout</Text>
-            <Icon
-              style={styles.rightIcon}
-              name="chevron-right"
-              size={24}
-              color="#FFF"
-            />
+            <Icon style={styles.rightIcon} name="chevron-right" size={24} color="#FFF" />
           </View>
         </TouchableOpacity>
       </View>
       {/* Cancel Order Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
+
+      <CancelOrderConfirmationModal
         visible={isCancelModalVisible}
+        onConfirm={handleCancelOrder}
         onRequestClose={() => setCancelModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalText}>
-              You have chosen to CANCEL an order in progress. If you wish to
-              CANCEL this current order, please click CONFIRM CANCELLATION
-              below. If you chose this by error, please click CANCEL
-              CANCELLATION.
-            </Text>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.confirmButton}
-                onPress={handleCancelOrder}
-              >
-                <Text style={styles.modalButtonText}>CONFIRM CANCELLATION</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={() => setCancelModalVisible(false)}
-              >
-                <Text style={styles.modalButtonText}>CANCEL CANCELLATION</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      />
     </View>
   );
 };
@@ -494,50 +435,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  modalContent: {
-    backgroundColor: "#FFF",
-    padding: 30,
-    borderRadius: 6,
-    width: "90%",
-    maxWidth: 500,
-    marginHorizontal: "auto",
-  },
-  modalText: {
-    fontSize: 14,
-    marginBottom: 20,
-    textAlign: "center",
-    color: "#777",
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  modalButton: {
-    flex: 1,
-    backgroundColor: "#00c0ff",
-    padding: 10,
-    borderRadius: 6,
-    marginHorizontal: 5,
-    alignItems: "center",
-  },
-  confirmButton: {
-    flex: 1,
-    backgroundColor: "red",
-    padding: 10,
-    borderRadius: 6,
-    marginHorizontal: 5,
-    alignItems: "center",
-  },
-  modalButtonText: {
-    color: "#FFF",
-    fontWeight: "bold",
-  },
+
   checkoutContainer: {
     flexDirection: "row",
     justifyContent: "space-between",

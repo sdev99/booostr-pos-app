@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import { resetAllStates } from "./resetSlice";
 
 const initialState = {
-  orderList: '[]',
+  orderList: "[]",
   loading: false,
   error: false,
 };
@@ -90,10 +90,10 @@ const orderListSlice = createSlice({
       state.error = true;
     },
     resetOrderList: (state) => {
-      state.orderList = '[]';
+      state.orderList = "[]";
       state.error = false;
       state.loading = false;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(resetAllStates, (state) => {
@@ -121,12 +121,12 @@ export const {
   removeItemFromOrderStart,
   removeItemFromOrderSuccess,
   removeItemFromOrderError,
-  resetOrderList
+  resetOrderList,
 } = orderListSlice.actions;
 
 export const setupOrderList = (orders) => async (dispatch, getState) => {
   try {
-    if( JSON.parse(getState().orderList.orderList) == '' ){
+    if (JSON.parse(getState().orderList.orderList) == "") {
       dispatch(setupOrderListStart());
       dispatch(setupOrderListSuccess(JSON.stringify(orders)));
     }
@@ -142,9 +142,9 @@ export const addToOrderList = (order) => async (dispatch, getState) => {
 
     const orderList = JSON.parse(getState().orderList.orderList);
     const updatedOrderList = orderList ? [...orderList, order] : [order];
-    
+
     dispatch(addToOrderListSuccess(JSON.stringify(updatedOrderList)));
-    return 'success';
+    return "success";
   } catch (error) {
     dispatch(addToOrderListError());
     console.log(error);
@@ -158,7 +158,7 @@ export const removeOrderFromOrderList = (order) => async (dispatch, getState) =>
 
     const orderList = JSON.parse(getState().orderList.orderList);
     const updatedOrderList = orderList.filter((item, index) => index !== order);
-    
+   
     dispatch(removeOrderFromOrderListSuccess(JSON.stringify(updatedOrderList)));
   } catch (error) {
     dispatch(removeOrderFromOrderListError());
@@ -169,10 +169,10 @@ export const removeOrderFromOrderList = (order) => async (dispatch, getState) =>
 export const increaseItemInOrder = (orderIndex, itemIndex) => async (dispatch, getState) => {
   try {
     dispatch(increaseItemInOrderStart());
-    
+
     let updatedOrderList = [...JSON.parse(getState().orderList.orderList)];
     updatedOrderList[orderIndex].items[itemIndex].cart_quantity += 1;
-    
+
     dispatch(increaseItemInOrderSuccess(JSON.stringify(updatedOrderList)));
   } catch (error) {
     dispatch(increaseItemInOrderError());
@@ -183,17 +183,19 @@ export const increaseItemInOrder = (orderIndex, itemIndex) => async (dispatch, g
 export const decreaseItemInOrder = (orderIndex, itemIndex) => async (dispatch, getState) => {
   try {
     dispatch(decreaseItemInOrderStart());
-    
+
     let updatedOrderList = [...JSON.parse(getState().orderList.orderList)];
-    
-    if( updatedOrderList[orderIndex].items[itemIndex].cart_quantity === 1 ){
-      updatedOrderList[orderIndex].items = updatedOrderList[orderIndex].items.filter((item, index) => index!==itemIndex);
-    }else{
+
+    if (updatedOrderList[orderIndex].items[itemIndex].cart_quantity === 1) {
+      updatedOrderList[orderIndex].items = updatedOrderList[orderIndex].items.filter(
+        (item, index) => index !== itemIndex,
+      );
+    } else {
       updatedOrderList[orderIndex].items[itemIndex].cart_quantity -= 1;
     }
 
     dispatch(decreaseItemInOrderSuccess(JSON.stringify(updatedOrderList)));
-    if( updatedOrderList[orderIndex].items.length === 0 ){
+    if (updatedOrderList[orderIndex].items.length === 0) {
       dispatch(removeOrderFromOrderList(orderIndex));
       return 0;
     }
@@ -206,10 +208,12 @@ export const decreaseItemInOrder = (orderIndex, itemIndex) => async (dispatch, g
 export const removeItemFromOrder = (orderIndex, productId) => async (dispatch, getState) => {
   try {
     dispatch(removeItemFromOrderStart());
-    
+
     let updatedOrderList = [...JSON.parse(getState().orderList.orderList)];
-    updatedOrderList[orderIndex].items = updatedOrderList[orderIndex].items.filter((item) => item.id !== productId);
-    
+    updatedOrderList[orderIndex].items = updatedOrderList[orderIndex].items.filter(
+      (item) => item.id !== productId,
+    );
+
     dispatch(removeItemFromOrderSuccess(JSON.stringify(updatedOrderList)));
   } catch (error) {
     dispatch(removeItemFromOrderError());

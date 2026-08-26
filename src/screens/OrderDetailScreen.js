@@ -1,14 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Image,
-  Modal,
-} from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Header from "./Header";
 import BottomBar from "./BottomBar";
@@ -24,6 +16,7 @@ import * as SQLite from "expo-sqlite";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getItemPrice, getVariationsNames } from "../api/product";
 import { addProductToCart } from "../store/reducers/cartSlice";
+import CancelOrderConfirmationModal from "./Modal/CancelOrderConfirmationModal";
 
 const OrderDetailScreen = ({ route, navigation }) => {
   const dispatch = useDispatch();
@@ -67,7 +60,7 @@ const OrderDetailScreen = ({ route, navigation }) => {
               },
               (_, error) => {
                 console.error("Error deleting row:", error);
-              }
+              },
             );
           });
         } catch (error) {
@@ -140,11 +133,9 @@ const OrderDetailScreen = ({ route, navigation }) => {
     // Handle logic for Continue Shopping button
     try {
       orderList[orderIndex].items.map((product) => {
-        dispatch(addProductToCart(product, product.cart_quantity)).catch(
-          (error) => {
-            console.error("Error adding product to cart:", error);
-          }
-        );
+        dispatch(addProductToCart(product, product.cart_quantity)).catch((error) => {
+          console.error("Error adding product to cart:", error);
+        });
       });
     } catch (error) {
       console.error("Error adding product to cart:", error);
@@ -191,7 +182,7 @@ const OrderDetailScreen = ({ route, navigation }) => {
           },
           (_, error) => {
             console.error("Error deleting row:", error);
-          }
+          },
         );
       });
     } catch (error) {
@@ -219,9 +210,7 @@ const OrderDetailScreen = ({ route, navigation }) => {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={24} color="black" />
           </TouchableOpacity>
-          <Text style={styles.title}>
-            Order {getOnHoldOrderId(orderList[orderIndex])}
-          </Text>
+          <Text style={styles.title}>Order {getOnHoldOrderId(orderList[orderIndex])}</Text>
         </View>
         <View style={styles.titleRight}>
           <TouchableOpacity onPress={() => setCancelModalVisible(true)}>
@@ -230,14 +219,10 @@ const OrderDetailScreen = ({ route, navigation }) => {
         </View>
       </View>
       <View style={styles.titleContainer}>
-        {(timeLeft?.days ||
-          timeLeft?.hours ||
-          timeLeft?.minutes ||
-          timeLeft?.seconds) &&
+        {(timeLeft?.days || timeLeft?.hours || timeLeft?.minutes || timeLeft?.seconds) &&
         timeLeft?.days >= 0 ? (
           <Text>
-            Expiry: {timeLeft?.days}d {timeLeft?.hours}h {timeLeft?.minutes}m{" "}
-            {timeLeft?.seconds}s
+            Expiry: {timeLeft?.days}d {timeLeft?.hours}h {timeLeft?.minutes}m {timeLeft?.seconds}s
           </Text>
         ) : null}
       </View>
@@ -245,17 +230,11 @@ const OrderDetailScreen = ({ route, navigation }) => {
         <View style={styles.itemsMainWrap}>
           <FlatList
             data={orderList[orderIndex]?.items}
-            keyExtractor={(item) =>
-              orderList[orderIndex]?.items.indexOf(item).toString()
-            }
+            keyExtractor={(item) => orderList[orderIndex]?.items.indexOf(item).toString()}
             renderItem={({ item, index }) => (
               <View style={styles.cartItem}>
                 <Image
-                  source={
-                    item?.media?.value
-                      ? { uri: item?.media?.value }
-                      : productPlaceholder
-                  }
+                  source={item?.media?.value ? { uri: item?.media?.value } : productPlaceholder}
                   style={styles.cartItemImage}
                 />
                 <View style={styles.cartItemDetails}>
@@ -276,9 +255,7 @@ const OrderDetailScreen = ({ route, navigation }) => {
                     >
                       <Icon name="minus" size={20} color="#fff" />
                     </TouchableOpacity>
-                    <Text style={styles.quantityText}>
-                      {item?.cart_quantity}
-                    </Text>
+                    <Text style={styles.quantityText}>{item?.cart_quantity}</Text>
                     <TouchableOpacity
                       style={styles.ButtonRounded}
                       onPress={() => handleIncreaseQuantity(index)}
@@ -303,10 +280,7 @@ const OrderDetailScreen = ({ route, navigation }) => {
             )}
           />
           <View style={styles.bottomButtonsContainer}>
-            <TouchableOpacity
-              style={styles.bottomButton}
-              onPress={handleContinueShopping}
-            >
+            <TouchableOpacity style={styles.bottomButton} onPress={handleContinueShopping}>
               <Text style={styles.bottomButtonText}>Continue Shopping</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -314,17 +288,10 @@ const OrderDetailScreen = ({ route, navigation }) => {
               onPress={handleCompleteButtonPress}
               disabled={false} // You can adjust the disabled state based on your logic
             >
-              <Text
-                style={[styles.bottomButtonText, styles.completeButtonText]}
-              >
+              <Text style={[styles.bottomButtonText, styles.completeButtonText]}>
                 Complete Order
               </Text>
-              <Icon
-                name="chevron-right"
-                size={20}
-                color="#fff"
-                style={styles.completeButtonIcon}
-              />
+              <Icon name="chevron-right" size={20} color="#fff" style={styles.completeButtonIcon} />
             </TouchableOpacity>
           </View>
         </View>
@@ -333,37 +300,11 @@ const OrderDetailScreen = ({ route, navigation }) => {
         <BottomBar />
       </View>
       {/* Cancel Order Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
+      <CancelOrderConfirmationModal
         visible={isCancelModalVisible}
+        onConfirm={handleCancelOrder}
         onRequestClose={() => setCancelModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalText}>
-              You have chosen to CANCEL an order in progress. If you wish to
-              CANCEL this current order, please click CONFIRM CANCELLATION
-              below. If you chose this by error, please click CANCEL
-              CANCELLATION.
-            </Text>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.confirmButton}
-                onPress={handleCancelOrder}
-              >
-                <Text style={styles.modalButtonText}>CONFIRM CANCELLATION</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={() => setCancelModalVisible(false)}
-              >
-                <Text style={styles.modalButtonText}>CANCEL CANCELLATION</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      />
     </View>
   );
 };
@@ -542,50 +483,7 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     marginTop: 2,
   },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  modalContent: {
-    backgroundColor: "#FFF",
-    padding: 30,
-    borderRadius: 6,
-    width: "90%",
-    maxWidth: 500,
-    marginHorizontal: "auto",
-  },
-  modalText: {
-    fontSize: 14,
-    marginBottom: 20,
-    textAlign: "center",
-    color: "#777",
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  modalButton: {
-    flex: 1,
-    backgroundColor: "#00c0ff",
-    padding: 10,
-    borderRadius: 6,
-    marginHorizontal: 5,
-    alignItems: "center",
-  },
-  confirmButton: {
-    flex: 1,
-    backgroundColor: "red",
-    padding: 10,
-    borderRadius: 6,
-    marginHorizontal: 5,
-    alignItems: "center",
-  },
-  modalButtonText: {
-    color: "#FFF",
-    fontWeight: "bold",
-  },
+
   ButtonRounded: {
     width: 25,
     height: 25,

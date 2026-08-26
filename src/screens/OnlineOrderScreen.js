@@ -9,7 +9,6 @@ import {
   Image,
   StyleSheet,
   ScrollView,
-  Modal,
 } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
@@ -23,6 +22,7 @@ import axios from "axios";
 import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";
 import * as SQLite from "expo-sqlite";
 import { getItemPrice } from "../api/product";
+import CancelOrderConfirmationModal from "./Modal/CancelOrderConfirmationModal";
 
 const OnlineOrderScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -211,7 +211,7 @@ const OnlineOrderScreen = ({ navigation }) => {
           <View style={styles.orderedItem}>
             <Text style={[styles.orderedItemText, styles.pdBottom]}>#{order.invoice_no}</Text>
             <Text style={[styles.orderedItemStatus, styles.pdBottom, { color: "green" }]}>
-              Completed
+              Completedd
             </Text>
             <Text style={[styles.orderedItemText, styles.pdBottom]}>
               {storeData?.currency_info?.currency_icon}
@@ -267,6 +267,8 @@ const OnlineOrderScreen = ({ navigation }) => {
   };
 
   const handleCancelOrder = async () => {
+    console.log("successfully");
+
     try {
       dispatch(removeOrderFromOrderList(selectedOrder))
         .then(() => {
@@ -296,6 +298,7 @@ const OnlineOrderScreen = ({ navigation }) => {
   };
   const Tab = createMaterialTopTabNavigator();
   const [isCancelModalVisible, setCancelModalVisible] = useState(false);
+  console.log("1...setCancelModalVisible");
 
   const CustomTabBar = ({ state, descriptors, navigation }) => {
     return (
@@ -461,33 +464,11 @@ const OnlineOrderScreen = ({ navigation }) => {
         <BottomBar />
       </View>
       {/* Cancel Order Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
+      <CancelOrderConfirmationModal
         visible={isCancelModalVisible}
+        onConfirm={handleCancelOrder}
         onRequestClose={() => setCancelModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalText}>
-              You have chosen to CANCEL an order in progress. If you wish to CANCEL this current
-              order, please click CONFIRM CANCELLATION below. If you chose this by error, please
-              click CANCEL CANCELLATION.
-            </Text>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.confirmButton} onPress={handleCancelOrder}>
-                <Text style={styles.modalButtonText}>CONFIRM CANCELLATION</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={() => setCancelModalVisible(false)}
-              >
-                <Text style={styles.modalButtonText}>CANCEL CANCELLATION</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      />
     </View>
   );
 };
@@ -647,50 +628,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
   },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  modalContent: {
-    backgroundColor: "#FFF",
-    padding: 30,
-    borderRadius: 6,
-    width: "90%",
-    maxWidth: 500,
-    marginHorizontal: "auto",
-  },
-  modalText: {
-    fontSize: 14,
-    marginBottom: 20,
-    textAlign: "center",
-    color: "#777",
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  modalButton: {
-    flex: 1,
-    backgroundColor: "#00c0ff",
-    padding: 10,
-    borderRadius: 6,
-    marginHorizontal: 5,
-    alignItems: "center",
-  },
-  confirmButton: {
-    flex: 1,
-    backgroundColor: "red",
-    padding: 10,
-    borderRadius: 6,
-    marginHorizontal: 5,
-    alignItems: "center",
-  },
-  modalButtonText: {
-    color: "#FFF",
-    fontWeight: "bold",
-  },
+
   containerLoaderTop: {
     flex: 1,
     alignItems: "center",
