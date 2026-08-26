@@ -20,6 +20,12 @@ import { memoizedStoreData } from "../store/selectors";
 import productPlaceholder from "../assets/product-placeholder.png";
 import { getVariationsNames } from "../api/product";
 import FullScreenLoader from "./Modal/FullScreenLoader";
+import DropDownPicker from "react-native-dropdown-picker";
+
+const partialRefundTypes = [
+  { label: "Item Refund", value: "partial_item_refund" },
+  { label: "Amount Refund ($)", value: "partial_amount_refund" },
+];
 
 const CompletedOrderDetailScreen = ({ route, navigation }) => {
   const storeData = useSelector(memoizedStoreData);
@@ -30,6 +36,8 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
   const [refundQuantity, setRefundQuantity] = useState(1);
   const [selectedItem, setSelectedItem] = useState(null);
   const [refundModalVisible, setRefundModalVisible] = useState(false);
+  const [dollarAmount, setDollarAmount] = useState("");
+  const [dollarAmountError, setDollarAmountError] = useState("");
 
   const [refundedItems, setRefundedItems] = useState({});
   const [fullRefundRecord, setFullRefundRecord] = useState(null);
@@ -37,6 +45,11 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(false);
   const [club, setClub] = useState(null);
   const [fullRefundModalVisible, setFullRefundModalVisible] = useState(false);
+
+  const [selectedPartialRefundType, setSelectedPartialRefundType] = useState(
+    partialRefundTypes[0].value,
+  );
+  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
 
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -69,7 +82,8 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
     order?.orderlasttrans?.partial_refund_logs?.forEach((refund) => {
       refund.items?.forEach((item) => {
         refundData[item.item_id] = {
-          quantity: (refundData[item.item_id]?.quantity || 0) + Number(item.qty || 0),
+          quantity:
+            (refundData[item.item_id]?.quantity || 0) + Number(item.qty || 0),
           amount:
             (refundData[item.item_id]?.amount || 0) +
             Number(item.amount || 0) +
@@ -85,9 +99,12 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
         status: "Completed",
         amount: order.total,
         refundedAt: new Date(order.refunded_at.replace(" ", "T")),
-        totalItems: order?.orderitems?.length + order?.quick_sale_items?.length || 0,
+        totalItems:
+          order?.orderitems?.length + order?.quick_sale_items?.length || 0,
       });
     }
+
+    console.log("order::", order);
   }, [order]);
 
   // FULL REFUND
@@ -127,7 +144,7 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
         return;
       }
 
-      const response = await orderApi.fullRefund(refundData, club);
+      const response = await orderApi.refundPayment(refundData, club);
 
       if (response?.status === "success") {
         const refundAmount = Number(response.amount) / 100;
@@ -146,14 +163,17 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
           `Refund of $${refundAmount.toFixed(2)} has been successfully processed.`,
         );
       } else {
-        Alert.alert("Refund Failed", response?.message || "Unable to process refund.");
+        Alert.alert(
+          "Refund Failed",
+          response?.message || "Unable to process refund.",
+        );
       }
     } catch (error) {
-      console.log("Refund Error:", error);
-
       Alert.alert(
         "Refund Failed",
-        error?.response?.data?.message || error?.message || "Something went wrong.",
+        error?.response?.data?.message ||
+          error?.message ||
+          "Something went wrong.",
       );
     } finally {
       setLoading(false);
@@ -178,9 +198,6 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
         return;
       }
 
-      console.log("REFUND ITEM:", item);
-      console.log("REFUND QUANTITY:", refundQuantity);
-
       if (!club?.post_slug) {
         Alert.alert("Error", "Club information not available.");
         return;
@@ -199,34 +216,64 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
         return;
       }
 
-      const refundData = {
-        paymentId: paymentId,
-        reason: "partial_item_return",
-        email: email,
-        refundType: "item",
-        items: [
-          {
-            order_item_id: item.id,
-            qty: refundQuantity,
-          },
-        ],
-      };
+      let refundData;
 
-      console.log("ITEM REFUND DATA:", refundData);
-      console.log("REFUND CLUB:", club);
+      // Validation checks
+      if (selectedPartialRefundType === "partial_amount_refund") {
+        const enteredAmt = Number(dollarAmount);
+        const maxAllowed = getMaxRefundableAmount(item);
+
+        if (!dollarAmount || isNaN(enteredAmt) || enteredAmt <= 0) {
+          setDollarAmountError("Please enter a valid amount.");
+          return;
+        }
+        if (enteredAmt > maxAllowed) {
+          setDollarAmountError(
+            `Amount cannot exceed $${maxAllowed.toFixed(2)}`,
+          );
+          return;
+        }
+
+        refundData = {
+          paymentId: paymentId,
+          // refundAmount: Math.round(enteredAmt * 100),
+          reason: "partial_dollar_refund",
+          email: email,
+          refundType: "dollar",
+          items: [
+            {
+              order_item_id: item.id,
+              amount: dollarAmount,
+            },
+          ],
+        };
+      } else {
+        refundData = {
+          paymentId: paymentId,
+          reason: "partial_item_return",
+          email: email,
+          refundType: "item",
+          items: [
+            {
+              order_item_id: item.id,
+              qty: refundQuantity,
+            },
+          ],
+        };
+      }
+
       setLoading(true);
 
-      const response = await orderApi.refundItem(refundData, club);
+      let response;
 
-      console.log("ITEM REFUND RESPONSE:", response);
-      console.log("REFUND DETAILS ITEMS:", JSON.stringify(response?.refundDetails?.items, null, 2));
+      if (item.type === "quick_sale") {
+        response = await orderApi.quickSaleRefundPayment(refundData, club);
+      } else {
+        response = await orderApi.refundPayment(refundData, club);
+      }
 
-      if (response?.status === "succeeded") {
+      if (response?.status === "success") {
         const refundAmount = Number(response.amount) / 100;
-
-        console.log("REFUND ITEM ID:", item.id);
-        console.log("REFUND AMOUNT:", refundAmount);
-        console.log("OLD REFUND RECORD:", refundedItems[item.id]);
 
         const previousRefund = refundedItems[item.id] || {
           quantity: 0,
@@ -237,8 +284,6 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
           quantity: previousRefund.quantity + Number(refundQuantity),
           amount: previousRefund.amount + refundAmount,
         };
-
-        console.log("NEW REFUND RECORD:", newRefundRecord);
 
         const updatedRefundedItems = {
           ...refundedItems,
@@ -277,18 +322,39 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
           `Refund of $${refundAmount.toFixed(2)} has been successfully processed.`,
         );
       } else {
-        Alert.alert("Refund Failed", response?.message || "Unable to process refund.");
+        setRefundModalVisible(false);
+        setSelectedItem(null);
+
+        Alert.alert(
+          "Refund Failed",
+          response?.message || "Unable to process refund.",
+        );
       }
     } catch (error) {
+      setRefundModalVisible(false);
+      setSelectedItem(null);
+
       console.log("ITEM REFUND ERROR:", error);
 
       Alert.alert(
         "Refund Failed",
-        error?.response?.data?.message || error?.message || "Something went wrong.",
+        error?.response?.data?.message ||
+          error?.message ||
+          "Something went wrong.",
       );
     } finally {
       setLoading(false);
     }
+  };
+
+  const getMaxRefundableAmount = (item) => {
+    if (!item) return 0;
+    const qty = Number(item.qty || item.quantity || 1);
+    const price = Number(item.amount || 0);
+    const totalLineAmount = qty * price;
+    const alreadyRefunded = Number(refundedItems[item.id]?.amount || 0);
+
+    return Math.max(totalLineAmount - alreadyRefunded, 0);
   };
 
   const anyItemRefunded = order?.orderitems?.some((item) => {
@@ -325,9 +391,13 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
             </View>
 
             <View style={styles.fullRefundSuccessDetails}>
-              <Text style={styles.fullRefundSuccessTitle}>Full Refund Completed</Text>
+              <Text style={styles.fullRefundSuccessTitle}>
+                Full Refund Completed
+              </Text>
 
-              <Text style={styles.fullRefundInfo}>Total Items: {fullRefundRecord.totalItems}</Text>
+              <Text style={styles.fullRefundInfo}>
+                Total Items: {fullRefundRecord.totalItems}
+              </Text>
 
               <Text style={styles.fullRefundInfo}>
                 Total Refund Amount: ${fullRefundRecord.amount.toFixed(2)}
@@ -362,9 +432,10 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
 
               const refundedQuantity = refunded?.quantity || 0;
 
-              const remainingQuantity = Math.max(Number(quantiy) - refundedQuantity, 0);
-              console.log("ITEM:", item.id);
-              console.log("REFUNDED RECORD:", refunded);
+              const remainingQuantity = Math.max(
+                Number(quantiy) - refundedQuantity,
+                0,
+              );
               if (item.term?.is_variation === 1) {
                 const info = JSON.parse(item.info);
                 const options = info.options;
@@ -386,11 +457,16 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
                       style={styles.cartItemImage}
                     />
                     <View style={styles.cartItemDetails}>
-                      <Text style={styles.cartItemName}>{item?.term?.title || item?.title}</Text>
+                      <Text style={styles.cartItemName}>
+                        {item?.term?.title || item?.title}
+                      </Text>
                       {variations?.length > 0 && (
                         <View style={styles.variantContainer}>
                           {variations.map((option, index) => (
-                            <Text key={`${option}-${index}`} style={styles.variantText}>
+                            <Text
+                              key={`${option}-${index}`}
+                              style={styles.variantText}
+                            >
                               {option}
                             </Text>
                           ))}
@@ -417,7 +493,9 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
                           }}
                         >
                           <Icon name="undo-variant" size={20} color="#1769E0" />
-                          <Text style={styles.refundButtonText}>Refund Item</Text>
+                          <Text style={styles.refundButtonText}>
+                            Refund Item
+                          </Text>
                         </TouchableOpacity>
                       )}
                     </View>
@@ -442,7 +520,9 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
                         </Text>
                       </View>
 
-                      <Text style={styles.refundedTotalAmount}>${refunded.amount.toFixed(2)}</Text>
+                      <Text style={styles.refundedTotalAmount}>
+                        ${refunded.amount.toFixed(2)}
+                      </Text>
                     </View>
                   )}
                 </View>
@@ -469,47 +549,85 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
           <View style={styles.refundModal}>
             <Text style={styles.modalTitle}>Email Receipt Information</Text>
 
-            <TextInput
-              style={styles.input}
-              autoCapitalize="none"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                setEmailError("");
-              }}
-            />
-            {emailError && <Text style={styles.emailError}>{emailError}</Text>}
-
-            <Text style={styles.quantityLabel}>Quantity</Text>
-
-            <View style={styles.quantityRow}>
-              <TouchableOpacity
-                style={styles.quantityCircle}
-                onPress={() => setRefundQuantity((q) => Math.max(1, q - 1))}
-              >
-                <Text style={styles.quantitySymbol}>−</Text>
-              </TouchableOpacity>
-
-              <Text style={styles.refundQuantity}>{refundQuantity}</Text>
-
-              <TouchableOpacity
-                style={styles.quantityCircle}
-                onPress={() =>
-                  setRefundQuantity((q) =>
-                    Math.min(
-                      Math.max(
-                        Number(selectedItem?.qty || 0) -
-                          Number(refundedItems[selectedItem?.id]?.quantity || 0),
-                        0,
-                      ),
-                      q + 1,
-                    ),
-                  )
-                }
-              >
-                <Text style={styles.quantitySymbol}>+</Text>
-              </TouchableOpacity>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                autoCapitalize="none"
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  setEmailError("");
+                }}
+              />
+              {emailError && (
+                <Text style={styles.emailError}>{emailError}</Text>
+              )}
             </View>
+
+            <DropDownPicker
+              open={isDropdownVisible}
+              value={selectedPartialRefundType}
+              items={partialRefundTypes}
+              setOpen={setIsDropdownVisible}
+              setValue={setSelectedPartialRefundType}
+            />
+
+            {selectedPartialRefundType === "partial_amount_refund" ? (
+              <View style={styles.inputContainer}>
+                <Text style={styles.amountLabel}>
+                  Enter $ Amount (max amount $
+                  {getMaxRefundableAmount(selectedItem).toFixed(2)})
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Refund Amount"
+                  keyboardType="numeric"
+                  value={dollarAmount}
+                  onChangeText={(text) => {
+                    setDollarAmount(text);
+                    setDollarAmountError("");
+                  }}
+                />
+                {dollarAmountError && (
+                  <Text style={styles.emailError}>{dollarAmountError}</Text>
+                )}
+              </View>
+            ) : (
+              <>
+                <Text style={styles.quantityLabel}>Quantity</Text>
+
+                <View style={styles.quantityRow}>
+                  <TouchableOpacity
+                    style={styles.quantityCircle}
+                    onPress={() => setRefundQuantity((q) => Math.max(1, q - 1))}
+                  >
+                    <Text style={styles.quantitySymbol}>−</Text>
+                  </TouchableOpacity>
+
+                  <Text style={styles.refundQuantity}>{refundQuantity}</Text>
+
+                  <TouchableOpacity
+                    style={styles.quantityCircle}
+                    onPress={() =>
+                      setRefundQuantity((q) =>
+                        Math.min(
+                          Math.max(
+                            Number(selectedItem?.qty || 0) -
+                              Number(
+                                refundedItems[selectedItem?.id]?.quantity || 0,
+                              ),
+                            0,
+                          ),
+                          q + 1,
+                        ),
+                      )
+                    }
+                  >
+                    <Text style={styles.quantitySymbol}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
 
             <TouchableOpacity
               style={styles.refundConfirmButton}
@@ -540,20 +658,26 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
           <View style={styles.refundModal}>
             <Text style={styles.modalTitle}>Full Refund</Text>
 
-            <Text style={styles.modalemailTitle}>Email Receipt Information</Text>
+            <Text style={styles.modalemailTitle}>
+              Email Receipt Information
+            </Text>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Customer Email Address"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                setEmailError("");
-              }}
-            />
-            {emailError && <Text style={styles.emailError}>{emailError}</Text>}
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Customer Email Address"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  setEmailError("");
+                }}
+              />
+              {emailError && (
+                <Text style={styles.emailError}>{emailError}</Text>
+              )}
+            </View>
 
             <Text style={styles.fullRefundModalText}>
               Refund Amount: ${Number(order?.total || 0).toFixed(2)}
@@ -636,7 +760,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     flex: 1,
     flexDirection: "column",
-    paddingBottom: 80,
   },
   cartItemImage: {
     width: 80,
@@ -721,18 +844,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     alignItems: "center",
+    gap: 16,
   },
 
   quantityLabel: {
     fontSize: 18,
     color: "#555",
-    marginBottom: 15,
   },
 
   quantityRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 25,
   },
 
   quantityCircle: {
@@ -773,7 +895,6 @@ const styles = StyleSheet.create({
   },
 
   refundCancelText: {
-    marginTop: 15,
     fontSize: 18,
     color: "#666",
   },
@@ -876,35 +997,40 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     marginRight: "auto",
-    paddingBottom: 10,
     fontWeight: "bold",
   },
   modalemailTitle: {
     fontSize: 16,
     marginRight: "auto",
-    paddingBottom: 10,
+  },
+  inputContainer: {
+    flexDirection: "column",
+    width: "100%",
+    gap: 5,
   },
   input: {
     borderWidth: 1,
     borderColor: "#ddd",
     borderRadius: 5,
     padding: 10,
-    marginBottom: 10,
     width: "100%",
   },
   fullRefundModalText: {
     width: "100%",
     fontSize: 16,
     color: "#555",
-    marginBottom: 15,
   },
 
   emailError: {
     color: "red",
     fontSize: 12,
-    marginTop: -6,
-    marginBottom: 10,
     alignSelf: "flex-start",
+  },
+  amountLabel: {
+    fontSize: 15,
+    color: "#333",
+    marginBottom: 8,
+    fontWeight: "500",
   },
 });
 

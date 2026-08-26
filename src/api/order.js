@@ -3,13 +3,17 @@ import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";
 
 const processOrder = async (order, club) => {
   try {
-    const response = await axios.post(`${POS_STORE_API_URL}/pos-make-order`, order, {
-      // const response = await axios.post(`http://192.168.1.50/projects/booostr-ecomm/api/pos-make-order`,order,{
-      headers: {
-        Apitoken: POS_API_TOKEN,
-        "X-Tenant": club.post_slug,
+    const response = await axios.post(
+      `${POS_STORE_API_URL}/pos-make-order`,
+      order,
+      {
+        // const response = await axios.post(`http://192.168.1.50/projects/booostr-ecomm/api/pos-make-order`,order,{
+        headers: {
+          Apitoken: POS_API_TOKEN,
+          "X-Tenant": club.post_slug,
+        },
       },
-    });
+    );
     if (response?.data?.status) {
       return {
         ...response?.data,
@@ -26,31 +30,23 @@ const processOrder = async (order, club) => {
   }
 };
 
-const fullRefund = async (refundData, club) => {
+const refundPayment = async (refundData, club) => {
   try {
-    // console.log("Refund API URL:", POS_STORE_API_URL);
-    // console.log("Refund Data:", refundData);
-    // console.log("Tenant:", club?.post_slug);
-
-    const response = await axios.post(`${POS_STORE_API_URL}/pos-refund-payment`, refundData, {
-      headers: {
-        Apitoken: POS_API_TOKEN,
-        "X-Tenant": club?.post_slug,
+    const response = await axios.post(
+      `${POS_STORE_API_URL}/pos-refund-payment`,
+      refundData,
+      {
+        headers: {
+          Apitoken: POS_API_TOKEN,
+          "X-Tenant": club?.post_slug,
+        },
       },
-    });
-
-    console.log("Refund API status:", response.status);
-    console.log("Refund API response:", response.data);
-
+    );
     return {
       ...response.data,
       status: "success",
     };
   } catch (error) {
-    console.log("Refund API status:", error?.response?.status);
-    console.log("Refund API data:", error?.response?.data);
-    console.log("Refund API error:", error?.message);
-
     if (error?.response?.data) {
       return {
         status: "failed",
@@ -65,30 +61,39 @@ const fullRefund = async (refundData, club) => {
   }
 };
 
-const refundItem = async (refundData, club) => {
+const quickSaleRefundPayment = async (refundData, club) => {
   try {
-    const response = await axios.post(`${POS_STORE_API_URL}/pos-refund-payment`, refundData, {
-      headers: {
-        Apitoken: POS_API_TOKEN,
-        "X-Tenant": club.post_slug,
+    const response = await axios.post(
+      `${POS_STORE_API_URL}/pos-quick-sale-refund-payment`,
+      refundData,
+      {
+        headers: {
+          Apitoken: POS_API_TOKEN,
+          "X-Tenant": club?.post_slug,
+        },
       },
-    });
-
-    return response.data;
+    );
+    return {
+      ...response.data,
+      status: "success",
+    };
   } catch (error) {
     if (error?.response?.data) {
-      return error.response.data;
+      return {
+        status: "failed",
+        message: error.response.data.message,
+      };
     }
 
     return {
-      status: false,
+      status: "failed",
       message: error.toString(),
     };
   }
 };
 
 export default {
-  fullRefund,
+  refundPayment,
+  quickSaleRefundPayment,
   processOrder,
-  refundItem,
 };

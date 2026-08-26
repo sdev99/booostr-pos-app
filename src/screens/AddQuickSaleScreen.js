@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  FlatList,
+  ScrollView,
+} from "react-native";
 import { useDispatch } from "react-redux";
 import DropDownPicker from "react-native-dropdown-picker";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -7,12 +14,17 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { memoizedCart } from "../store/selectors";
 import { getDescriptors } from "../api/descriptors";
-import { addProductToCart, addToCart } from "../store/reducers/cartSlice";
+import {
+  addProductToCart,
+  addToCart,
+  resetCart,
+} from "../store/reducers/cartSlice";
 import { useSelector } from "react-redux";
 
 import Header from "./Header";
 import { getCartTotalPrice } from "../api/product";
 import NumericKeyboard from "./Components/NumericKeyboard";
+import CancelOrderConfirmationModal from "./Modal/CancelOrderConfirmationModal";
 
 const AddQuickSaleScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -23,6 +35,8 @@ const AddQuickSaleScreen = ({ navigation }) => {
   // CLUB DATA
   // ========================================
   const [club, setClub] = useState(null);
+
+  const [cancelOrderModalVisible, setCancelOrderModalVisible] = useState(false);
 
   // ========================================
   // DESCRIPTOR
@@ -67,8 +81,12 @@ const AddQuickSaleScreen = ({ navigation }) => {
         try {
           const descriptorsData = await getDescriptors(club);
           if (descriptorsData?.descriptors) {
-            const defaultDescriptor = descriptorsData.descriptors.find((d) => d.is_default);
-            setSelectedDescriptor(defaultDescriptor.id || descriptorsData.descriptors[0].id);
+            const defaultDescriptor = descriptorsData.descriptors.find(
+              (d) => d.is_default,
+            );
+            setSelectedDescriptor(
+              defaultDescriptor.id || descriptorsData.descriptors[0].id,
+            );
 
             setDescriptors(
               descriptorsData.descriptors.map((descriptor) => ({
@@ -86,6 +104,16 @@ const AddQuickSaleScreen = ({ navigation }) => {
 
     getDescriptorsData();
   }, [club]);
+
+  const handleConfirmCancelOrder = () => {
+    try {
+      dispatch(resetCart());
+      setCancelOrderModalVisible(false);
+      navigation.goBack();
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+    }
+  };
 
   // ========================================
   // FORMAT AMOUNT
@@ -148,7 +176,7 @@ const AddQuickSaleScreen = ({ navigation }) => {
         type: "quick_sale",
         descriptor_id: selectedDescriptor,
         descriptor: descriptors.find((d) => d.id === selectedDescriptor)?.name,
-        amount: parseFloat(rawAmount),
+        amount: parseFloat(rawAmount / 100).toFixed(2),
         cart_quantity: 1,
       };
       console.log("Adding product to cart:", product);
@@ -156,7 +184,9 @@ const AddQuickSaleScreen = ({ navigation }) => {
         console.error("Error adding product to cart:", error);
       });
       setRawAmount("0");
-      setSelectedDescriptor(descriptors.find((d) => d.is_default)?.id || descriptors[0]?.id);
+      setSelectedDescriptor(
+        descriptors.find((d) => d.is_default)?.id || descriptors[0]?.id,
+      );
     } catch (error) {
       console.error("Error adding product to cart:", error);
     }
@@ -174,117 +204,141 @@ const AddQuickSaleScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* ==================================
+    <>
+      <View style={styles.container}>
+        {/* ==================================
           SAME HEADER AS NEW ORDER
       ================================== */}
-      <Header clubName={club?.post_title} />
+        <Header clubName={club?.post_title} />
 
-      {/* ==================================
+        {/* ==================================
           QUICK SALE TITLE HEADER
       ================================== */}
-      <View style={styles.titleContainer}>
-        <View style={styles.titleLeft}>
-          <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7}>
-            <Icon name="arrow-left" size={30} color="#000" />
-          </TouchableOpacity>
+        <View style={styles.titleContainer}>
+          <View style={styles.titleLeft}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.7}
+            >
+              <Icon name="arrow-left" size={30} color="#000" />
+            </TouchableOpacity>
 
-          <Text style={styles.title}>Quick Sale</Text>
+            <Text style={styles.title}>Quick Sale</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.titleCancel}
+            onPress={() => {
+              setCancelOrderModalVisible(true);
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.titleCancelText}>Cancel</Text>
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={styles.titleCancel}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.titleCancelText}>Cancel</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* ==================================
+        {/* ==================================
           CONTENT
       ================================== */}
-      <View style={styles.contentContainer}>
-        <View style={styles.card}>
-          {/* ==================================
+        <View style={styles.contentContainer}>
+          <View style={styles.card}>
+            {/* ==================================
               DESCRIPTOR
           ================================== */}
-          <Text style={styles.fieldLabel}>Select Item Descriptor*</Text>
+            <Text style={styles.fieldLabel}>Select Item Descriptor*</Text>
 
-          <DropDownPicker
-            open={isDropdownVisible}
-            value={selectedDescriptor}
-            items={descriptors}
-            setOpen={setIsDropdownVisible}
-            setValue={setSelectedDescriptor}
-            setItems={setDescriptors}
-          />
+            <DropDownPicker
+              open={isDropdownVisible}
+              value={selectedDescriptor}
+              items={descriptors}
+              setOpen={setIsDropdownVisible}
+              setValue={setSelectedDescriptor}
+              setItems={setDescriptors}
+            />
 
-          <ScrollView>
-            {/* ==================================
+            <ScrollView>
+              {/* ==================================
               ITEM AMOUNT
           ================================== */}
-            <View style={styles.amountRow}>
-              <Text style={styles.amountLabel}>Item{"\n"}Amount</Text>
+              <View style={styles.amountRow}>
+                <Text style={styles.amountLabel}>Item{"\n"}Amount</Text>
 
-              <View style={styles.amountDisplayBox}>
-                <Text style={styles.amountDisplayText}>{getFormattedAmount()}</Text>
+                <View style={styles.amountDisplayBox}>
+                  <Text style={styles.amountDisplayText}>
+                    {getFormattedAmount()}
+                  </Text>
+                </View>
+              </View>
+
+              <NumericKeyboard
+                selectionButtons={[
+                  { label: "$5", value: "5" },
+                  { label: "$10", value: "10" },
+                  { label: "$20", value: "20" },
+                ]}
+                handleNumericButtonPress={(value) =>
+                  handleNumericPress(value.toString())
+                }
+                handleClearPress={handleBackspace}
+                handleSelectionButtonPress={(value) =>
+                  handlePresetPress(parseFloat(value))
+                }
+              />
+            </ScrollView>
+          </View>
+        </View>
+
+        {/* ==================================
+          FOOTER BUTTONS
+      ================================== */}
+        <View style={styles.footerContainer}>
+          {/* ==================================
+            ADD TO CART
+        ================================== */}
+          <TouchableOpacity
+            style={[styles.addToCartBtn, !canAddToCart && styles.disabledBtn]}
+            onPress={handleAddToCart}
+            disabled={!canAddToCart}
+            activeOpacity={0.8}
+          >
+            <Icon name="plus" size={28} color="#FFF" style={styles.plusIcon} />
+
+            <Text style={styles.addToCartText}>Add to Cart</Text>
+          </TouchableOpacity>
+
+          {/* ==================================
+            CHECKOUT
+        ================================== */}
+          <TouchableOpacity
+            style={[
+              styles.checkoutBtn,
+              cart.length === 0 && styles.disabledBtn,
+            ]}
+            onPress={handleCheckout}
+            disabled={cart.length === 0}
+            activeOpacity={0.8}
+          >
+            <View style={styles.checkoutTextContainer}>
+              <Text style={styles.checkoutTotalText}>
+                Total: ${getCartTotalPrice(cart)}
+              </Text>
+
+              <View style={styles.checkoutSubRow}>
+                <Text style={styles.checkoutTitleText}>Checkout</Text>
+
+                <Icon name="chevron-right" size={28} color="#FFF" />
               </View>
             </View>
-
-            <NumericKeyboard
-              selectionButtons={[
-                { label: "$5", value: "5" },
-                { label: "$10", value: "10" },
-                { label: "$20", value: "20" },
-              ]}
-              handleNumericButtonPress={(value) => handleNumericPress(value.toString())}
-              handleClearPress={handleBackspace}
-              handleSelectionButtonPress={(value) => handlePresetPress(parseFloat(value))}
-            />
-          </ScrollView>
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* ==================================
-          FOOTER BUTTONS
-      ================================== */}
-      <View style={styles.footerContainer}>
-        {/* ==================================
-            ADD TO CART
-        ================================== */}
-        <TouchableOpacity
-          style={[styles.addToCartBtn, !canAddToCart && styles.disabledBtn]}
-          onPress={handleAddToCart}
-          disabled={!canAddToCart}
-          activeOpacity={0.8}
-        >
-          <Icon name="plus" size={28} color="#FFF" style={styles.plusIcon} />
-
-          <Text style={styles.addToCartText}>Add to Cart</Text>
-        </TouchableOpacity>
-
-        {/* ==================================
-            CHECKOUT
-        ================================== */}
-        <TouchableOpacity
-          style={[styles.checkoutBtn, cart.length === 0 && styles.disabledBtn]}
-          onPress={handleCheckout}
-          disabled={cart.length === 0}
-          activeOpacity={0.8}
-        >
-          <View style={styles.checkoutTextContainer}>
-            <Text style={styles.checkoutTotalText}>Total: ${getCartTotalPrice(cart)}</Text>
-
-            <View style={styles.checkoutSubRow}>
-              <Text style={styles.checkoutTitleText}>Checkout</Text>
-
-              <Icon name="chevron-right" size={28} color="#FFF" />
-            </View>
-          </View>
-        </TouchableOpacity>
-      </View>
-    </View>
+      <CancelOrderConfirmationModal
+        visible={cancelOrderModalVisible}
+        onConfirm={handleConfirmCancelOrder}
+        onRequestClose={() => setCancelOrderModalVisible(false)}
+      />
+    </>
   );
 };
 

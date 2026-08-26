@@ -76,7 +76,7 @@ export const fetchStoreData = (club) => async (dispatch) => {
     dispatch(fetchStoreDataError());
     const errMessage = error.response?.data?.message ?? error.message;
 
-    console.log(`pos-get-store-details:${errMessage}`);
+    console.log(`pos-get-store-details:${JSON.s}`);
     return { success: false, message: errMessage }; // ✅ IMPORTANT (don’t throw)
   }
 };
