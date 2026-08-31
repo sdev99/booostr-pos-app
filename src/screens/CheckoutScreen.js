@@ -25,7 +25,10 @@ import { resetCart } from "../store/reducers/cartSlice";
 // import { processCashOrder } from "../actions/order";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { processOrder } from "../actions/order";
-import { addToOrderList, removeOrderFromOrderList } from "../store/reducers/orderListSlice";
+import {
+  addToOrderList,
+  removeOrderFromOrderList,
+} from "../store/reducers/orderListSlice";
 import { useStripeTerminal } from "@stripe/stripe-terminal-react-native";
 import axios from "axios";
 import { POS_STORE_API_URL, POS_API_TOKEN } from "../config";
@@ -58,8 +61,8 @@ const CheckoutScreen = ({ navigation, route }) => {
   const [processingOrder, setProcessingOrder] = useState(false);
   const [readerErrorTitle, setReaderErrorTitle] = useState("");
   const [readerStatusText, setReaderStatusText] = useState("Setting Up...");
-  //const { totalAmount } = route?.params || {};
   const { confirmPayment } = useStripe();
+  const { quickSaleItem } = route?.params || {};
 
   const {
     connectedReader,
@@ -99,11 +102,16 @@ const CheckoutScreen = ({ navigation, route }) => {
     React.useCallback(() => {
       const fetchData = async () => {
         try {
-          setCart(
-            typeof route?.params?.orderIndex == "number"
-              ? orderList[route.params.orderIndex]?.items
-              : cart,
-          );
+          // If a quick sale item is passed in the route params, set the cart to that item. Otherwise, check if an order index is provided and set the cart to the items of that order. If neither is provided, keep the current cart.
+          if (quickSaleItem) {
+            setCart([quickSaleItem]);
+          } else {
+            setCart(
+              typeof route?.params?.orderIndex == "number"
+                ? orderList[route.params.orderIndex]?.items
+                : cart,
+            );
+          }
         } catch (error) {
           console.error("Error setting up cart:", error);
           // alert("kindly try after some time.");
@@ -111,7 +119,7 @@ const CheckoutScreen = ({ navigation, route }) => {
       };
 
       fetchData();
-    }, []),
+    }, [quickSaleItem, route?.params?.orderIndex, orderList]),
   );
 
   const getTotalPrice = () => {
@@ -152,7 +160,9 @@ const CheckoutScreen = ({ navigation, route }) => {
   useEffect(() => {
     if (storeData) {
       const getways = storeData?.Getway;
-      const stripGateway = getways.find((item) => item.name.toLowerCase() === "stripe");
+      const stripGateway = getways.find(
+        (item) => item.name.toLowerCase() === "stripe",
+      );
       const gatewayCredential = JSON.parse(stripGateway.data);
 
       setPublishableKey(
@@ -174,7 +184,9 @@ const CheckoutScreen = ({ navigation, route }) => {
       if (!isNaN(value)) {
         setAmountTendered((prevAmount) => prevAmount + value); // Concatenate the values
       } else {
-        setAmountTendered((prevAmount) => (parseFloat(prevAmount) + parseFloat(value)).toString());
+        setAmountTendered((prevAmount) =>
+          (parseFloat(prevAmount) + parseFloat(value)).toString(),
+        );
       }
     }
   };
@@ -183,13 +195,37 @@ const CheckoutScreen = ({ navigation, route }) => {
   const handleAfterQuickClickAmt = (prevAmount, value) => {
     let prevAmountArr = prevAmount.split("");
     if (quickAmtBtn == 4) {
-      return prevAmountArr[0] + prevAmountArr[1] + prevAmountArr[2] + prevAmountArr[3] + value;
+      return (
+        prevAmountArr[0] +
+        prevAmountArr[1] +
+        prevAmountArr[2] +
+        prevAmountArr[3] +
+        value
+      );
     } else if (quickAmtBtn == 3) {
-      return prevAmountArr[0] + prevAmountArr[1] + prevAmountArr[2] + prevAmountArr[4] + value;
+      return (
+        prevAmountArr[0] +
+        prevAmountArr[1] +
+        prevAmountArr[2] +
+        prevAmountArr[4] +
+        value
+      );
     } else if (quickAmtBtn == 2) {
-      return prevAmountArr[0] + prevAmountArr[3] + prevAmountArr[2] + prevAmountArr[4] + value;
+      return (
+        prevAmountArr[0] +
+        prevAmountArr[3] +
+        prevAmountArr[2] +
+        prevAmountArr[4] +
+        value
+      );
     } else if (quickAmtBtn == 1) {
-      return prevAmountArr[1] + prevAmountArr[3] + prevAmountArr[2] + prevAmountArr[4] + value;
+      return (
+        prevAmountArr[1] +
+        prevAmountArr[3] +
+        prevAmountArr[2] +
+        prevAmountArr[4] +
+        value
+      );
     }
 
     return prevAmount;
@@ -199,7 +235,9 @@ const CheckoutScreen = ({ navigation, route }) => {
     if (value === "00") {
       setQuickAmtBtn(0);
       if (amountTendered) {
-        setAmountTendered((prevAmount) => (parseFloat(prevAmount) * 100).toFixed(2));
+        setAmountTendered((prevAmount) =>
+          (parseFloat(prevAmount) * 100).toFixed(2),
+        );
       }
 
       return;
@@ -212,7 +250,9 @@ const CheckoutScreen = ({ navigation, route }) => {
           ? handleAfterQuickClickAmt(prevAmount, value)
           : prevAmount.includes(".")
             ? value === "00"
-              ? (parseFloat(prevAmount) * 100).toFixed(2) + "." + value.toString()
+              ? (parseFloat(prevAmount) * 100).toFixed(2) +
+                "." +
+                value.toString()
               : (parseFloat(prevAmount) * 10).toFixed(1) + value.toString()
             : prevAmount + value.toString() + ".00",
     );
@@ -235,7 +275,10 @@ const CheckoutScreen = ({ navigation, route }) => {
   ];
 
   const calculateSubtotal = () => {
-    return receiptItems.reduce((total, item) => total + item.quantity * item.price, 0);
+    return receiptItems.reduce(
+      (total, item) => total + item.quantity * item.price,
+      0,
+    );
   };
   const calculateGST = () => {
     // Assuming GST is 10% for demonstration purposes
@@ -289,10 +332,11 @@ const CheckoutScreen = ({ navigation, route }) => {
       try {
         let order = {};
         const d = new Date();
-        order["created_at"] = `${d.getFullYear()}-${(d.getMonth() + 1 + "").padStart(
-          2,
-          "0",
-        )}-${(d.getDate() + "").padStart(2, "0")} ${d
+        order["created_at"] = `${d.getFullYear()}-${(
+          d.getMonth() +
+          1 +
+          ""
+        ).padStart(2, "0")}-${(d.getDate() + "").padStart(2, "0")} ${d
           .getHours()
           .toString()
           .padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}:${d
@@ -333,7 +377,10 @@ const CheckoutScreen = ({ navigation, route }) => {
                   db.transaction((tx) => {
                     tx.executeSql(
                       "DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;",
-                      [orderList[route.params.orderIndex].created_at, club.post_slug],
+                      [
+                        orderList[route.params.orderIndex].created_at,
+                        club.post_slug,
+                      ],
                       () => {
                         console.log("Row deleted successfully");
                       },
@@ -349,7 +396,8 @@ const CheckoutScreen = ({ navigation, route }) => {
               }
               dispatch(addToOrderList(order))
                 .then(() => {
-                  if (typeof route?.params?.orderIndex != "number") dispatch(resetCart());
+                  if (typeof route?.params?.orderIndex != "number")
+                    dispatch(resetCart());
                   navigation.navigate("PaymentSuccess", { order });
                 })
                 .catch((error) => {
@@ -370,7 +418,10 @@ const CheckoutScreen = ({ navigation, route }) => {
         setProcessingOrder(false);
       }
     } else {
-      Alert.alert("Invalid Card Details", "Please check your card information and try again.");
+      Alert.alert(
+        "Invalid Card Details",
+        "Please check your card information and try again.",
+      );
       setProcessingOrder(false);
     }
   };
@@ -402,10 +453,11 @@ const CheckoutScreen = ({ navigation, route }) => {
       try {
         let order = {};
         const d = new Date();
-        order["created_at"] = `${d.getFullYear()}-${(d.getMonth() + 1 + "").padStart(
-          2,
-          "0",
-        )}-${(d.getDate() + "").padStart(2, "0")} ${d
+        order["created_at"] = `${d.getFullYear()}-${(
+          d.getMonth() +
+          1 +
+          ""
+        ).padStart(2, "0")}-${(d.getDate() + "").padStart(2, "0")} ${d
           .getHours()
           .toString()
           .padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}:${d
@@ -446,7 +498,10 @@ const CheckoutScreen = ({ navigation, route }) => {
                   db.transaction((tx) => {
                     tx.executeSql(
                       "DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;",
-                      [orderList[route.params.orderIndex].created_at, club.post_slug],
+                      [
+                        orderList[route.params.orderIndex].created_at,
+                        club.post_slug,
+                      ],
                       () => {
                         console.log("Row deleted successfully");
                       },
@@ -462,7 +517,8 @@ const CheckoutScreen = ({ navigation, route }) => {
               }
               dispatch(addToOrderList(order))
                 .then(() => {
-                  if (typeof route?.params?.orderIndex != "number") dispatch(resetCart());
+                  if (typeof route?.params?.orderIndex != "number")
+                    dispatch(resetCart());
                   navigation.navigate("PaymentSuccess", { order });
                 })
                 .catch((error) => {
@@ -483,7 +539,10 @@ const CheckoutScreen = ({ navigation, route }) => {
         setProcessingOrder(false);
       }
     } else {
-      Alert.alert("Invalid Card Details", "Please check your card information and try again.");
+      Alert.alert(
+        "Invalid Card Details",
+        "Please check your card information and try again.",
+      );
       setProcessingOrder(false);
     }
   };
@@ -499,35 +558,38 @@ const CheckoutScreen = ({ navigation, route }) => {
       return;
     }
 
-    const { paymentIntent, error } = await confirmPlatformPayPayment(stripeClientSecret, {
-      applePay: {
-        cartItems: [
-          {
-            label: "Subtotal",
-            amount: getTotalPrice().subtotal.toFixed(2),
-            paymentType: PlatformPay.PaymentType.Immediate,
-          },
-          {
-            label: `Tax (${parseFloat(storeData?.tax).toFixed(2)}%)`,
-            amount: getTotalPrice().tax.toFixed(2),
-            paymentType: PlatformPay.PaymentType.Immediate,
-          },
-          {
-            label: "Booostr POS",
-            amount: totalAmount,
-            paymentType: PlatformPay.PaymentType.Immediate,
-          },
-        ],
-        merchantCountryCode: "US",
-        currencyCode: storeData?.currency_info?.currency_name,
-        requiredShippingAddressFields: [
-          // PlatformPay.ContactField.PostalAddress,
-        ],
-        requiredBillingContactFields: [
-          // PlatformPay.ContactField.PhoneNumber
-        ],
+    const { paymentIntent, error } = await confirmPlatformPayPayment(
+      stripeClientSecret,
+      {
+        applePay: {
+          cartItems: [
+            {
+              label: "Subtotal",
+              amount: getTotalPrice().subtotal.toFixed(2),
+              paymentType: PlatformPay.PaymentType.Immediate,
+            },
+            {
+              label: `Tax (${parseFloat(storeData?.tax).toFixed(2)}%)`,
+              amount: getTotalPrice().tax.toFixed(2),
+              paymentType: PlatformPay.PaymentType.Immediate,
+            },
+            {
+              label: "Booostr POS",
+              amount: totalAmount,
+              paymentType: PlatformPay.PaymentType.Immediate,
+            },
+          ],
+          merchantCountryCode: "US",
+          currencyCode: storeData?.currency_info?.currency_name,
+          requiredShippingAddressFields: [
+            // PlatformPay.ContactField.PostalAddress,
+          ],
+          requiredBillingContactFields: [
+            // PlatformPay.ContactField.PhoneNumber
+          ],
+        },
       },
-    });
+    );
 
     if (error) {
       Alert.alert("Payment confirmation error", error.message);
@@ -537,10 +599,11 @@ const CheckoutScreen = ({ navigation, route }) => {
       try {
         let order = {};
         const d = new Date();
-        order["created_at"] = `${d.getFullYear()}-${(d.getMonth() + 1 + "").padStart(
-          2,
-          "0",
-        )}-${(d.getDate() + "").padStart(2, "0")} ${d
+        order["created_at"] = `${d.getFullYear()}-${(
+          d.getMonth() +
+          1 +
+          ""
+        ).padStart(2, "0")}-${(d.getDate() + "").padStart(2, "0")} ${d
           .getHours()
           .toString()
           .padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}:${d
@@ -582,7 +645,10 @@ const CheckoutScreen = ({ navigation, route }) => {
                   db.transaction((tx) => {
                     tx.executeSql(
                       "DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;",
-                      [orderList[route.params.orderIndex].created_at, club.post_slug],
+                      [
+                        orderList[route.params.orderIndex].created_at,
+                        club.post_slug,
+                      ],
                       () => {
                         console.log("Row deleted successfully");
                       },
@@ -598,7 +664,8 @@ const CheckoutScreen = ({ navigation, route }) => {
               }
               dispatch(addToOrderList(order))
                 .then(() => {
-                  if (typeof route?.params?.orderIndex != "number") dispatch(resetCart());
+                  if (typeof route?.params?.orderIndex != "number")
+                    dispatch(resetCart());
                   navigation.navigate("PaymentSuccess", { order });
                 })
                 .catch((error) => {
@@ -619,7 +686,10 @@ const CheckoutScreen = ({ navigation, route }) => {
         setProcessingOrder(false);
       }
     } else {
-      Alert.alert("Invalid Card Details", "Please check your card information and try again.");
+      Alert.alert(
+        "Invalid Card Details",
+        "Please check your card information and try again.",
+      );
       setProcessingOrder(false);
     }
   };
@@ -655,10 +725,11 @@ const CheckoutScreen = ({ navigation, route }) => {
       try {
         let order = {};
         const d = new Date();
-        order["created_at"] = `${d.getFullYear()}-${(d.getMonth() + 1 + "").padStart(
-          2,
-          "0",
-        )}-${(d.getDate() + "").padStart(2, "0")} ${d
+        order["created_at"] = `${d.getFullYear()}-${(
+          d.getMonth() +
+          1 +
+          ""
+        ).padStart(2, "0")}-${(d.getDate() + "").padStart(2, "0")} ${d
           .getHours()
           .toString()
           .padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}:${d
@@ -696,7 +767,10 @@ const CheckoutScreen = ({ navigation, route }) => {
                   db.transaction((tx) => {
                     tx.executeSql(
                       "DELETE FROM onHoldOrders WHERE createdAt = ? AND club = ?;",
-                      [orderList[route.params.orderIndex].created_at, club.post_slug],
+                      [
+                        orderList[route.params.orderIndex].created_at,
+                        club.post_slug,
+                      ],
                       () => {
                         console.log("Row deleted successfully");
                       },
@@ -712,7 +786,8 @@ const CheckoutScreen = ({ navigation, route }) => {
               }
               dispatch(addToOrderList(order))
                 .then(() => {
-                  if (typeof route?.params?.orderIndex != "number") dispatch(resetCart());
+                  if (typeof route?.params?.orderIndex != "number")
+                    dispatch(resetCart());
                   navigation.navigate("PaymentSuccess", { order });
                 })
                 .catch((error) => {
@@ -753,10 +828,11 @@ const CheckoutScreen = ({ navigation, route }) => {
     try {
       let order = {};
       const d = new Date();
-      order["created_at"] = `${d.getFullYear()}-${(d.getMonth() + 1 + "").padStart(
-        2,
-        "0",
-      )}-${(d.getDate() + "").padStart(2, "0")} ${d
+      order["created_at"] = `${d.getFullYear()}-${(
+        d.getMonth() +
+        1 +
+        ""
+      ).padStart(2, "0")}-${(d.getDate() + "").padStart(2, "0")} ${d
         .getHours()
         .toString()
         .padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}:${d
@@ -808,7 +884,10 @@ const CheckoutScreen = ({ navigation, route }) => {
       }
     } catch (error) {
       if (error?.response?.data?.message) {
-        Alert.alert("Error!", `Stripe client secret: ${error.response.data.message}`);
+        Alert.alert(
+          "Error!",
+          `Stripe client secret: ${error.response.data.message}`,
+        );
       } else {
         Alert.alert("Error!", `Stripe client secret: ${error.toString()}`);
       }
@@ -836,7 +915,8 @@ const CheckoutScreen = ({ navigation, route }) => {
 
         console.log(`clientSecret: ${clientSecret}`);
 
-        const { paymentIntent, error } = await retrievePaymentIntent(clientSecret);
+        const { paymentIntent, error } =
+          await retrievePaymentIntent(clientSecret);
 
         if (error) {
           console.log(error);
@@ -852,13 +932,19 @@ const CheckoutScreen = ({ navigation, route }) => {
         setReaderErrorTitle(getErrorTitle(response.data));
         setReaderStatusText(`${response.data.message}`);
       } else {
-        Alert.alert("Something Went Wrong!", `Unable to process your request at the moment.`);
+        Alert.alert(
+          "Something Went Wrong!",
+          `Unable to process your request at the moment.`,
+        );
         setReaderErrorTitle("Something Went Wrong");
         setReaderStatusText(`Unable to process your request at the moment.`);
       }
     } catch (error) {
       if (error?.response?.data?.message) {
-        Alert.alert(getErrorTitle(error.response.data), `${error.response.data.message}`);
+        Alert.alert(
+          getErrorTitle(error.response.data),
+          `${error.response.data.message}`,
+        );
         setReaderErrorTitle(getErrorTitle(error.response.data));
         setReaderStatusText(error.response.data.message);
       } else {
@@ -939,7 +1025,10 @@ const CheckoutScreen = ({ navigation, route }) => {
           finalMessage = "The transaction was canceled.";
         } else {
           // ✅ Clean unwanted prefix
-          finalMessage = finalMessage.replace(/^collect paymentmethod:\s*/i, "");
+          finalMessage = finalMessage.replace(
+            /^collect paymentmethod:\s*/i,
+            "",
+          );
         }
         setReaderErrorTitle(title);
         setReaderStatusText(`${finalMessage}`);
@@ -1000,10 +1089,11 @@ const CheckoutScreen = ({ navigation, route }) => {
       let order = {};
 
       const d = new Date();
-      order["created_at"] = `${d.getFullYear()}-${(d.getMonth() + 1 + "").padStart(
-        2,
-        "0",
-      )}-${(d.getDate() + "").padStart(2, "0")} ${d
+      order["created_at"] = `${d.getFullYear()}-${(
+        d.getMonth() +
+        1 +
+        ""
+      ).padStart(2, "0")}-${(d.getDate() + "").padStart(2, "0")} ${d
         .getHours()
         .toString()
         .padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}:${d
@@ -1015,7 +1105,8 @@ const CheckoutScreen = ({ navigation, route }) => {
       order["order_subtotal"] = getTotalPrice().subtotal;
       order["order_tax"] = getTotalPrice().tax;
       order["tax"] = `${storeData?.tax}%`;
-      order["payment_method"] = connectedReader.deviceType === "tapToPay" ? "tapToPay" : "reader";
+      order["payment_method"] =
+        connectedReader.deviceType === "tapToPay" ? "tapToPay" : "reader";
       order["payment_identifiers"] = "terminal";
       order["payment_details"] = payment;
       order["wpuid"] = userData.user_id;
@@ -1039,7 +1130,8 @@ const CheckoutScreen = ({ navigation, route }) => {
               dispatch(removeOrderFromOrderList(route.params.orderIndex));
             dispatch(addToOrderList(order))
               .then(() => {
-                if (typeof route?.params?.orderIndex != "number") dispatch(resetCart());
+                if (typeof route?.params?.orderIndex != "number")
+                  dispatch(resetCart());
                 navigation.navigate("PaymentSuccess", { order });
               })
               .catch((error) => {
@@ -1073,7 +1165,12 @@ const CheckoutScreen = ({ navigation, route }) => {
       disabled={disabled}
     >
       <Text style={styles.payButtonText}>Pay for Order</Text>
-      <Icon style={styles.rightIcon} name="chevron-right" size={24} color="#FFF" />
+      <Icon
+        style={styles.rightIcon}
+        name="chevron-right"
+        size={24}
+        color="#FFF"
+      />
     </TouchableOpacity>
   );
 
@@ -1096,26 +1193,56 @@ const CheckoutScreen = ({ navigation, route }) => {
       <ScrollView>
         <View style={styles.totalContainerMain}>
           <View style={styles.totalContainerNew}>
-            <Text style={styles.totalTextNew}>
-              Total Items: {cart?.reduce((total, item) => total + item.cart_quantity, 0)}
-            </Text>
-            <Text style={[styles.totalTextNew, styles.totalAmountNew]}>
-              ${getTotalPrice().totalDue}
-            </Text>
+            <View style={styles.priceRow}>
+              <Text style={styles.subTotal}>
+                Total Items
+                ({cart?.reduce((total, item) => total + item.cart_quantity, 0)})
+              </Text>
+              <Text style={[styles.subTotal]}>
+                ${getTotalPrice().subtotal}
+              </Text>
+            </View>
+            <View style={styles.priceRow}>
+              <Text style={styles.totaltax}>
+                Tax
+              </Text>
+              <Text style={[styles.totaltax, styles.totaltax]}>
+                +${parseFloat(getTotalPrice().tax).toFixed(2)}
+              </Text>
+            </View>
+            <View style={[styles.priceRow, styles.amountSeparator]}>
+              <Text style={styles.totalAmountNew}>
+                Total Amount
+              </Text>
+              <Text style={[styles.totalTextNew, styles.totalAmountNew]}>
+                ${parseFloat(getTotalPrice().totalDue).toFixed(2)}
+              </Text>
+            </View>
           </View>
         </View>
         <View style={styles.allItems}>
           {/* Display the selected payment type */}
           <View style={styles.paymentTabs}>
             <TouchableOpacity
-              style={[styles.paymentTab, paymentType === "card" && styles.activeTab]}
+              style={[
+                styles.paymentTab,
+                paymentType === "card" && styles.activeTab,
+              ]}
               onPress={() => setPaymentType("card")}
             >
               <Image
                 source={require("../assets/card-image.png")}
-                style={[styles.paymentTabImage, paymentType === "card" && styles.activeTabImg]}
+                style={[
+                  styles.paymentTabImage,
+                  paymentType === "card" && styles.activeTabImg,
+                ]}
               />
-              <Text style={[styles.paymentTabText, paymentType === "card" && styles.activeTabText]}>
+              <Text
+                style={[
+                  styles.paymentTabText,
+                  paymentType === "card" && styles.activeTabText,
+                ]}
+              >
                 Card
               </Text>
             </TouchableOpacity>
@@ -1143,14 +1270,25 @@ const CheckoutScreen = ({ navigation, route }) => {
               </Text>
             </TouchableOpacity> */}
             <TouchableOpacity
-              style={[styles.paymentTab, paymentType === "cash" && styles.activeTab]}
+              style={[
+                styles.paymentTab,
+                paymentType === "cash" && styles.activeTab,
+              ]}
               onPress={() => setPaymentType("cash")}
             >
               <Image
                 source={require("../assets/cash-image.png")}
-                style={[styles.paymentTabImage, paymentType === "cash" && styles.activeTabImg]}
+                style={[
+                  styles.paymentTabImage,
+                  paymentType === "cash" && styles.activeTabImg,
+                ]}
               />
-              <Text style={[styles.paymentTabText, paymentType === "cash" && styles.activeTabText]}>
+              <Text
+                style={[
+                  styles.paymentTabText,
+                  paymentType === "cash" && styles.activeTabText,
+                ]}
+              >
                 Cash
               </Text>
             </TouchableOpacity>
@@ -1236,16 +1374,28 @@ const CheckoutScreen = ({ navigation, route }) => {
                 ]}
                 onPress={() => setSelectedCardType("mastercard")}
               >
-                <Image source={require("../assets/master-card.png")} style={styles.cardTypeImage} />
+                <Image
+                  source={require("../assets/master-card.png")}
+                  style={styles.cardTypeImage}
+                />
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.cardType, selectedCardType === "visa" && styles.activeCardType]}
+                style={[
+                  styles.cardType,
+                  selectedCardType === "visa" && styles.activeCardType,
+                ]}
                 onPress={() => setSelectedCardType("visa")}
               >
-                <Image source={require("../assets/visa-card.png")} style={styles.cardTypeImage} />
+                <Image
+                  source={require("../assets/visa-card.png")}
+                  style={styles.cardTypeImage}
+                />
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.cardType, selectedCardType === "american" && styles.activeCardType]}
+                style={[
+                  styles.cardType,
+                  selectedCardType === "american" && styles.activeCardType,
+                ]}
                 onPress={() => setSelectedCardType("american")}
               >
                 <Image
@@ -1254,7 +1404,10 @@ const CheckoutScreen = ({ navigation, route }) => {
                 />
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.cardType, selectedCardType === "discover" && styles.activeCardType]}
+                style={[
+                  styles.cardType,
+                  selectedCardType === "discover" && styles.activeCardType,
+                ]}
                 onPress={() => setSelectedCardType("discover")}
               >
                 <Image
@@ -1295,7 +1448,10 @@ const CheckoutScreen = ({ navigation, route }) => {
                   />
                 )}
 
-                <TouchableOpacity style={styles.cashAppButton} onPress={handleCashAppPay}>
+                <TouchableOpacity
+                  style={styles.cashAppButton}
+                  onPress={handleCashAppPay}
+                >
                   <Text style={styles.walletButtonText}>Cash App Pay</Text>
                 </TouchableOpacity>
               </View>
@@ -1309,13 +1465,17 @@ const CheckoutScreen = ({ navigation, route }) => {
                     <View style={styles.mainWrap}>
                       <View style={styles.dueContainer}>
                         <Text style={styles.dueText}> Amount due</Text>
-                        <Text style={styles.dueAmount}>${getTotalPrice().totalDue}</Text>
+                        <Text style={styles.dueAmount}>
+                          ${getTotalPrice().totalDue}
+                        </Text>
                       </View>
                       <View style={styles.mainWrapDiv}>
                         <KeyboardAwareScrollView>
                           <View style={styles.headerContainer}>
                             <View style={styles.heading}>
-                              <Text style={styles.headerText}>Amount Tendered</Text>
+                              <Text style={styles.headerText}>
+                                Amount Tendered
+                              </Text>
                             </View>
                             <View style={styles.amountField}>
                               <TextInput
@@ -1323,12 +1483,15 @@ const CheckoutScreen = ({ navigation, route }) => {
                                 placeholder="Amount Tendered"
                                 showSoftInputOnFocus={false}
                                 value={
-                                  amountTendered === "0.00" || amountTendered === ""
+                                  amountTendered === "0.00" ||
+                                  amountTendered === ""
                                     ? `${storeData?.currency_info?.currency_icon}0.00`
                                     : `$${amountTendered}`
                                 }
                                 onChangeText={(text) =>
-                                  setAmountTendered(text.replace(/[^0-9.]/g, ""))
+                                  setAmountTendered(
+                                    text.replace(/[^0-9.]/g, ""),
+                                  )
                                 }
                               />
                             </View>
@@ -1374,8 +1537,12 @@ const CheckoutScreen = ({ navigation, route }) => {
                 <>
                   {readerErrorTitle ? (
                     <View style={styles.readerErrorContainer}>
-                      <Text style={styles.readerErrorTitle}>{readerErrorTitle}</Text>
-                      <Text style={styles.readerErrorText}>{readerStatusText}</Text>
+                      <Text style={styles.readerErrorTitle}>
+                        {readerErrorTitle}
+                      </Text>
+                      <Text style={styles.readerErrorText}>
+                        {readerStatusText}
+                      </Text>
                     </View>
                   ) : (
                     <Text style={styles.readerText}>{readerStatusText}</Text>
@@ -1453,7 +1620,7 @@ const styles = StyleSheet.create({
     paddingTop: 15,
   },
   totalContainerMain: {
-    padding: 15,
+    paddingHorizontal: 15,
   },
   totalContainerNew: {
     flexDirection: "row",
@@ -1463,15 +1630,29 @@ const styles = StyleSheet.create({
     width: "100%",
     backgroundColor: "#fff",
     borderRadius: 6,
-    marginTop: 10,
-    paddingHorizontal: 10,
+    padding: 20,
+    gap: 10,
   },
-  totalTextNew: {
-    paddingHorizontal: 10,
-    paddingVertical: 25,
+  priceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
   },
+  subTotal: {
+    fontWeight: "500",
+  },
+  totaltax: {
+    fontSize: 12,
+  },
+
   totalAmountNew: {
-    fontWeight: "bold",
+    fontWeight: "600",
+  },
+  amountSeparator: {
+    borderTopWidth: 1,
+    borderTopColor: "#ccc",
+    marginTop: 5,
+    paddingTop: 5,
   },
   paymentTabs: {
     flexDirection: "row",

@@ -198,6 +198,17 @@ const AddQuickSaleScreen = ({ navigation }) => {
   const handleCheckout = () => {
     if (cart.length > 0) {
       navigation.navigate("Cart");
+    } else if (rawAmount !== "0") {
+      navigation.navigate("Checkout", {
+        quickSaleItem: {
+          type: "quick_sale",
+          descriptor_id: selectedDescriptor,
+          descriptor: descriptors.find((d) => d.id === selectedDescriptor)
+            ?.name,
+          amount: parseFloat(rawAmount / 100).toFixed(2),
+          cart_quantity: 1,
+        },
+      });
     } else {
       alert("Your cart is empty. Add items to your cart before checkout.");
     }
@@ -307,20 +318,28 @@ const AddQuickSaleScreen = ({ navigation }) => {
           </TouchableOpacity>
 
           {/* ==================================
-            CHECKOUT
+            CHECKOUT If there are no items in the cart, disable checkout button. If there are items in the cart, enable checkout button. If there is a raw amount greater than 0, enable checkout button. If there is a raw amount of 0, disable checkout button.
         ================================== */}
           <TouchableOpacity
             style={[
               styles.checkoutBtn,
-              cart.length === 0 && styles.disabledBtn,
+              cart.length === 0 && rawAmount === "0" && styles.disabledBtn,
             ]}
             onPress={handleCheckout}
-            disabled={cart.length === 0}
+            disabled={cart.length === 0 && rawAmount === "0"}
             activeOpacity={0.8}
           >
             <View style={styles.checkoutTextContainer}>
               <Text style={styles.checkoutTotalText}>
-                Total: ${getCartTotalPrice(cart)}
+                Total: $
+                {(() => {
+                  if (cart.length > 0) {
+                    return getCartTotalPrice(cart);
+                  }
+                  return rawAmount === "0"
+                    ? "0.00"
+                    : (parseInt(rawAmount || "0", 10) / 100).toFixed(2);
+                })()}
               </Text>
 
               <View style={styles.checkoutSubRow}>
