@@ -94,14 +94,46 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
 
     setRefundedItems(refundData);
 
+    // Check for Full Refund Record, if the regular items has been fully refunded order.payment_status === 5 , we need to also check for quick sale items to determine if the full refund has been completed.
     if (order.payment_status === 5) {
-      setFullRefundRecord({
-        status: "Completed",
-        amount: order.total,
-        refundedAt: new Date(order.refunded_at.replace(" ", "T")),
-        totalItems:
-          order?.orderitems?.length + order?.quick_sale_items?.length || 0,
-      });
+      const quick_sale_items = order?.quick_sale_items || [];
+      if (quick_sale_items.length > 0) {
+        const partial_refund_logs =
+          order?.orderlasttrans?.partial_refund_logs || [];
+        let totalRefundedItems = 0;
+
+        quick_sale_items.forEach((item) => {
+          const quickSaleOrderTotalAmount = item.amount * item.quantity;
+          let quickSaleOrderRefundedTotalAmount = 0;
+          partial_refund_logs.forEach((refund) => {
+            const refundedItem = refund.items.find((rfndItm) => rfndItm.item_id === item.id);
+            if (refundedItem) {
+              quickSaleOrderRefundedTotalAmount += refund.item_amount;
+            }
+          });
+          if (quickSaleOrderRefundedTotalAmount >= quickSaleOrderTotalAmount) {
+            totalRefundedItems++;
+          }
+        });
+
+        if (totalRefundedItems === quick_sale_items.length) {
+          setFullRefundRecord({
+            status: "Completed",
+            amount: order.total,
+            refundedAt: new Date(order.refunded_at.replace(" ", "T")),
+            totalItems:
+              order?.orderitems?.length + order?.quick_sale_items?.length || 0,
+          });
+        }
+      } else {
+        setFullRefundRecord({
+          status: "Completed",
+          amount: order.total,
+          refundedAt: new Date(order.refunded_at.replace(" ", "T")),
+          totalItems:
+            order?.orderitems?.length + order?.quick_sale_items?.length || 0,
+        });
+      }
     }
 
     console.log("order::", order);
