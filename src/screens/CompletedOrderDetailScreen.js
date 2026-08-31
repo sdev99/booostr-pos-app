@@ -58,6 +58,10 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
     navigation.navigate("Login");
   };
 
+  const allOrderItems = [
+    ...(order?.orderitems || []),
+    ...(order?.quick_sale_items || []),
+  ];
   // LOAD CLUB DATA
   useEffect(() => {
     const fetchClub = async () => {
@@ -106,7 +110,9 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
           const quickSaleOrderTotalAmount = item.amount * item.quantity;
           let quickSaleOrderRefundedTotalAmount = 0;
           partial_refund_logs.forEach((refund) => {
-            const refundedItem = refund.items.find((rfndItm) => rfndItm.item_id === item.id);
+            const refundedItem = refund.items.find(
+              (rfndItm) => rfndItm.item_id === item.id,
+            );
             if (refundedItem) {
               quickSaleOrderRefundedTotalAmount += refund.item_amount;
             }
@@ -123,6 +129,7 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
             refundedAt: new Date(order.refunded_at.replace(" ", "T")),
             totalItems:
               order?.orderitems?.length + order?.quick_sale_items?.length || 0,
+            type: "full",
           });
         }
       } else {
@@ -132,6 +139,7 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
           refundedAt: new Date(order.refunded_at.replace(" ", "T")),
           totalItems:
             order?.orderitems?.length + order?.quick_sale_items?.length || 0,
+          type: "full",
         });
       }
     }
@@ -186,6 +194,7 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
           amount: refundAmount,
           refundedAt: new Date(),
           totalItems: order?.orderitems?.length || 0,
+          // type: "full",
         });
 
         setFullRefundModalVisible(false);
@@ -324,25 +333,34 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
 
         setRefundedItems(updatedRefundedItems);
 
-        const allItemsRefunded = order?.orderitems?.every((orderItem) => {
-          const refundedQty = updatedRefundedItems[orderItem.id]?.quantity || 0;
-
-          return Number(refundedQty) >= Number(orderItem.qty);
-        });
-
-        if (allItemsRefunded) {
-          const totalRefundAmount = Object.values(updatedRefundedItems).reduce(
-            (total, refund) => total + Number(refund.amount || 0),
-            0,
+        const allItemsRefunded = allOrderItems.every((orderItem) => {
+          const refundedQty = Number(
+            updatedRefundedItems[orderItem.id]?.quantity || 0,
           );
 
-          setFullRefundRecord({
-            status: "Completed",
-            amount: totalRefundAmount,
-            refundedAt: new Date(),
-            totalItems: order?.orderitems?.length || 0,
-          });
-        }
+          const itemQty = Number(orderItem.qty || orderItem.quantity || 0);
+
+          return refundedQty >= itemQty;
+        });
+
+        const totalRefundAmount = Object.values(updatedRefundedItems).reduce(
+          (total, refund) => total + Number(refund?.amount || 0),
+          0,
+        );
+
+        setFullRefundRecord({
+          status: "Completed",
+          amount: totalRefundAmount,
+          refundedAt: new Date(),
+          totalItems: allOrderItems.filter((item) => {
+            const refundedQty = Number(
+              updatedRefundedItems[item.id]?.quantity || 0,
+            );
+
+            return refundedQty > 0;
+          }).length,
+          type: allItemsRefunded ? "full" : "partial",
+        });
 
         setRefundModalVisible(false);
         setSelectedItem(null);
@@ -424,7 +442,9 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
 
             <View style={styles.fullRefundSuccessDetails}>
               <Text style={styles.fullRefundSuccessTitle}>
-                Full Refund Completed
+                {fullRefundRecord?.type === "partial"
+                  ? "Partial Refund Completed"
+                  : "Full Refund Completed"}
               </Text>
 
               <Text style={styles.fullRefundInfo}>
