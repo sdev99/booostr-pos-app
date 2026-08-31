@@ -77,7 +77,7 @@ const CartScreen = ({ navigation }) => {
     try {
       dispatch(decreaseProductFromCart(productIndex))
         .then((cartLength) => {
-          if (cartLength === 0) navigation.navigate("Orders");
+          if (cartLength === 0) navigation.navigate(getPreviousScreenName());
         })
         .catch((error) => {
           console.error("Error decreasing product from cart:", error);
@@ -87,11 +87,18 @@ const CartScreen = ({ navigation }) => {
     }
   };
 
+  const getPreviousScreenName = () => {
+    const state = navigation.getState();
+    const currentIndex = state.index;
+    const previousScreen = state.routes[currentIndex - 1];
+    return previousScreen?.name || "Orders"; // Default to "Orders" if no previous screen
+  };
+
   const handleRemoveFromCart = (productIndex) => {
     try {
       dispatch(removeProductFromCart(productIndex))
         .then(() => {
-          if (cart.length === 1) navigation.navigate("Orders");
+          if (cart.length === 1) navigation.navigate(getPreviousScreenName());
         })
         .catch((error) => {
           console.error("Error removing product from cart:", error);
