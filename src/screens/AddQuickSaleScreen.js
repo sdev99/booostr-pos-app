@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  FlatList,
   ScrollView,
 } from "react-native";
 import { useDispatch } from "react-redux";
@@ -14,11 +13,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { memoizedCart } from "../store/selectors";
 import { getDescriptors } from "../api/descriptors";
-import {
-  addProductToCart,
-  addToCart,
-  resetCart,
-} from "../store/reducers/cartSlice";
+import { addProductToCart, resetCart } from "../store/reducers/cartSlice";
 import { useSelector } from "react-redux";
 
 import Header from "./Header";
@@ -236,16 +231,17 @@ const AddQuickSaleScreen = ({ navigation }) => {
 
             <Text style={styles.title}>Quick Sale</Text>
           </View>
-
-          <TouchableOpacity
-            style={styles.titleCancel}
-            onPress={() => {
-              setCancelOrderModalVisible(true);
-            }}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.titleCancelText}>Cancel</Text>
-          </TouchableOpacity>
+          {cart.length > 0 && (
+            <TouchableOpacity
+              style={styles.titleCancel}
+              onPress={() => {
+                setCancelOrderModalVisible(true);
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.titleCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* ==================================

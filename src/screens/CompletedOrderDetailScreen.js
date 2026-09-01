@@ -30,7 +30,6 @@ const partialRefundTypes = [
 const CompletedOrderDetailScreen = ({ route, navigation }) => {
   const storeData = useSelector(memoizedStoreData);
   const order = route.params?.order;
-  console.log("Order Detail:", JSON.stringify(order));
 
   // REFUND STATE
   const [refundQuantity, setRefundQuantity] = useState(1);
@@ -58,6 +57,46 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
     navigation.navigate("Login");
   };
 
+  const formatDateTime = (dateVal) => {
+    if (!dateVal) return "";
+    const parsedDate =
+      typeof dateVal === "string"
+        ? new Date(dateVal.replace(" ", "T"))
+        : new Date(dateVal);
+
+    if (isNaN(parsedDate.getTime())) return "";
+
+    return `${parsedDate.toLocaleDateString()} ${parsedDate.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    })}`;
+  };
+
+  const getItemUnitPrice = (item) => {
+    if (!item) return 0;
+    let price = Number(item.amount || 0);
+    if (item.term?.is_variation === 1 && item.info) {
+      try {
+        const info = JSON.parse(item.info);
+        if (info.options?.price) {
+          price = Number(info.options.price);
+        }
+      } catch (e) {}
+    }
+    return price ;
+  };
+
+  const getMaxRefundableAmount = (item) => {
+    if (!item) return 0;
+    const qty = Number(item.qty || item.quantity || 1);
+    const price = getItemUnitPrice(item);
+    const totalLineAmount = qty * price;
+    const alreadyRefunded = Number(refundedItems[item.id]?.amount || 0);
+
+    return Math.max(totalLineAmount - alreadyRefunded, 0);
+  };
+
   // LOAD CLUB DATA
   useEffect(() => {
     const fetchClub = async () => {
@@ -78,37 +117,77 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     const refundData = {};
+    const refundLogs =
+      order?.orderlasttrans?.partial_refund_logs ||
+      order?.orderlasttrans?.refund_logs ||
+      [];
 
-    order?.orderlasttrans?.partial_refund_logs?.forEach((refund) => {
+    refundLogs.forEach((refund) => {
+      const isDollarRefund =
+        refund.type === "dollar" ||
+        refund.reason === "partial_dollar_refund" ||
+        refund.stripe_refund_id?.includes("partial_dollar");
+
+      const logRefundedAt =
+        refund.refunded_at || refund.created_at || order.refunded_at || null;
+
       refund.items?.forEach((item) => {
-        refundData[item.item_id] = {
-          quantity:
-            (refundData[item.item_id]?.quantity || 0) + Number(item.qty || 0),
-          amount:
-            (refundData[item.item_id]?.amount || 0) +
-            Number(item.amount || 0) +
-            Number(item.tax || 0),
-        };
+        const itemId = item.item_id;
+        const itemQty = isDollarRefund ? 0 : Number(item.qty || 0);
+        const itemAmt = Number(item.amount || refund.item_amount || 0);
+        const itemTax = Number(item.tax || refund.tax_amount || 0);
+        const totalRefundedForLine =
+          refund.grand_total ? Number(refund.grand_total) : itemAmt + itemTax;
+
+        if (!refundData[itemId]) {
+          refundData[itemId] = {
+            quantity: 0,
+            amount: 0,
+            hasDollarRefund: false,
+            history: [],
+          };
+        }
+
+        if (isDollarRefund) {
+          refundData[itemId].hasDollarRefund = true;
+        }
+
+        refundData[itemId].quantity += itemQty;
+        refundData[itemId].amount += totalRefundedForLine;
+
+        refundData[itemId].history.push({
+          id:
+            refund.stripe_refund_id ||
+            refund.fingerprint ||
+            Math.random().toString(),
+          isAmountOnly: isDollarRefund,
+          quantity: isDollarRefund ? 0 : Number(item.qty || 1),
+          amount: totalRefundedForLine,
+          item_amount: itemAmt,
+          tax_amount: itemTax,
+          refunded_at: logRefundedAt,
+        });
       });
     });
 
     setRefundedItems(refundData);
 
-    // Check for Full Refund Record, if the regular items has been fully refunded order.payment_status === 5 , we need to also check for quick sale items to determine if the full refund has been completed.
-    if (order.payment_status === 5) {
+    // Check for Full Refund Record
+    if (order?.payment_status === 5) {
       const quick_sale_items = order?.quick_sale_items || [];
       if (quick_sale_items.length > 0) {
-        const partial_refund_logs =
-          order?.orderlasttrans?.partial_refund_logs || [];
         let totalRefundedItems = 0;
 
         quick_sale_items.forEach((item) => {
           const quickSaleOrderTotalAmount = item.amount * item.quantity;
           let quickSaleOrderRefundedTotalAmount = 0;
-          partial_refund_logs.forEach((refund) => {
-            const refundedItem = refund.items.find((rfndItm) => rfndItm.item_id === item.id);
+          refundLogs.forEach((refund) => {
+            const refundedItem = refund.items?.find(
+              (rfndItm) => rfndItm.item_id === item.id,
+            );
             if (refundedItem) {
-              quickSaleOrderRefundedTotalAmount += refund.item_amount;
+              quickSaleOrderRefundedTotalAmount +=
+                Number(refund.item_amount || 0) + Number(refund.tax_amount || 0);
             }
           });
           if (quickSaleOrderRefundedTotalAmount >= quickSaleOrderTotalAmount) {
@@ -120,23 +199,27 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
           setFullRefundRecord({
             status: "Completed",
             amount: order.total,
-            refundedAt: new Date(order.refunded_at.replace(" ", "T")),
+            refundedAt: order.refunded_at
+              ? new Date(order.refunded_at.replace(" ", "T"))
+              : new Date(),
             totalItems:
-              order?.orderitems?.length + order?.quick_sale_items?.length || 0,
+              (order?.orderitems?.length || 0) +
+              (order?.quick_sale_items?.length || 0),
           });
         }
       } else {
         setFullRefundRecord({
           status: "Completed",
           amount: order.total,
-          refundedAt: new Date(order.refunded_at.replace(" ", "T")),
+          refundedAt: order.refunded_at
+            ? new Date(order.refunded_at.replace(" ", "T"))
+            : new Date(),
           totalItems:
-            order?.orderitems?.length + order?.quick_sale_items?.length || 0,
+            (order?.orderitems?.length || 0) +
+            (order?.quick_sale_items?.length || 0),
         });
       }
     }
-
-    console.log("order::", order);
   }, [order]);
 
   // FULL REFUND
@@ -171,7 +254,6 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
       };
 
       if (!club?.post_slug) {
-        console.log("Club post_slug not found");
         Alert.alert("Error", "Club information not available.");
         return;
       }
@@ -248,10 +330,11 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
         return;
       }
 
+      const isAmountRefund =
+        selectedPartialRefundType === "partial_amount_refund";
       let refundData;
 
-      // Validation checks
-      if (selectedPartialRefundType === "partial_amount_refund") {
+      if (isAmountRefund) {
         const enteredAmt = Number(dollarAmount);
         const maxAllowed = getMaxRefundableAmount(item);
 
@@ -268,7 +351,6 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
 
         refundData = {
           paymentId: paymentId,
-          // refundAmount: Math.round(enteredAmt * 100),
           reason: "partial_dollar_refund",
           email: email,
           refundType: "dollar",
@@ -306,15 +388,35 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
 
       if (response?.status === "success") {
         const refundAmount = Number(response.amount) / 100;
+        const refundedQtyNum = isAmountRefund ? 0 : Number(refundQuantity);
 
         const previousRefund = refundedItems[item.id] || {
           quantity: 0,
           amount: 0,
+          hasDollarRefund: false,
+          history: [],
+        };
+
+        const nowIso = new Date()
+          .toISOString()
+          .replace("T", " ")
+          .substring(0, 19);
+
+        const newTransaction = {
+          id: response.transaction_id || Math.random().toString(),
+          isAmountOnly: isAmountRefund,
+          quantity: refundedQtyNum,
+          amount: refundAmount,
+          item_amount: refundAmount,
+          tax_amount: 0,
+          refunded_at: response.refunded_at || nowIso,
         };
 
         const newRefundRecord = {
-          quantity: previousRefund.quantity + Number(refundQuantity),
+          quantity: previousRefund.quantity + refundedQtyNum,
           amount: previousRefund.amount + refundAmount,
+          hasDollarRefund: previousRefund.hasDollarRefund || isAmountRefund,
+          history: [...previousRefund.history, newTransaction],
         };
 
         const updatedRefundedItems = {
@@ -325,9 +427,8 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
         setRefundedItems(updatedRefundedItems);
 
         const allItemsRefunded = order?.orderitems?.every((orderItem) => {
-          const refundedQty = updatedRefundedItems[orderItem.id]?.quantity || 0;
-
-          return Number(refundedQty) >= Number(orderItem.qty);
+          const maxRemaining = getMaxRefundableAmount(orderItem);
+          return maxRemaining <= 0;
         });
 
         if (allItemsRefunded) {
@@ -346,8 +447,7 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
 
         setRefundModalVisible(false);
         setSelectedItem(null);
-
-        console.log(JSON.stringify(order, null, 2));
+        setDollarAmount("");
 
         Alert.alert(
           "Refund Successful",
@@ -366,8 +466,6 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
       setRefundModalVisible(false);
       setSelectedItem(null);
 
-      console.log("ITEM REFUND ERROR:", error);
-
       Alert.alert(
         "Refund Failed",
         error?.response?.data?.message ||
@@ -379,20 +477,10 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  const getMaxRefundableAmount = (item) => {
-    if (!item) return 0;
-    const qty = Number(item.qty || item.quantity || 1);
-    const price = Number(item.amount || 0);
-    const totalLineAmount = qty * price;
-    const alreadyRefunded = Number(refundedItems[item.id]?.amount || 0);
-
-    return Math.max(totalLineAmount - alreadyRefunded, 0);
-  };
-
   const anyItemRefunded = order?.orderitems?.some((item) => {
     const refundedQuantity = Number(refundedItems[item.id]?.quantity || 0);
-
-    return refundedQuantity > 0;
+    const refundedAmount = Number(refundedItems[item.id]?.amount || 0);
+    return refundedQuantity > 0 || refundedAmount > 0;
   });
 
   return (
@@ -403,7 +491,7 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={24} color="black" />
           </TouchableOpacity>
-          <Text style={styles.title}>Order #{order.invoice_no}</Text>
+          <Text style={styles.title}>Order #{order?.invoice_no}</Text>
         </View>
       </View>
 
@@ -438,43 +526,46 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
 
             <View style={styles.fullRefundDate}>
               <Text style={styles.fullRefundInfo}>
-                {fullRefundRecord.refundedAt.toLocaleDateString()}
-              </Text>
-
-              <Text style={styles.fullRefundInfo}>
-                {fullRefundRecord.refundedAt.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {formatDateTime(fullRefundRecord.refundedAt)}
               </Text>
             </View>
           </View>
         )
       )}
+
       <View style={styles.itemsMain}>
         <View style={styles.itemsMainWrap}>
           <FlatList
-            data={[...order?.orderitems, ...order?.quick_sale_items]}
+            data={[
+              ...(order?.orderitems || []),
+              ...(order?.quick_sale_items || []),
+            ]}
             keyExtractor={(item) => String(item.id)}
             renderItem={({ item }) => {
               let variations;
-              let price = item.amount;
-              const quantiy = item.qty || item.quantity;
+              const unitPrice = getItemUnitPrice(item);
+              const originalQty = Number(item.qty || item.quantity || 1);
               const refunded = refundedItems[item.id];
-
               const refundedQuantity = refunded?.quantity || 0;
+              const maxRefundableAmount = getMaxRefundableAmount(item);
 
-              const remainingQuantity = Math.max(
-                Number(quantiy) - refundedQuantity,
-                0,
-              );
-              if (item.term?.is_variation === 1) {
-                const info = JSON.parse(item.info);
-                const options = info.options;
-                if (typeof options === "object" && options.price) {
-                  price = options.price;
-                  variations = getVariationsNames(options);
-                }
+              // Calculate maximum whole items refundable based on remaining dollar balance
+              const effectiveRefundableQty =
+                unitPrice > 0
+                  ? Math.min(
+                      Math.max(originalQty - refundedQuantity, 0),
+                      Math.floor(maxRefundableAmount / unitPrice),
+                    )
+                  : 0;
+
+              if (item.term?.is_variation === 1 && item.info) {
+                try {
+                  const info = JSON.parse(item.info);
+                  const options = info.options;
+                  if (typeof options === "object") {
+                    variations = getVariationsNames(options);
+                  }
+                } catch (e) {}
               }
 
               return (
@@ -505,21 +596,35 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
                         </View>
                       )}
                       <View style={styles.quantityContainer}>
-                        <Text style={styles.quantityText}>{quantiy}</Text>
+                        <Text style={styles.quantityText}>Qty: {originalQty}</Text>
+                        {refunded?.hasDollarRefund ? (
+                          <Text style={styles.dollarRefundBadge}>
+                            (Partial $ Refunded)
+                          </Text>
+                        ) : refundedQuantity > 0 ? (
+                          <Text style={styles.remainingBadge}>
+                            (Remaining: {effectiveRefundableQty})
+                          </Text>
+                        ) : null}
                       </View>
                     </View>
                     <View style={styles.cartItemPriceContainer}>
                       <Text style={styles.cartItemPrice}>
-                        {" "}
-                        {storeData?.currency_info?.currency_icon}
-                        {price.toFixed(2)}
+                        {storeData?.currency_info?.currency_icon || "$"}
+                        {unitPrice.toFixed(2)}
                       </Text>
 
-                      {remainingQuantity > 0 && !fullRefundRecord && (
+                      {maxRefundableAmount > 0 && !fullRefundRecord && (
                         <TouchableOpacity
                           style={styles.refundButton}
                           onPress={() => {
                             setSelectedItem(item);
+                            // Default to Amount Refund if no full unit can be returned
+                            if (effectiveRefundableQty <= 0) {
+                              setSelectedPartialRefundType("partial_amount_refund");
+                            } else {
+                              setSelectedPartialRefundType("partial_item_refund");
+                            }
                             setRefundQuantity(1);
                             setRefundModalVisible(true);
                           }}
@@ -532,29 +637,56 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
                       )}
                     </View>
                   </View>
-                  {refunded && (
-                    <View style={styles.refundSuccessBox}>
-                      <View style={styles.refundSuccessIcon}>
-                        <Icon name="check" size={22} color="#fff" />
-                      </View>
 
-                      <View style={styles.refundSuccessDetails}>
-                        <Text style={styles.refundedQuantityText}>
-                          Refunded Quantity: {refunded.quantity}
-                        </Text>
-
-                        <Text style={styles.refundedAmountText}>
-                          Refunded Amount: ${refunded.amount.toFixed(2)}
-                        </Text>
-
-                        <Text style={styles.remainingQuantityText}>
-                          Remaining Quantity: {remainingQuantity}
-                        </Text>
-                      </View>
-
-                      <Text style={styles.refundedTotalAmount}>
-                        ${refunded.amount.toFixed(2)}
+                  {/* ALL REFUND LOGS FOR THIS ITEM */}
+                  {refunded?.history && refunded.history.length > 0 && (
+                    <View style={styles.refundTransactionsContainer}>
+                      <Text style={styles.refundSectionHeading}>
+                        Refund Logs ({refunded.history.length})
                       </Text>
+                      {refunded.history.map((tx, idx) => (
+                        <View
+                          key={tx.id || String(idx)}
+                          style={styles.refundSuccessBox}
+                        >
+                          <View
+                            style={[
+                              styles.refundSuccessIcon,
+                              tx.isAmountOnly && { backgroundColor: "#FF9800" },
+                            ]}
+                          >
+                            <Icon
+                              name={tx.isAmountOnly ? "currency-usd" : "check"}
+                              size={18}
+                              color="#fff"
+                            />
+                          </View>
+
+                          <View style={styles.refundSuccessDetails}>
+                            <Text style={styles.refundedQuantityText}>
+                              {tx.isAmountOnly
+                                ? "Partial Amount Refund"
+                                : `Item Refund (Qty: ${tx.quantity})`}
+                            </Text>
+                            {tx.refunded_at && (
+                              <View style={styles.timeRow}>
+                                <Icon
+                                  name="clock-outline"
+                                  size={12}
+                                  color="#777"
+                                />
+                                <Text style={styles.refundDateText}>
+                                  {formatDateTime(tx.refunded_at)}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+
+                          <Text style={styles.refundedTotalAmount}>
+                            -${Number(tx.amount || 0).toFixed(2)}
+                          </Text>
+                        </View>
+                      ))}
                     </View>
                   )}
                 </View>
@@ -568,6 +700,7 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
       </View>
 
       <FullScreenLoader show={loading} transparent={true} />
+
       {/* ==================== REFUND ITEM MODAL ==================== */}
       <Modal
         visible={refundModalVisible && !loading}
@@ -584,6 +717,7 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
+                placeholder="Enter email"
                 autoCapitalize="none"
                 value={email}
                 onChangeText={(text) => {
@@ -599,7 +733,21 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
             <DropDownPicker
               open={isDropdownVisible}
               value={selectedPartialRefundType}
-              items={partialRefundTypes}
+              items={
+                // Disable item refund option if unit balance doesn't cover a full quantity
+                getItemUnitPrice(selectedItem) > 0 &&
+                Math.floor(
+                  getMaxRefundableAmount(selectedItem) /
+                    getItemUnitPrice(selectedItem),
+                ) <= 0
+                  ? [
+                      {
+                        label: "Amount Refund ($)",
+                        value: "partial_amount_refund",
+                      },
+                    ]
+                  : partialRefundTypes
+              }
               setOpen={setIsDropdownVisible}
               setValue={setSelectedPartialRefundType}
             />
@@ -640,20 +788,19 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
 
                   <TouchableOpacity
                     style={styles.quantityCircle}
-                    onPress={() =>
+                    onPress={() => {
+                      const unitP = getItemUnitPrice(selectedItem);
+                      const maxPossibleQty =
+                        unitP > 0
+                          ? Math.floor(
+                              getMaxRefundableAmount(selectedItem) / unitP,
+                            )
+                          : 0;
+
                       setRefundQuantity((q) =>
-                        Math.min(
-                          Math.max(
-                            Number(selectedItem?.qty || 0) -
-                              Number(
-                                refundedItems[selectedItem?.id]?.quantity || 0,
-                              ),
-                            0,
-                          ),
-                          q + 1,
-                        ),
-                      )
-                    }
+                        Math.min(Math.max(maxPossibleQty, 1), q + 1),
+                      );
+                    }}
                   >
                     <Text style={styles.quantitySymbol}>+</Text>
                   </TouchableOpacity>
@@ -745,7 +892,6 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
     position: "relative",
   },
-
   title: {
     fontSize: 16,
     fontWeight: "bold",
@@ -756,7 +902,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-
   titleContainer: {
     padding: 15,
     flexDirection: "row",
@@ -778,12 +923,8 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginVertical: 5,
     backgroundColor: "#FFF",
-
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
     elevation: 0,
@@ -818,20 +959,32 @@ const styles = StyleSheet.create({
   quantityContainer: {
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "wrap",
   },
   quantityText: {
-    marginHorizontal: 10,
-    fontSize: 14,
+    fontSize: 13,
+    color: "#333",
+  },
+  remainingBadge: {
+    fontSize: 12,
+    color: "#27ae60",
+    marginLeft: 6,
+    fontWeight: "500",
+  },
+  dollarRefundBadge: {
+    fontSize: 12,
+    color: "#e67e22",
+    marginLeft: 6,
+    fontWeight: "600",
   },
   cartItemPriceContainer: {
-    flex: 1, // Adjust the style based on your design
+    flex: 1,
     alignItems: "flex-end",
   },
   cartItemPrice: {
     fontSize: 14,
     fontWeight: "bold",
   },
-
   fullRefundButton: {
     marginHorizontal: 15,
     marginBottom: 15,
@@ -842,34 +995,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   fullRefundText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,
   },
-
   refundButton: {
     marginTop: 10,
     flexDirection: "row",
     alignItems: "center",
   },
-
   refundButtonText: {
     color: "#1769E0",
     marginLeft: 6,
     fontSize: 14,
     fontWeight: "600",
   },
-
   refundOverlay: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.4)",
   },
-
   refundModal: {
     width: "90%",
     backgroundColor: "#fff",
@@ -878,17 +1026,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 16,
   },
-
   quantityLabel: {
     fontSize: 18,
     color: "#555",
   },
-
   quantityRow: {
     flexDirection: "row",
     alignItems: "center",
   },
-
   quantityCircle: {
     width: 58,
     height: 58,
@@ -897,20 +1042,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   quantitySymbol: {
     fontSize: 32,
     fontWeight: "bold",
     color: "#fff",
   },
-
   refundQuantity: {
     fontSize: 22,
     fontWeight: "bold",
     color: "#aaaaaa",
     marginHorizontal: 30,
   },
-
   refundConfirmButton: {
     width: "100%",
     height: 55,
@@ -919,13 +1061,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   refundConfirmText: {
     color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
   },
-
   refundCancelText: {
     fontSize: 18,
     color: "#666",
@@ -935,51 +1075,57 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: "100%",
   },
-
+  refundTransactionsContainer: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
+    paddingTop: 10,
+  },
+  refundSectionHeading: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#888",
+    marginBottom: 6,
+    textTransform: "uppercase",
+  },
   refundSuccessBox: {
-    marginTop: 15,
-    padding: 15,
-    borderRadius: 10,
+    marginVertical: 4,
+    padding: 10,
+    borderRadius: 8,
     backgroundColor: "#EEF9F4",
     flexDirection: "row",
     alignItems: "center",
     width: "100%",
   },
-
   refundSuccessIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: "#0CAF50",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 15,
+    marginRight: 10,
   },
-
   refundSuccessDetails: {
     flex: 1,
   },
-
   refundedQuantityText: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "600",
     color: "#111",
   },
-
-  refundedAmountText: {
-    fontSize: 14,
-    color: "#777",
-    marginTop: 5,
+  timeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
+    gap: 4,
   },
-
-  remainingQuantityText: {
-    fontSize: 13,
+  refundDateText: {
+    fontSize: 11,
     color: "#777",
-    marginTop: 4,
   },
-
   refundedTotalAmount: {
-    fontSize: 17,
+    fontSize: 14,
     fontWeight: "700",
     color: "#0A9F4B",
   },
@@ -994,7 +1140,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-
   fullRefundSuccessIcon: {
     width: 55,
     height: 55,
@@ -1004,24 +1149,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 15,
   },
-
   fullRefundSuccessDetails: {
     flex: 1,
   },
-
   fullRefundSuccessTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: "#0A9F4B",
     marginBottom: 8,
   },
-
   fullRefundInfo: {
     fontSize: 14,
     color: "#666",
     marginTop: 4,
   },
-
   fullRefundDate: {
     alignItems: "flex-end",
     marginTop: 30,
@@ -1052,7 +1193,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#555",
   },
-
   emailError: {
     color: "red",
     fontSize: 12,
