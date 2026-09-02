@@ -82,11 +82,9 @@ const OnlineOrderScreen = ({ navigation }) => {
               const newOrders = response.data.result.data;
               setCompletedOrdersErrorMsg("");
               setCompletedOrders((prevOrders) => {
-                // Agar data same hai to same reference return karo
                 if (JSON.stringify(prevOrders) === JSON.stringify(newOrders)) {
                   return prevOrders;
                 }
-                // Data new/updated hai
                 return newOrders;
               });
             } else if (response?.data?.error && response?.data?.message) {
@@ -347,7 +345,6 @@ const OnlineOrderScreen = ({ navigation }) => {
   };
   const Tab = createMaterialTopTabNavigator();
   const [isCancelModalVisible, setCancelModalVisible] = useState(false);
-  console.log("1...setCancelModalVisible");
 
   const CustomTabBar = ({ state, descriptors, navigation }) => {
     return (

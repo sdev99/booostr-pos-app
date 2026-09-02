@@ -270,6 +270,7 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
           amount: refundAmount,
           refundedAt: new Date(),
           totalItems: order?.orderitems?.length || 0,
+          // type: "full",
         });
 
         setFullRefundModalVisible(false);
@@ -439,13 +440,29 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
             0,
           );
 
-          setFullRefundRecord({
-            status: "Completed",
-            amount: totalRefundAmount,
-            refundedAt: new Date(),
-            totalItems: order?.orderitems?.length || 0,
-          });
-        }
+          const itemQty = Number(orderItem.qty || orderItem.quantity || 0);
+
+          return refundedQty >= itemQty;
+        });
+
+        const totalRefundAmount = Object.values(updatedRefundedItems).reduce(
+          (total, refund) => total + Number(refund?.amount || 0),
+          0,
+        );
+
+        setFullRefundRecord({
+          status: "Completed",
+          amount: totalRefundAmount,
+          refundedAt: new Date(),
+          totalItems: allOrderItems.filter((item) => {
+            const refundedQty = Number(
+              updatedRefundedItems[item.id]?.quantity || 0,
+            );
+
+            return refundedQty > 0;
+          }).length,
+          type: allItemsRefunded ? "full" : "partial",
+        });
 
         setRefundModalVisible(false);
         setSelectedItem(null);
@@ -514,7 +531,9 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
 
             <View style={styles.fullRefundSuccessDetails}>
               <Text style={styles.fullRefundSuccessTitle}>
-                Full Refund Completed
+                {fullRefundRecord?.type === "partial"
+                  ? "Partial Refund Completed"
+                  : "Full Refund Completed"}
               </Text>
 
               <Text style={styles.fullRefundInfo}>
