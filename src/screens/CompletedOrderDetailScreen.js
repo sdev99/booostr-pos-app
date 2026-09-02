@@ -116,6 +116,8 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
   }, []);
 
   useEffect(() => {
+    console.log("CompletedOrderDetailScreen - order:", order);
+    
     const refundData = {};
     const refundLogs =
       order?.orderlasttrans?.partial_refund_logs ||
