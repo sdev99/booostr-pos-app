@@ -66,11 +66,14 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
 
     if (isNaN(parsedDate.getTime())) return "";
 
-    return `${parsedDate.toLocaleDateString()} ${parsedDate.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    })}`;
+    return `${parsedDate.toLocaleDateString()} ${parsedDate.toLocaleTimeString(
+      [],
+      {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      },
+    )}`;
   };
 
   const getItemUnitPrice = (item) => {
@@ -84,7 +87,7 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
         }
       } catch (e) {}
     }
-    return price ;
+    return price;
   };
 
   const getMaxRefundableAmount = (item) => {
@@ -117,7 +120,7 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     console.log("CompletedOrderDetailScreen - order:", order);
-    
+
     const refundData = {};
     const refundLogs =
       order?.orderlasttrans?.partial_refund_logs ||
@@ -138,8 +141,9 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
         const itemQty = isDollarRefund ? 0 : Number(item.qty || 0);
         const itemAmt = Number(item.amount || refund.item_amount || 0);
         const itemTax = Number(item.tax || refund.tax_amount || 0);
-        const totalRefundedForLine =
-          refund.grand_total ? Number(refund.grand_total) : itemAmt + itemTax;
+        const totalRefundedForLine = refund.grand_total
+          ? Number(refund.grand_total)
+          : itemAmt + itemTax;
 
         if (!refundData[itemId]) {
           refundData[itemId] = {
@@ -189,7 +193,8 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
             );
             if (refundedItem) {
               quickSaleOrderRefundedTotalAmount +=
-                Number(refund.item_amount || 0) + Number(refund.tax_amount || 0);
+                Number(refund.item_amount || 0) +
+                Number(refund.tax_amount || 0);
             }
           });
           if (quickSaleOrderRefundedTotalAmount >= quickSaleOrderTotalAmount) {
@@ -270,7 +275,7 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
           amount: refundAmount,
           refundedAt: new Date(),
           totalItems: order?.orderitems?.length || 0,
-          // type: "full",
+          type: "full",
         });
 
         setFullRefundModalVisible(false);
@@ -429,15 +434,14 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
 
         setRefundedItems(updatedRefundedItems);
 
-        const allItemsRefunded = order?.orderitems?.every((orderItem) => {
-          const maxRemaining = getMaxRefundableAmount(orderItem);
-          return maxRemaining <= 0;
-        });
+        const allOrderItems = [
+          ...(order?.orderitems || []),
+          ...(order?.quick_sale_items || []),
+        ];
 
-        if (allItemsRefunded) {
-          const totalRefundAmount = Object.values(updatedRefundedItems).reduce(
-            (total, refund) => total + Number(refund.amount || 0),
-            0,
+        const allItemsRefunded = allOrderItems.every((orderItem) => {
+          const refundedQty = Number(
+            updatedRefundedItems[orderItem.id]?.quantity || 0,
           );
 
           const itemQty = Number(orderItem.qty || orderItem.quantity || 0);
@@ -617,7 +621,9 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
                         </View>
                       )}
                       <View style={styles.quantityContainer}>
-                        <Text style={styles.quantityText}>Qty: {originalQty}</Text>
+                        <Text style={styles.quantityText}>
+                          Qty: {originalQty}
+                        </Text>
                         {refunded?.hasDollarRefund ? (
                           <Text style={styles.dollarRefundBadge}>
                             (Partial $ Refunded)
@@ -642,9 +648,13 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
                             setSelectedItem(item);
                             // Default to Amount Refund if no full unit can be returned
                             if (effectiveRefundableQty <= 0) {
-                              setSelectedPartialRefundType("partial_amount_refund");
+                              setSelectedPartialRefundType(
+                                "partial_amount_refund",
+                              );
                             } else {
-                              setSelectedPartialRefundType("partial_item_refund");
+                              setSelectedPartialRefundType(
+                                "partial_item_refund",
+                              );
                             }
                             setRefundQuantity(1);
                             setRefundModalVisible(true);
