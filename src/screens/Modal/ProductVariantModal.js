@@ -10,8 +10,9 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  ScrollView
+  ScrollView,
 } from "react-native";
+import DropDownPicker from "react-native-dropdown-picker";
 import { ActivityIndicator } from "react-native-paper";
 import { APP_BUTTON_COLOR, APP_DISABLED_BUTTON_COLOR } from "../../color";
 import { getProductVariations } from "../../api/product";
@@ -23,7 +24,7 @@ export const ProductVariantModal = forwardRef((props, ref) => {
   const [variations, setVariations] = useState([]);
   const [variationsPrices, setVariationsPrices] = useState([]);
   const [selectedVariations, setSelectedVariations] = useState({});
-
+  const [openDropdown, setOpenDropdown] = useState(null);
   const [fetchingVariations, setFetchingVariations] = useState(false);
   const [variationError, setVariationError] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -57,7 +58,7 @@ export const ProductVariantModal = forwardRef((props, ref) => {
 
       // Check if all selected variation IDs are present
       return Object.values(selectedVariations).every((id) =>
-        variationIds.includes(id)
+        variationIds.includes(id),
       );
     });
   };
@@ -99,43 +100,48 @@ export const ProductVariantModal = forwardRef((props, ref) => {
             ) : (
               <>
                 {variations?.length > 0 ? (
-                  variations.map((variation, key) => {
+                  variations.map((variation, index) => {
                     return (
-                      <Fragment key={key}>
+                      <Fragment key={index}>
                         <Text style={styles.sectionLabel}>
                           {variation.category.name}
                         </Text>
-                        <View style={styles.optionRow}>
-                          {variation.priceswithvaritions.map((item) => {
-                            const isSelected =
-                              selectedVariations[variation.category.id] ===
-                              item.id;
-                            return (
-                              <TouchableOpacity
-                                key={item.id}
-                                style={[
-                                  styles.optionButton,
-                                  isSelected && styles.optionButtonSelected,
-                                ]}
-                                onPress={() =>
-                                  setSelectedVariations({
-                                    ...selectedVariations,
-                                    [variation.category.id]: item.id,
-                                  })
-                                }
-                              >
-                                <Text
-                                  style={[
-                                    styles.optionText,
-                                    isSelected && styles.optionTextSelected,
-                                  ]}
-                                >
-                                  {item.name}
-                                </Text>
-                              </TouchableOpacity>
-                            );
+
+                        <DropDownPicker
+                          listMode="SCROLLVIEW"
+                          open={openDropdown === variation.category.id}
+                          value={
+                            selectedVariations[variation.category.id] || null
+                          }
+                          items={variation.priceswithvaritions.map((item) => {
+                            const variationPrice =
+                              findPriceBySelectedVariations(variationsPrices, [
+                                item.id,
+                              ]);
+                            return {
+                              label: item.name + " - $" + variationPrice?.price,
+                              value: item.id,
+                            };
                           })}
-                        </View>
+                          setOpen={(open) =>
+                            setOpenDropdown(open ? variation.category.id : null)
+                          }
+                          setValue={(callback) => {
+                            const value = callback(
+                              selectedVariations[variation.category.id],
+                            );
+
+                            setSelectedVariations((prev) => ({
+                              ...prev,
+                              [variation.category.id]: value,
+                            }));
+                          }}
+                          placeholder={`Select ${variation.category.name}`}
+                          style={styles.dropdown}
+                          dropDownContainerStyle={styles.dropdownContainer}
+                          zIndex={variations.length - index}
+                          zIndexInverse={index}
+                        />
                       </Fragment>
                     );
                   })
@@ -191,7 +197,7 @@ export const ProductVariantModal = forwardRef((props, ref) => {
                 if (props.onConfirm) {
                   const variationPrice = findPriceBySelectedVariations(
                     variationsPrices,
-                    selectedVariations
+                    selectedVariations,
                   );
                   props.onConfirm(
                     {
@@ -199,7 +205,7 @@ export const ProductVariantModal = forwardRef((props, ref) => {
                       variation_id: variationPrice.id,
                       variation_price_object: variationPrice, // remove it before submit to api in make order api.
                     },
-                    quantity
+                    quantity,
                   );
                 }
                 setVisible(false);
@@ -232,6 +238,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF",
     borderRadius: 20,
     padding: 20,
+    paddingBottom: 0,
   },
   title: {
     fontSize: 18,
@@ -333,6 +340,7 @@ const styles = StyleSheet.create({
   cancelLink: {
     marginTop: 12,
     alignItems: "center",
+    marginBottom: 20,
   },
   cancelText: {
     color: "#666",
@@ -350,5 +358,16 @@ const styles = StyleSheet.create({
     color: "#444",
     width: "100%",
     textAlign: "center",
+  },
+  dropdown: {
+    borderColor: "#CCC",
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+
+  dropdownContainer: {
+    borderColor: "#CCC",
+    borderRadius: 8,
+    maxHeight: 160,
   },
 });

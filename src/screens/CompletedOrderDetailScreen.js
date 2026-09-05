@@ -545,12 +545,11 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
               </Text>
 
               <Text style={styles.fullRefundInfo}>
-                Total Refund Amount: ${fullRefundRecord.amount.toFixed(2)}
+                Total Refund Amount: $
+                {Number(fullRefundRecord.amount || 0).toFixed(2)}
               </Text>
-            </View>
 
-            <View style={styles.fullRefundDate}>
-              <Text style={styles.fullRefundInfo}>
+              <Text style={styles.fullRefundDateText}>
                 {formatDateTime(fullRefundRecord.refundedAt)}
               </Text>
             </View>
@@ -641,31 +640,36 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
                         {unitPrice.toFixed(2)}
                       </Text>
 
-                      {maxRefundableAmount > 0 && !fullRefundRecord && (
-                        <TouchableOpacity
-                          style={styles.refundButton}
-                          onPress={() => {
-                            setSelectedItem(item);
-                            // Default to Amount Refund if no full unit can be returned
-                            if (effectiveRefundableQty <= 0) {
-                              setSelectedPartialRefundType(
-                                "partial_amount_refund",
-                              );
-                            } else {
-                              setSelectedPartialRefundType(
-                                "partial_item_refund",
-                              );
-                            }
-                            setRefundQuantity(1);
-                            setRefundModalVisible(true);
-                          }}
-                        >
-                          <Icon name="undo-variant" size={20} color="#1769E0" />
-                          <Text style={styles.refundButtonText}>
-                            Refund Item
-                          </Text>
-                        </TouchableOpacity>
-                      )}
+                      {maxRefundableAmount > 0 &&
+                        fullRefundRecord?.type !== "full" && (
+                          <TouchableOpacity
+                            style={styles.refundButton}
+                            onPress={() => {
+                              setSelectedItem(item);
+                              // Default to Amount Refund if no full unit can be returned
+                              if (effectiveRefundableQty <= 0) {
+                                setSelectedPartialRefundType(
+                                  "partial_amount_refund",
+                                );
+                              } else {
+                                setSelectedPartialRefundType(
+                                  "partial_item_refund",
+                                );
+                              }
+                              setRefundQuantity(1);
+                              setRefundModalVisible(true);
+                            }}
+                          >
+                            <Icon
+                              name="undo-variant"
+                              size={20}
+                              color="#1769E0"
+                            />
+                            <Text style={styles.refundButtonText}>
+                              Refund Item
+                            </Text>
+                          </TouchableOpacity>
+                        )}
                     </View>
                   </View>
 
@@ -1163,13 +1167,14 @@ const styles = StyleSheet.create({
   fullRefundSuccessBox: {
     marginHorizontal: 15,
     marginBottom: 15,
-    padding: 18,
+    padding: 16,
     borderRadius: 12,
     backgroundColor: "#EEF9F4",
     borderWidth: 1,
     borderColor: "#C8EEDD",
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
+    width: "auto",
   },
   fullRefundSuccessIcon: {
     width: 55,
@@ -1178,25 +1183,30 @@ const styles = StyleSheet.create({
     backgroundColor: "#0CAF50",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 15,
+    marginRight: 14,
+    flexShrink: 0,
   },
   fullRefundSuccessDetails: {
     flex: 1,
+    minWidth: 0,
   },
   fullRefundSuccessTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: "#0A9F4B",
     marginBottom: 8,
+    flexShrink: 1,
   },
   fullRefundInfo: {
     fontSize: 14,
     color: "#666",
     marginTop: 4,
+    flexShrink: 1,
   },
-  fullRefundDate: {
-    alignItems: "flex-end",
-    marginTop: 30,
+  fullRefundDateText: {
+    fontSize: 12,
+    color: "#777",
+    marginTop: 8,
   },
   modalTitle: {
     fontSize: 18,
