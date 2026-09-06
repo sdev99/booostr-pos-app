@@ -56,10 +56,11 @@ const OnlineOrderScreen = ({ navigation }) => {
   const [completedOrdersErrorMsg, setCompletedOrdersErrorMsg] = useState("");
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreData, setHasMoreData] = useState(true);
 
   // Get completed orders with pagination
   const loadMoreOrders = async () => {
-    if (loadingMore) return;
+    if (loadingMore || !hasMoreData) return;
 
     try {
       setLoadingMore(true);
@@ -81,6 +82,12 @@ const OnlineOrderScreen = ({ navigation }) => {
       );
 
       const newOrders = response?.data?.result?.data || [];
+      if (
+        response?.data?.result?.current_page >= response?.data?.result?.last_page
+      ) {
+        setHasMoreData(false);
+      }
+      console.log("Pagination response:", response?.data?.result);
 
       if (newOrders.length > 0) {
         setCompletedOrders((prev) => [...prev, ...newOrders]);
