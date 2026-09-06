@@ -408,25 +408,6 @@ const OnlineOrderScreen = ({ navigation }) => {
     );
   };
 
-  const CompletedOrdersScreen = () =>
-    isLoadingCompletedOrders ? (
-      <View style={styles.containerLoaderTop}>
-        <ActivityIndicator size="medium" color="#00c0ff" />
-      </View>
-    ) : (
-      <View style={styles.cmMain}>
-        {completedOrders?.length > 0 ? (
-          <FlatList
-            data={completedOrders}
-            renderItem={({ item }) => renderCompletedOrderedItem(item)}
-            keyExtractor={(item) => item.id.toString()}
-          />
-        ) : (
-          <Text style={styles.errorMessage}>{completedOrdersErrorMsg}</Text>
-        )}
-      </View>
-    );
-
   // Remove Expired On-Hold Orders
   useFocusEffect(
     React.useCallback(() => {
@@ -517,8 +498,31 @@ const OnlineOrderScreen = ({ navigation }) => {
         </Tab.Navigator> */}
         {selectedCol === "onHold" ? (
           <PendingOrdersScreen />
+        ) : isLoadingCompletedOrders ? (
+          <View style={styles.containerLoaderTop}>
+            <ActivityIndicator size="medium" color="#00c0ff" />
+          </View>
         ) : (
-          <CompletedOrdersScreen />
+          <View style={styles.cmMain}>
+            {completedOrders?.length > 0 ? (
+              <FlatList
+                data={completedOrders}
+                renderItem={({ item }) => renderCompletedOrderedItem(item)}
+                keyExtractor={(item) => item.id.toString()}
+                onEndReached={loadMoreOrders}
+                onEndReachedThreshold={0.5}
+                ListFooterComponent={
+                  loadingMore ? (
+                    <View style={{ paddingVertical: 15 }}>
+                      <ActivityIndicator size="small" color="#00c0ff" />
+                    </View>
+                  ) : null
+                }
+              />
+            ) : (
+              <Text style={styles.errorMessage}>{completedOrdersErrorMsg}</Text>
+            )}
+          </View>
         )}
       </View>
       <View style={styles.bottomBar}>
