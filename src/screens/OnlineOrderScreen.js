@@ -55,6 +55,44 @@ const OnlineOrderScreen = ({ navigation }) => {
   const [selectedCol, setSelectedCol] = useState("onHold");
   const [holdOrdersErrorMsg, setHoldOrdersErrorMsg] = useState("");
   const [completedOrdersErrorMsg, setCompletedOrdersErrorMsg] = useState("");
+  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // Get completed orders with pagination
+  const loadMoreOrders = async () => {
+    if (loadingMore) return;
+
+    try {
+      setLoadingMore(true);
+
+      const clubStr = await AsyncStorage.getItem("club");
+      const clubData = JSON.parse(clubStr);
+
+      const nextPage = page + 1;
+
+      const response = await axios.post(
+        `${POS_STORE_API_URL}/pos-order-list?page=${nextPage}`,
+        {},
+        {
+          headers: {
+            Apitoken: POS_API_TOKEN,
+            "X-Tenant": clubData.post_slug,
+          },
+        },
+      );
+
+      const newOrders = response?.data?.result?.data || [];
+
+      if (newOrders.length > 0) {
+        setCompletedOrders((prev) => [...prev, ...newOrders]);
+        setPage(nextPage);
+      }
+    } catch (error) {
+      console.log("Pagination error:", error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   // Get completed orders
   useFocusEffect(
@@ -101,7 +139,7 @@ const OnlineOrderScreen = ({ navigation }) => {
       };
 
       fetchData();
-    }, [completedOrders]),
+    }, []),
   );
 
   const handleLogout = () => {
@@ -525,6 +563,7 @@ const OnlineOrderScreen = ({ navigation }) => {
           </View>
         )}
       </View>
+
       <View style={styles.bottomBar}>
         <BottomBar />
       </View>
