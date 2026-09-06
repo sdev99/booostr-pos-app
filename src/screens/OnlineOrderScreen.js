@@ -53,7 +53,6 @@ const OnlineOrderScreen = ({ navigation }) => {
   const storeData = useSelector(memoizedStoreData);
   const db = SQLite.openDatabaseSync("pos.db");
   const [selectedCol, setSelectedCol] = useState("onHold");
-  const [holdOrdersErrorMsg, setHoldOrdersErrorMsg] = useState("");
   const [completedOrdersErrorMsg, setCompletedOrdersErrorMsg] = useState("");
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -105,6 +104,7 @@ const OnlineOrderScreen = ({ navigation }) => {
           const club = await AsyncStorage.getItem("club");
           if (JSON.parse(club)?.post_slug) {
             setClub(JSON.parse(club));
+            setPage(1); // Reset page to 1 when fetching new data
             const response = await axios.post(
               `${POS_STORE_API_URL}/pos-order-list?page=1`,
               {},
