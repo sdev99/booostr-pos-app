@@ -119,61 +119,79 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
   }, []);
 
   useEffect(() => {
-    console.log("CompletedOrderDetailScreen - order:", order);
+    console.log("CompletedOrderDetailScreen - order:", JSON.stringify(order));
 
+    debugger;
     const refundData = {};
-    const refundLogs =
-      order?.orderlasttrans?.partial_refund_logs ||
-      order?.orderlasttrans?.refund_logs ||
-      [];
+    let refundLogs;
+    if (order?.orderlasttrans?.partial_refund_logs?.length > 0) {
+      refundLogs = order.orderlasttrans.partial_refund_logs;
+    } else if (order?.orderlasttrans?.refund_logs) {
+      refundLogs = order.orderlasttrans.refund_logs;
+    } else {
+      refundLogs = [];
+    }
 
     refundLogs.forEach((refund) => {
-      const isDollarRefund =
-        refund.type === "dollar" ||
-        refund.reason === "partial_dollar_refund" ||
-        refund.stripe_refund_id?.includes("partial_dollar");
-
-      const logRefundedAt =
-        refund.refunded_at || refund.created_at || order.refunded_at || null;
-
-      refund.items?.forEach((item) => {
-        const itemId = item.item_id;
-        const itemQty = isDollarRefund ? 0 : Number(item.qty || 0);
-        const itemAmt = Number(item.amount || refund.item_amount || 0);
-        const itemTax = Number(item.tax || refund.tax_amount || 0);
-        const totalRefundedForLine = refund.grand_total
-          ? Number(refund.grand_total)
-          : itemAmt + itemTax;
-
-        if (!refundData[itemId]) {
-          refundData[itemId] = {
-            quantity: 0,
-            amount: 0,
-            hasDollarRefund: false,
-            history: [],
-          };
-        }
-
-        if (isDollarRefund) {
-          refundData[itemId].hasDollarRefund = true;
-        }
-
-        refundData[itemId].quantity += itemQty;
-        refundData[itemId].amount += totalRefundedForLine;
-
-        refundData[itemId].history.push({
-          id:
-            refund.stripe_refund_id ||
-            refund.fingerprint ||
-            Math.random().toString(),
-          isAmountOnly: isDollarRefund,
-          quantity: isDollarRefund ? 0 : Number(item.qty || 1),
-          amount: totalRefundedForLine,
-          item_amount: itemAmt,
-          tax_amount: itemTax,
-          refunded_at: logRefundedAt,
+      if (refund.type === "full") {
+         setFullRefundRecord({
+          status: "Completed",
+          amount: order.total,
+          refundedAt: order.refunded_at
+            ? new Date(order.refunded_at.replace(" ", "T"))
+            : new Date(refund.refunded_at.replace(" ", "T")),
+          totalItems:
+            (order?.orderitems?.length || 0) +
+            (order?.quick_sale_items?.length || 0),
         });
-      });
+      } else {
+        const isDollarRefund =
+          refund.type === "dollar" ||
+          refund.reason === "partial_dollar_refund" ||
+          refund.stripe_refund_id?.includes("partial_dollar");
+
+        const logRefundedAt =
+          refund.refunded_at || refund.created_at || order.refunded_at || null;
+
+        refund.items?.forEach((item) => {
+          const itemId = item.item_id;
+          const itemQty = isDollarRefund ? 0 : Number(item.qty || 0);
+          const itemAmt = Number(item.amount || refund.item_amount || 0);
+          const itemTax = Number(item.tax || refund.tax_amount || 0);
+          const totalRefundedForLine = refund.grand_total
+            ? Number(refund.grand_total)
+            : itemAmt + itemTax;
+
+          if (!refundData[itemId]) {
+            refundData[itemId] = {
+              quantity: 0,
+              amount: 0,
+              hasDollarRefund: false,
+              history: [],
+            };
+          }
+
+          if (isDollarRefund) {
+            refundData[itemId].hasDollarRefund = true;
+          }
+
+          refundData[itemId].quantity += itemQty;
+          refundData[itemId].amount += totalRefundedForLine;
+
+          refundData[itemId].history.push({
+            id:
+              refund.stripe_refund_id ||
+              refund.fingerprint ||
+              Math.random().toString(),
+            isAmountOnly: isDollarRefund,
+            quantity: isDollarRefund ? 0 : Number(item.qty || 1),
+            amount: totalRefundedForLine,
+            item_amount: itemAmt,
+            tax_amount: itemTax,
+            refunded_at: logRefundedAt,
+          });
+        });
+      }
     });
 
     setRefundedItems(refundData);
