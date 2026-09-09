@@ -1,10 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  getDescriptors,
-  addDescriptors,
-  updateDescriptors,
-  deleteDescriptors,
-} from "../api/descriptors";
+
 import {
   View,
   Text,
@@ -15,7 +10,6 @@ import {
   Modal,
   Platform,
   Alert,
-  TextInput,
 } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -35,7 +29,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const CustomModal = ({ isVisible, onClose, title, content }) => {
   return (
-    <Modal transparent={true} animationType="slide" visible={isVisible} onRequestClose={onClose}>
+    <Modal
+      transparent={true}
+      animationType="slide"
+      visible={isVisible}
+      onRequestClose={onClose}
+    >
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>{title}</Text>
@@ -64,6 +63,11 @@ const SettingsScreen = ({ navigation }) => {
 
   const loading = useSelector((state) => state.auth.loading);
   const userData = useSelector(memoizedUserData);
+  const [readerBatteryLevel, setReaderBatteryLevel] = useState(null);
+
+  const [firmwareUpdate, setFirmwareUpdate] = useState(null);
+  const [isUpdatingFirmware, setIsUpdatingFirmware] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState(0);
   const {
     getLocations,
     discoverReaders,
@@ -73,15 +77,136 @@ const SettingsScreen = ({ navigation }) => {
     cancelDiscovering,
     disconnectReader,
     supportsReadersOfType,
+    installAvailableUpdate, // <-- Extract this
   } = useStripeTerminal({
-    didUpdateDiscoveredReaders: (readers) => {
-      console.log("Discovered readers: ", readers);
-      // NOTE: For 'localMobile' (Tap to Pay), there is usually only one reader (the phone itself).
-      // You can auto-connect here by checking the discovery method or reader type,
-      // or let it pass to your existing StripeReaderModal.
+    // Callbacks for Stripe Terminal events
+    onUpdateDiscoveredReaders: (readers) => {
+      console.log("Discovered readers:", JSON.stringify(readers, null, 2));
+    },
+
+    onDidUpdateBatteryLevel: (batteryLevel) => {
+      console.log("========== READER BATTERY ==========");
+      console.log("Battery:", batteryLevel);
+      console.log("Battery Type:", typeof batteryLevel);
+      console.log("====================================");
+
+      if (
+        batteryLevel !== null &&
+        batteryLevel !== undefined &&
+        Number.isFinite(Number(batteryLevel))
+      ) {
+        setReaderBatteryLevel(Number(batteryLevel));
+      }
+    },
+
+    onDidReportLowBatteryWarning: () => {
+      console.log("Stripe reported low battery warning");
+    },
+
+    // Firmware Update Listeners
+    onDidReportAvailableUpdate: (update) => {
+      console.log("Firmware Update Available:", update);
+      setFirmwareUpdate(update);
+    },
+
+    onDidStartInstallingUpdate: () => {
+      setIsUpdatingFirmware(true);
+      setUpdateProgress(0);
+    },
+
+    onDidReportReaderSoftwareUpdateProgress: (progress) => {
+      // progress value comes as 0.0 to 1.0
+      setUpdateProgress(Math.round(progress * 100));
+    },
+
+    onDidFinishInstallingUpdate: ({ error }) => {
+      setIsUpdatingFirmware(false);
+      setFirmwareUpdate(null);
+      if (error) {
+        Alert.alert("Update Failed", error.message);
+      } else {
+        Alert.alert("Success", "Reader firmware updated successfully!");
+      }
     },
   });
 
+  //
+  useEffect(() => {
+    if (!connectedReader) {
+      setReaderBatteryLevel(null);
+    }
+  }, [connectedReader]);
+
+  // Handle requiredAt logic when firmwareUpdate is reported
+  useEffect(() => {
+    if (firmwareUpdate) {
+      handleFirmwareUpdatePrompt(firmwareUpdate);
+    }
+  }, [firmwareUpdate]);
+
+  const handleFirmwareUpdatePrompt = (update) => {
+    const { requiredAt } = update;
+
+    let isRequired = false;
+    let title = "Software Update Available";
+    let message = "A new firmware update is available for your reader.";
+
+    if (requiredAt) {
+      const requiredDate = new Date(requiredAt);
+      const now = new Date();
+      const formattedDate = `${requiredDate.toLocaleDateString()} ${requiredDate.toLocaleTimeString()}`;
+
+      if (requiredDate <= now) {
+        // STATE 3: Mandatory / Expired Date
+        isRequired = true;
+        title = "Required Firmware Update";
+        message = `A mandatory update is required to continue using the reader. (Deadline: ${formattedDate})`;
+      } else {
+        // STATE 2: Optional with Upcoming Date
+        title = "Upcoming Firmware Update";
+        message = `A new update is available. This update will become mandatory on ${formattedDate}.`;
+      }
+    }
+
+    const startUpdate = async () => {
+      try {
+        const { error } = await installAvailableUpdate();
+        if (error) {
+          Alert.alert("Update Error", error.message);
+        }
+      } catch (err) {
+        Alert.alert("Update Error", err.message);
+      }
+    };
+
+    if (isRequired) {
+      // Blocking Alert (No Skip option)
+      Alert.alert(
+        title,
+        message,
+        [
+          {
+            text: "Update Now",
+            onPress: startUpdate,
+          },
+        ],
+        { cancelable: false },
+      );
+    } else {
+      // Non-blocking Alert (Skip allowed)
+      Alert.alert(title, message, [
+        {
+          text: "Skip / Later",
+          style: "cancel",
+          onPress: () => setFirmwareUpdate(null),
+        },
+        {
+          text: "Update Now",
+          onPress: startUpdate,
+        },
+      ]);
+    }
+  };
   // ========================================
   // FETCH CLUB
   // ========================================
@@ -177,7 +302,9 @@ const SettingsScreen = ({ navigation }) => {
           },
         });
         if (!granted) {
-          console.error("Location and BT services are required to connect to a reader.");
+          console.error(
+            "Location and BT services are required to connect to a reader.",
+          );
           return;
         }
       } catch (e) {
@@ -202,7 +329,10 @@ const SettingsScreen = ({ navigation }) => {
         (error.code === "osVersionNotSupported" ||
           error.code === "PaymentCardReaderError.osVersionNotSupported")
       ) {
-        Alert.alert("Not Supported!", "Please update your iOS to use Tap to Pay.");
+        Alert.alert(
+          "Not Supported!",
+          "Please update your iOS to use Tap to Pay.",
+        );
         return;
       }
 
@@ -244,6 +374,42 @@ const SettingsScreen = ({ navigation }) => {
     return "bluetooth-settings";
   };
 
+  const getBatteryPercentage = (battery) => {
+    if (
+      battery === null ||
+      battery === undefined ||
+      !Number.isFinite(Number(battery))
+    ) {
+      return null;
+    }
+
+    const numericBattery = Number(battery);
+
+    return Math.round(
+      numericBattery <= 1 ? numericBattery * 100 : numericBattery,
+    );
+  };
+  const getBatteryIcon = (battery) => {
+    if (battery <= 10) return "battery-10";
+    if (battery <= 20) return "battery-20";
+    if (battery <= 30) return "battery-30";
+    if (battery <= 40) return "battery-40";
+    if (battery <= 50) return "battery-50";
+    if (battery <= 60) return "battery-60";
+    if (battery <= 70) return "battery-70";
+    if (battery <= 80) return "battery-80";
+    if (battery <= 90) return "battery-90";
+
+    return "battery";
+  };
+
+  const getBatteryColor = (battery) => {
+    if (battery <= 20) return "red";
+    if (battery <= 50) return "orange";
+
+    return "green";
+  };
+
   // Detect if Tap to Pay is connected
   const isTapToPayConnected = () => {
     if (!connectedReader) return false;
@@ -281,20 +447,39 @@ const SettingsScreen = ({ navigation }) => {
           <View style={styles.settingsWrap}>
             <View style={styles.allItems}>
               {/* Account */}
-              <TouchableOpacity style={styles.settingItem} onPress={toggleAccountModal}>
-                <Icon name="account" size={24} color="#000" style={styles.settingIcon} />
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={toggleAccountModal}
+              >
+                <Icon
+                  name="account"
+                  size={24}
+                  color="#000"
+                  style={styles.settingIcon}
+                />
                 <Text style={styles.settingTitle}>Account</Text>
               </TouchableOpacity>
 
               {/* Quick Sale Settings */}
-              <TouchableOpacity style={styles.settingItem} onPress={handleQuickSaleSettings}>
-                <Icon name="flash" size={24} color="#000" style={styles.settingIcon} />
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={handleQuickSaleSettings}
+              >
+                <Icon
+                  name="flash"
+                  size={24}
+                  color="#000"
+                  style={styles.settingIcon}
+                />
                 <Text style={styles.settingTitle}>Quick Sale Settings</Text>
               </TouchableOpacity>
 
               {/* Reader Connections */}
               {connectedReader && (
-                <TouchableOpacity style={styles.settingItem} onPress={disconnectFromReader}>
+                <TouchableOpacity
+                  style={styles.settingItem}
+                  onPress={disconnectFromReader}
+                >
                   <Icon
                     name={getConnectedReaderIcon()}
                     size={24}
@@ -306,23 +491,58 @@ const SettingsScreen = ({ navigation }) => {
                     connectedReader.deviceType === "appleBuiltIn" ||
                     connectedReader.deviceType === "cotsDevice" ? (
                       <>
-                        <Text style={styles.settingTitle}>Tap to Pay Connected</Text>
+                        <Text style={styles.settingTitle}>
+                          Tap to Pay Connected
+                        </Text>
                         <View style={styles.deviceIdDetailContainer}>
                           <Text style={styles.deviceIdLabel}>ID: </Text>
                           <Text style={styles.deviceIdText}>
-                            {connectedReader.serialNumber || connectedReader.deviceId || "N/A"}
+                            {connectedReader.serialNumber ||
+                              connectedReader.deviceId ||
+                              "N/A"}
                           </Text>
                         </View>
                       </>
                     ) : (
-                      <Text style={styles.settingTitle}>
-                        {connectedReader.serialNumber || "Reader Connected"}
-                      </Text>
+                      <>
+                        <Text style={styles.settingTitle}>
+                          {connectedReader.serialNumber || "Reader Connected"}
+                        </Text>
+
+                        {getBatteryPercentage(readerBatteryLevel) !== null && (
+                          <View style={styles.connectedBatteryContainer}>
+                            <Icon
+                              name={getBatteryIcon(
+                                getBatteryPercentage(readerBatteryLevel),
+                              )}
+                              size={20}
+                              color={getBatteryColor(
+                                getBatteryPercentage(readerBatteryLevel),
+                              )}
+                            />
+
+                            <Text
+                              style={[
+                                styles.connectedBatteryText,
+                                {
+                                  color: getBatteryColor(
+                                    getBatteryPercentage(readerBatteryLevel),
+                                  ),
+                                },
+                              ]}
+                            >
+                              {getBatteryPercentage(readerBatteryLevel)}%
+                            </Text>
+                          </View>
+                        )}
+                      </>
                     )}
                   </View>
                   <View style={styles.disconnectReader}>
                     <View style={styles.disconnectReaderTextWrap}>
-                      <Text style={styles.disconnectReaderText}>Disconnect</Text>
+                      <Text style={styles.disconnectReaderText}>
+                        Disconnect
+                      </Text>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -331,7 +551,10 @@ const SettingsScreen = ({ navigation }) => {
                 {/* Option 1: Tap to Pay (Local Phone) */}
                 {(!connectedReader || !isTapToPayConnected()) && (
                   <TouchableOpacity
-                    style={[styles.settingItem, isBluetoothReaderConnected() && { opacity: 0.4 }]}
+                    style={[
+                      styles.settingItem,
+                      isBluetoothReaderConnected() && { opacity: 0.4 },
+                    ]}
                     onPress={() => {
                       if (isBluetoothReaderConnected()) {
                         alert("Disconnect reader first to use Tap to Pay");
@@ -348,13 +571,18 @@ const SettingsScreen = ({ navigation }) => {
                     />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.settingTitle}>
-                        Tap to Pay on {Platform.OS === "ios" ? "iPhone" : "Android"}
+                        Tap to Pay on{" "}
+                        {Platform.OS === "ios" ? "iPhone" : "Android"}
                       </Text>
                       {Platform.OS === "ios" && (
-                        <Text style={{ fontSize: 12, color: "#555", marginTop: 4 }}>
-                          Accept Apple Pay, contactless cards (tap card on iPhone), and digital
-                          wallets with Tap to Pay on iPhone. Customers may need to enter their PIN
-                          on iPhone. Accessibility features like VoiceOver are supported.
+                        <Text
+                          style={{ fontSize: 12, color: "#555", marginTop: 4 }}
+                        >
+                          Accept Apple Pay, contactless cards (tap card on
+                          iPhone), and digital wallets with Tap to Pay on
+                          iPhone. Customers may need to enter their PIN on
+                          iPhone. Accessibility features like VoiceOver are
+                          supported.
                         </Text>
                       )}
                     </View>
@@ -362,9 +590,12 @@ const SettingsScreen = ({ navigation }) => {
                 )}
 
                 {/* Option 2: External Bluetooth Reader */}
-                {(!connectedReader || isTapToPayConnected) && (
+                {(!connectedReader || isTapToPayConnected()) && (
                   <TouchableOpacity
-                    style={[styles.settingItem, isTapToPayConnected() && { opacity: 0.4 }]}
+                    style={[
+                      styles.settingItem,
+                      isTapToPayConnected() && { opacity: 0.4 },
+                    ]}
                     onPress={() => {
                       if (isTapToPayConnected()) {
                         alert("Disconnect Tap to Pay first to use Reader");
@@ -373,39 +604,98 @@ const SettingsScreen = ({ navigation }) => {
                       handleConnectBluetoothReader();
                     }}
                   >
-                    <Icon name="bluetooth" size={24} color="#000" style={styles.settingIcon} />
-                    <Text style={styles.settingTitle}>Connect Bluetooth Reader</Text>
+                    <Icon
+                      name="bluetooth"
+                      size={24}
+                      color="#000"
+                      style={styles.settingIcon}
+                    />
+                    <Text style={styles.settingTitle}>
+                      Connect Bluetooth Reader
+                    </Text>
                   </TouchableOpacity>
                 )}
               </>
 
               {/* Help & Support */}
-              <TouchableOpacity style={styles.settingItem} onPress={handleHelpAndSupport}>
-                <Icon name="help-circle" size={24} color="#000" style={styles.settingIcon} />
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={handleHelpAndSupport}
+              >
+                <Icon
+                  name="help-circle"
+                  size={24}
+                  color="#000"
+                  style={styles.settingIcon}
+                />
                 <Text style={styles.settingTitle}>Help and Support</Text>
               </TouchableOpacity>
 
               {/* EULA */}
-              <TouchableOpacity style={styles.settingItem} onPress={handleAgreementSupport}>
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={handleAgreementSupport}
+              >
                 <Icon
                   name="file-document-outline"
                   size={24}
                   color="#000"
                   style={styles.settingIcon}
                 />
-                <Text style={styles.settingTitle}>End-user License Agreement</Text>
+                <Text style={styles.settingTitle}>
+                  End-user License Agreement
+                </Text>
               </TouchableOpacity>
 
               {/* Logout */}
-              <TouchableOpacity style={styles.settingItem} onPress={handleLogout}>
-                <Icon name="logout" size={24} color="red" style={styles.settingIcon} />
-                <Text style={[styles.settingTitle, { color: "red" }]}>Logout</Text>
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={handleLogout}
+              >
+                <Icon
+                  name="logout"
+                  size={24}
+                  color="red"
+                  style={styles.settingIcon}
+                />
+                <Text style={[styles.settingTitle, { color: "red" }]}>
+                  Logout
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
       )}
 
+      {/* SettingsScreen JSX me Loader section add karein */}
+      <Modal visible={isUpdatingFirmware} transparent animationType="fade">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <ActivityIndicator size="large" color="#00c0ff" />
+            <Text
+              style={[
+                styles.modalTitle,
+                { marginTop: 15, textAlign: "center" },
+              ]}
+            >
+              Updating Reader Firmware...
+            </Text>
+            <Text style={{ textAlign: "center", marginTop: 10, fontSize: 16 }}>
+              {updateProgress}% Completed
+            </Text>
+            <Text
+              style={{
+                textAlign: "center",
+                marginTop: 5,
+                color: "#666",
+                fontSize: 12,
+              }}
+            >
+              Please do not turn off the reader or close the app.
+            </Text>
+          </View>
+        </View>
+      </Modal>
       {/*============================================*/}
       {/* Quick Sale Settings Modal */}
 
@@ -437,6 +727,7 @@ const SettingsScreen = ({ navigation }) => {
         discoveredReaders={discoveredReaders}
         getLocations={getLocations}
         connectReader={connectReader}
+        batteryLevel={readerBatteryLevel}
       />
 
       <View style={styles.bottomBar}>
@@ -554,6 +845,17 @@ const styles = StyleSheet.create({
     padding: 6,
     paddingHorizontal: 10,
     color: "white",
+  },
+  connectedBatteryContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+
+  connectedBatteryText: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 5,
   },
 });
 

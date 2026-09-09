@@ -19,6 +19,9 @@ import FullScreenLoader from "./FullScreenLoader";
 import { useSelector } from "react-redux";
 import { memoizedStoreData } from "../../store/selectors";
 import { createStripeLocation } from "../../api/stripe";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+const DEFAULT_BATTERY_LEVEL_SIMULAT = 100;
 
 const StripeReaderModal = forwardRef(
   (
@@ -30,6 +33,7 @@ const StripeReaderModal = forwardRef(
       connectReader,
       discoveredReaders,
       onRequestClose,
+      batteryLevel,
     },
     ref,
   ) => {
@@ -156,6 +160,118 @@ const StripeReaderModal = forwardRef(
       }
     };
 
+    const getBatteryIcon = (battery) => {
+      if (battery <= 10) return "battery-10";
+      if (battery <= 20) return "battery-20";
+      if (battery <= 30) return "battery-30";
+      if (battery <= 40) return "battery-40";
+      if (battery <= 50) return "battery-50";
+      if (battery <= 60) return "battery-60";
+      if (battery <= 70) return "battery-70";
+      if (battery <= 80) return "battery-80";
+      if (battery <= 90) return "battery-90";
+
+      return "battery";
+    };
+
+    const getBatteryColor = (battery) => {
+      if (battery <= 10) return "red";
+      if (battery <= 20) return "red";
+      if (battery <= 50) return "orange";
+
+      return "green";
+    };
+
+    // Dynamic battery level extraction
+    const parseBatteryLevel = (reader) => {
+      const isSimulated =
+        reader?.serialNumber?.toUpperCase().includes("SIMULATOR") ||
+        reader?.simulated;
+
+      let rawBattery = reader?.batteryLevel;
+
+      if (
+        (rawBattery === undefined ||
+          rawBattery === null ||
+          Number.isNaN(Number(rawBattery))) &&
+        isSimulated
+      ) {
+        rawBattery = DEFAULT_BATTERY_LEVEL_SIMULAT / 100;
+      }
+
+      if (
+        rawBattery === undefined ||
+        rawBattery === null ||
+        Number.isNaN(Number(rawBattery))
+      ) {
+        return null;
+      }
+
+      const parsedPercentage =
+        rawBattery <= 1 ? Math.round(rawBattery * 100) : Math.round(rawBattery);
+
+      return parsedPercentage;
+    };
+
+    // All battery tier checks before connecting
+    const handleConnectClick = (reader) => {
+      const battery = parseBatteryLevel(reader);
+
+      if (battery !== null) {
+        if (battery <= 10) {
+          Alert.alert(
+            "Low Battery",
+            `The reader battery is ${battery}%. The reader cannot connect until it has at least an 11% charge. Please charge the reader.`,
+          );
+          return;
+        }
+
+        if (battery <= 20) {
+          Alert.alert(
+            "Low Battery Warning",
+            `Battery is at ${battery}%. We strongly urge you to charge the reader.`,
+            [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Connect Anyway",
+                onPress: () => handleConnectBluetoothReader(reader),
+              },
+            ],
+          );
+          return;
+        }
+
+        if (battery <= 50) {
+          Alert.alert(
+            "Battery Notice",
+            `Battery is at ${battery}%. The reader will need to be charged soon.`,
+            [
+              {
+                text: "Connect",
+                onPress: () => handleConnectBluetoothReader(reader),
+              },
+            ],
+          );
+          return;
+        }
+
+        Alert.alert(
+          "Strong Charge",
+          `Battery is at ${battery}%. Confirming strong charge, please always monitor battery level.`,
+          [
+            {
+              text: "Connect",
+              onPress: () => handleConnectBluetoothReader(reader),
+            },
+          ],
+        );
+
+        return;
+      }
+
+      // Battery unavailable → don't block connection
+      handleConnectBluetoothReader(reader);
+    };
     return (
       <Modal
         transparent={true}
@@ -187,17 +303,41 @@ const StripeReaderModal = forwardRef(
                 ) : (
                   <>
                     {discoveredReaders.map((reader, index) => {
+                      const battery = parseBatteryLevel(reader);
                       return (
                         <View key={index} style={styles.reader}>
-                          <Text style={styles.readerText}>
-                            <Text style={styles.readerLabel}>
-                              Reference ID:
-                            </Text>{" "}
-                            {reader.serialNumber}
-                          </Text>
+                          <View style={styles.readerInfo}>
+                            <Text style={styles.readerText}>
+                              <Text style={styles.readerLabel}>
+                                Reference ID:
+                              </Text>
+                              {reader.serialNumber}
+                            </Text>
+
+                            <View style={styles.batteryContainer}>
+                              <MaterialCommunityIcons
+                                name={
+                                  battery === null
+                                    ? "battery-unknown"
+                                    : getBatteryIcon(battery)
+                                }
+                                size={20}
+                                color={
+                                  battery === null
+                                    ? "gray"
+                                    : getBatteryColor(battery)
+                                }
+                              />
+
+                              <Text style={styles.batteryText}>
+                                {battery === null ? "--" : `${battery}%`}
+                              </Text>
+                            </View>
+                          </View>
+
                           <TouchableOpacity
                             style={styles.readerConnect}
-                            onPress={() => handleConnectBluetoothReader(reader)}
+                            onPress={() => handleConnectClick(reader)}
                           >
                             <Text style={styles.readerConnectText}>
                               Connect
@@ -279,6 +419,21 @@ const styles = StyleSheet.create({
   scanning: {
     alignSelf: "center",
     marginTop: 10,
+  },
+
+  batteryContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  batteryText: {
+    fontSize: 12,
+    marginLeft: 4,
+    fontWeight: "500",
+  },
+  readerInfo: {
+    flex: 1,
+    justifyContent: "center",
   },
 });
 
