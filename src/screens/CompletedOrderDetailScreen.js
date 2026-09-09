@@ -134,7 +134,7 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
 
     refundLogs.forEach((refund) => {
       if (refund.type === "full") {
-         setFullRefundRecord({
+        setFullRefundRecord({
           status: "Completed",
           amount: order.total,
           refundedAt: order.refunded_at
@@ -143,6 +143,7 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
           totalItems:
             (order?.orderitems?.length || 0) +
             (order?.quick_sale_items?.length || 0),
+          type: "full", // ADD THIS
         });
       } else {
         const isDollarRefund =
@@ -230,6 +231,7 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
             totalItems:
               (order?.orderitems?.length || 0) +
               (order?.quick_sale_items?.length || 0),
+            type: "full",
           });
         }
       } else {
@@ -659,7 +661,8 @@ const CompletedOrderDetailScreen = ({ route, navigation }) => {
                       </Text>
 
                       {maxRefundableAmount > 0 &&
-                        fullRefundRecord?.type !== "full" && (
+                        (!fullRefundRecord ||
+                          fullRefundRecord.type !== "full") && (
                           <TouchableOpacity
                             style={styles.refundButton}
                             onPress={() => {
